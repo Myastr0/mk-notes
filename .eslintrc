@@ -1,0 +1,70 @@
+{
+  "env": {
+    "browser": true,
+    "es2021": true,
+    "node": true
+  },
+  "extends": [
+    "eslint:recommended",
+    "plugin:@typescript-eslint/recommended",
+    "plugin:prettier/recommended"
+  ],
+  "parser": "@typescript-eslint/parser",
+  "parserOptions": {
+    "ecmaVersion": "latest",
+    "sourceType": "module",
+    "project": "./tsconfig.eslint.json"
+  },
+  "plugins": ["@typescript-eslint", "prettier", "simple-import-sort", "import"],
+  "rules": {
+    "prettier/prettier": "error",
+    "@typescript-eslint/no-var-requires": "off",
+    "simple-import-sort/imports": "error",
+    "simple-import-sort/exports": "error",
+    "no-console": "error",
+    "prefer-destructuring": [
+      "error",
+      {
+        "array": true,
+        "object": true
+      },
+      {
+        "enforceForRenamedProperties": false
+      }
+    ],
+    "@typescript-eslint/no-floating-promises": "error",
+    "@typescript-eslint/promise-function-async": "error",
+    "import/no-default-export": "error"
+  },
+  "ignorePatterns": [
+    "node_modules/",
+    "dist/",
+    "jest.config.js"
+  ],
+  "overrides": [
+    {
+      "files": ["./src/shared/__generated__/**/*"],
+      "rules": {
+        "@typescript-eslint/ban-types": "off",
+        "@typesscript-eslint/no-explicit-any": "off"
+      }
+    },
+    {
+      "files": ["**/*"],
+      "excludedFiles": ["./src/**/*"],
+      "rules": {
+        "@typescript-eslint/explicit-module-boundary-types": "off",
+        "@typescript-eslint/no-explicit-any": "off",
+        "@typescript-eslint/no-unused-vars": "off",
+        "@typescript-eslint/no-floating-promises": "off",
+        "@typescript-eslint/promise-function-async": "off",
+      }
+    },
+    {
+      "files": ["./scripts/**/*"],
+        "rules": {
+            "no-console": "off"
+        }
+    }
+  ]
+}

@@ -1,0 +1,29 @@
+# IDE
+.idea
+
+
+# Extra
+*.pem
+.env.*
+
+# Pre-commit
+.husky/_/
+
+# Node.js
+node_modules/
+dist/
+
+# Infrastructure
+
+.infrastructure/scw/credentials
+.infrastructure/.terraform
+.infrastructure/.terraform.lock.hcl
+.infrastructure/local.auto.tfvars
+.infrastructure/terraform.tfstate
+
+
+__generated__/
+
+
+.nx/cache
+.nx/workspace-data
