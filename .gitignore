@@ -13,17 +13,5 @@
 node_modules/
 dist/
 
-# Infrastructure
-
-.infrastructure/scw/credentials
-.infrastructure/.terraform
-.infrastructure/.terraform.lock.hcl
-.infrastructure/local.auto.tfvars
-.infrastructure/terraform.tfstate
-
-
-__generated__/
-
-
-.nx/cache
-.nx/workspace-data
+# Extras
+coverage/

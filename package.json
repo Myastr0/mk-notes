@@ -1,21 +1,32 @@
 {
-  "name": "nodejs-ts-template",
+  "name": "@mk-notes/cli",
+  "description": "Markdown to Notion synchronization CLI 🔄",
   "version": "1.0.0",
   "private": "true",
-  "repository": "git@github.com:Myastr0/nodejs-ts-template",
+  "repository": "git@github.com:Myastr0/mk-notes.git",
   "license": "MIT",
-  "author": "Leo DUMON (github.com/Myastr0)",
+  "author": "Myastr0",
   "main": "index.js",
+  "bin": {
+    "mk-notes": "dist/bin/index.js"
+  },
   "scripts": {
+    "doc:gen": "nodemon --watch src/**/* -x \"typedoc --options typedoc.json\"",
+    "doc:serve": "cd ./docs && yarn start",
+    "doc:watch": "concurrently \"yarn doc:gen\" \"yarn doc:serve\"",
+    "build": "tsc -p tsconfig.json && tsc-alias -p tsconfig.json",
     "prepare": "husky",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "cli": "ts-node src/bin",
+    "test": "jest"
   },
   "devDependencies": {
     "@eslint/js": "^9.4.0",
     "@types/jest": "^29.5.14",
+    "@types/js-yaml": "^4.0.9",
     "@types/node": "^22.9.0",
     "@typescript-eslint/eslint-plugin": "^7.11.0",
     "@typescript-eslint/parser": "^7.11.0",
+    "concurrently": "^9.1.2",
     "eslint": "^8",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-import": "^2.29.1",
@@ -24,14 +35,31 @@
     "husky": "^9.1.1",
     "jest": "^29.7.0",
     "lint-staged": "^15.2.7",
+    "nock": "^14.0.0",
+    "nodemon": "^3.1.9",
     "prettier": "^3.3.0",
-    "ts-jest": "^29.1.4",
+    "ts-jest": "^29.2.5",
     "ts-morph": "^22.0.0",
     "ts-node": "^10.9.2",
-    "typescript": "^5.4.5",
+    "tsc-alias": "^1.8.10",
+    "tsconfig-paths": "^4.2.0",
+    "typedoc": "^0.27.6",
+    "typedoc-plugin-markdown": "^4.4.1",
+    "typescript": "^5.7.3",
     "typescript-eslint": "^7.11.0"
   },
   "engines": {
     "node": ">=20"
+  },
+  "dependencies": {
+    "@notionhq/client": "^2.2.15",
+    "commander": "^13.1.0",
+    "dom-serializer": "^2.0.0",
+    "front-matter": "^4.0.2",
+    "htmlparser2": "^10.0.0",
+    "js-yaml": "^4.1.0",
+    "marked": "^15.0.6",
+    "ora": "5.4.1",
+    "winston": "^3.17.0"
   }
 }

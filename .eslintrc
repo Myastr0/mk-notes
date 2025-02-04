@@ -21,6 +21,7 @@
     "@typescript-eslint/no-var-requires": "off",
     "simple-import-sort/imports": "error",
     "simple-import-sort/exports": "error",
+    "no-case-declarations": "off",
     "no-console": "error",
     "prefer-destructuring": [
       "error",
@@ -57,7 +58,7 @@
         "@typescript-eslint/no-explicit-any": "off",
         "@typescript-eslint/no-unused-vars": "off",
         "@typescript-eslint/no-floating-promises": "off",
-        "@typescript-eslint/promise-function-async": "off",
+        "@typescript-eslint/promise-function-async": "off"
       }
     },
     {

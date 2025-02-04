@@ -1,0 +1,69 @@
+import { Logger } from 'winston';
+
+import {
+  Element,
+  ElementConverterRepository,
+  PageElement,
+  ParserRepository,
+  SupportedEmoji,
+} from '@/domains/elements';
+import { File } from '@/domains/synchronization';
+import type { HtmlParser } from '@/infrastructure/html/html.parser';
+import type { MarkdownParser } from '@/infrastructure/markdown/markdown.parser';
+
+export class FileConverter
+  implements ElementConverterRepository<File, PageElement>
+{
+  private htmlParser: HtmlParser;
+  private markdownParser: MarkdownParser;
+  private logger: Logger;
+
+  constructor({
+    htmlParser,
+    markdownParser,
+    logger,
+  }: {
+    htmlParser: HtmlParser;
+    markdownParser: MarkdownParser;
+    logger: Logger;
+  }) {
+    this.htmlParser = htmlParser;
+    this.markdownParser = markdownParser;
+    this.logger = logger;
+  }
+
+  async convertToElement(file: File): Promise<PageElement> {
+    const { content } = file;
+
+    const args: {
+      title: string;
+      content: Element[];
+      icon: SupportedEmoji | undefined;
+    } = {
+      title: file.name,
+      content: [],
+      icon: undefined,
+    };
+
+    let parser: ParserRepository | null = null;
+
+    if (file.extension === 'md') {
+      parser = this.markdownParser;
+    }
+
+    if (file.extension === 'html') {
+      parser = this.htmlParser;
+    }
+
+    if (!parser) {
+      throw new Error('File extension not supported');
+    }
+
+    const result = parser.parse({ content, logger: this.logger });
+
+    return new PageElement({
+      ...args,
+      ...result,
+    });
+  }
+}
