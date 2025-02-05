@@ -15,15 +15,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          path: docs
           fetch-depth: 0
+
       - uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version-file: .nvmrc
           cache: yarn
+
+      - name: Move to docs directory
+        run: cd docs
 
       - name: Install dependencies
         run: yarn install --frozen-lockfile
+
       - name: Build website
         run: yarn build
 
