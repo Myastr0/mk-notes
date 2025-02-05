@@ -22,13 +22,12 @@ jobs:
           node-version-file: .nvmrc
           cache: yarn
 
-      - name: Move to docs directory
-        run: cd docs
-
       - name: Install dependencies
+        working-directory: docs
         run: yarn install --frozen-lockfile
 
       - name: Build website
+        working-directory: docs
         run: yarn build
 
       - name: Upload Build Artifact

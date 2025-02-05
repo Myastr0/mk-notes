@@ -69,7 +69,6 @@ const config: Config = {
           position: 'left',
         },
         { to: '/blog', label: 'Blog', position: 'left' },
-        { to: '/community', label: 'Community', position: 'left' },
         {
           href: 'https://github.com/Myastr0/mk-notes',
           position: 'right',
@@ -86,11 +85,11 @@ const config: Config = {
           items: [
             {
               label: 'Documentation',
-              to: '/docs/installation',
+              to: '/docs/introduction',
             },
             {
               label: 'API Reference',
-              to: '/api',
+              to: '/docs/api',
             },
           ],
         },
