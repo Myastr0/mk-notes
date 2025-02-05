@@ -1,7 +1,7 @@
-import { type SiteMap } from '../SiteMap';
 import { type TreeNode } from '../TreeNode';
+import { type SitemapSerializer } from './types';
 
-export const serializeInPlainText = (siteMap: SiteMap) => {
+export const serializeInPlainText: SitemapSerializer = (siteMap) => {
   const serializeNode = (
     node: TreeNode,
     depth: number = 0,

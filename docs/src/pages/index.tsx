@@ -14,8 +14,8 @@ function HomepageHeader() {
     <header className={clsx('hero hero--primary', styles.heroBanner)}>
       <div className="container">
         <Heading as="h1" className="hero__title">
-          <img 
-            alt={siteConfig.title} 
+          <img
+            alt={siteConfig.title}
             src="/img/logo_full_white.svg"
             className={styles.heroLogo}
           />
@@ -24,27 +24,23 @@ function HomepageHeader() {
           Seamlessly sync your Markdown files to Notion
         </p>
         <p className={styles.heroDescription}>
-          Keep writing in Markdown, version control with Git, and let MK Notes handle the Notion integration.
-          Transform your documentation workflow with a single command.
+          Keep writing in Markdown, version control with Git, and let Mk Notes
+          handle the Notion integration. Transform your documentation workflow
+          with a single command.
         </p>
         <div className={styles.commandBox}>
-          <code className={styles.command}>
-            mk-notes sync --input ./my-repo/docs --destination https://notion.so/my-org/my-page-url --notion-api-key my-key
-          </code>
+          <code className={styles.command}>$ mk-notes sync</code>
         </div>
         <div className={styles.buttons}>
           <Link
             className="button button--secondary button--lg"
-            to="/docs/intro"
+            to="/docs/introduction"
           >
             Get Started in 5 Minutes 🚀
           </Link>
           <Link
-            className={clsx(
-              'button button--lg',
-              styles.buttonOutline
-            )}
-            to="https://github.com/leodumond/mk-notes"
+            className={clsx('button button--lg', styles.buttonOutline)}
+            to="https://github.com/Myastr0/mk-notes"
           >
             View on GitHub
           </Link>

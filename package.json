@@ -1,8 +1,8 @@
 {
   "name": "@mk-notes/cli",
-  "description": "Markdown to Notion synchronization CLI 🔄",
   "version": "1.0.0",
   "private": "true",
+  "description": "Markdown to Notion synchronization CLI 🔄",
   "repository": "git@github.com:Myastr0/mk-notes.git",
   "license": "MIT",
   "author": "Myastr0",
@@ -11,13 +11,25 @@
     "mk-notes": "dist/bin/index.js"
   },
   "scripts": {
+    "build": "tsc -p tsconfig.json && tsc-alias -p tsconfig.json",
+    "cli": "ts-node src/bin",
     "doc:gen": "nodemon --watch src/**/* -x \"typedoc --options typedoc.json\"",
     "doc:serve": "cd ./docs && yarn start",
-    "doc:watch": "concurrently \"yarn doc:gen\" \"yarn doc:serve\"",
-    "build": "tsc -p tsconfig.json && tsc-alias -p tsconfig.json",
+    "doc:watch": "yarn doc:gen & yarn doc:serve",
+    "lint": "lint-staged",
     "prepare": "husky",
-    "cli": "ts-node src/bin",
     "test": "jest"
+  },
+  "dependencies": {
+    "@notionhq/client": "^2.2.15",
+    "commander": "^13.1.0",
+    "dom-serializer": "^2.0.0",
+    "front-matter": "^4.0.2",
+    "htmlparser2": "^10.0.0",
+    "js-yaml": "^4.1.0",
+    "marked": "^15.0.6",
+    "ora": "5.4.1",
+    "winston": "^3.17.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.4.0",
@@ -27,7 +39,7 @@
     "@typescript-eslint/eslint-plugin": "^7.11.0",
     "@typescript-eslint/parser": "^7.11.0",
     "concurrently": "^9.1.2",
-    "eslint": "^8",
+    "eslint": "^9.19.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-import": "^2.29.1",
     "eslint-plugin-prettier": "^5.1.3",
@@ -46,20 +58,9 @@
     "typedoc": "^0.27.6",
     "typedoc-plugin-markdown": "^4.4.1",
     "typescript": "^5.7.3",
-    "typescript-eslint": "^7.11.0"
+    "typescript-eslint": "^8.23.0"
   },
   "engines": {
     "node": ">=20"
-  },
-  "dependencies": {
-    "@notionhq/client": "^2.2.15",
-    "commander": "^13.1.0",
-    "dom-serializer": "^2.0.0",
-    "front-matter": "^4.0.2",
-    "htmlparser2": "^10.0.0",
-    "js-yaml": "^4.1.0",
-    "marked": "^15.0.6",
-    "ora": "5.4.1",
-    "winston": "^3.17.0"
   }
 }

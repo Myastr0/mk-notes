@@ -27,7 +27,7 @@ const config: Config = {
       {
         docs: {
           sidebarPath: './sidebars.ts',
-          editUrl: 'https://github.com/leodumond/mk-notes/tree/main/docs/',
+          editUrl: 'https://github.com/Myastr0/mk-notes/tree/main/docs/',
         },
         blog: {
           showReadingTime: true,
@@ -35,7 +35,7 @@ const config: Config = {
             type: ['rss', 'atom'],
             xslt: true,
           },
-          editUrl: 'https://github.com/leodumond/mk-notes/tree/main/docs/',
+          editUrl: 'https://github.com/Myastr0/mk-notes/tree/main/docs/',
           onInlineTags: 'warn',
           onInlineAuthors: 'warn',
           onUntruncatedBlogPosts: 'warn',
@@ -53,33 +53,49 @@ const config: Config = {
       title: 'Mk Notes',
       logo: {
         alt: 'Mk Notes Logo',
-        src: 'img/logo_black.svg',
+        src: 'img/favicon.svg',
       },
       items: [
         {
           type: 'docSidebar',
-          sidebarId: 'tutorialSidebar',
+          sidebarId: 'docs',
           position: 'left',
           label: 'Documentation',
         },
-        { to: 'api', label: 'API', position: 'left' },
+        {
+          to: '/docs/api',
+          sidebarId: 'api',
+          label: 'API Reference',
+          position: 'left',
+        },
+        { to: '/blog', label: 'Blog', position: 'left' },
         { to: '/community', label: 'Community', position: 'left' },
+        {
+          href: 'https://github.com/Myastr0/mk-notes',
+          position: 'right',
+          className: 'header-github-link',
+          'aria-label': 'GitHub repository',
+        },
       ],
     },
     footer: {
-      style: 'dark',
+      style: 'light',
       links: [
         {
-          title: 'Docs',
+          title: 'Learn',
           items: [
             {
               label: 'Documentation',
-              to: '/docs/intro',
+              to: '/docs/installation',
+            },
+            {
+              label: 'API Reference',
+              to: '/api',
             },
           ],
         },
         {
-          title: 'More',
+          title: 'Community',
           items: [
             {
               label: 'Blog',
@@ -87,12 +103,12 @@ const config: Config = {
             },
             {
               label: 'GitHub',
-              href: 'https://github.com/leodumond/mk-notes',
+              href: 'https://github.com/Myastr0/mk-notes',
             },
           ],
         },
       ],
-      copyright: `Copyright © ${new Date().getFullYear()} <a href="https://github.com/Myastr0">Myastr0</a>.</br> Built with Docusaurus.`,
+      copyright: `<i>Mk Notes is not a trademark of Notion</i> </br>© Copyright  ${new Date().getFullYear()} <a href="https://github.com/Myastr0">Myastr0</a>.</br> Built with Docusaurus.`,
     },
     prism: {
       theme: prismThemes.github,

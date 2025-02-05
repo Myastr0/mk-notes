@@ -36,6 +36,7 @@
 }
 
 .command {
+  background-color: unset !important;
   color: var(--mk-white);
   font-family: var(--ifm-font-family-monospace);
   font-size: 1rem;

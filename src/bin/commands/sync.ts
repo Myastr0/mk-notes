@@ -26,26 +26,33 @@ command.requiredOption(
   'The Notion API to use to launch the synchronization'
 );
 
-command.action(async (opts) => {
-  const {
-    input: directoryPath,
-    destination: notionParentPageUrl,
-    notionApiKey,
-  } = opts;
+command.action(
+  async (opts: {
+    input: string;
+    destination: string;
+    notionApiKey: string;
+  }) => {
+    const {
+      input: directoryPath,
+      destination: notionParentPageUrl,
+      notionApiKey,
+    } = opts;
 
-  const mkNotes = new MkNotes({
-    notionApiKey,
-  });
+    const mkNotes = new MkNotes({
+      notionApiKey,
+    });
 
-  await mkNotes.synchronizeMardownToNotionFromFileSystem({
-    inputPath: directoryPath,
-    parentNotionPageId: notionParentPageUrl,
-  });
+    await mkNotes.synchronizeMarkdownToNotionFromFileSystem({
+      inputPath: directoryPath,
+      parentNotionPageId: notionParentPageUrl,
+    });
 
-  console.log(
-    `Synchronization done. View the result at ${notionParentPageUrl}`
-  );
-});
+    // eslint-disable-next-line no-console
+    console.log(
+      `Synchronization done. View the result at ${notionParentPageUrl}`
+    );
+  }
+);
 
 // eslint-disable-next-line import/no-default-export
 export default command;

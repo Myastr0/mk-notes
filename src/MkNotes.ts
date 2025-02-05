@@ -1,7 +1,11 @@
+import * as fs from 'fs';
 import winston from 'winston';
 
-import { PreviewSynchronization, SynchronizeMarkdownToNotion } from '@/domains';
-import { serializeInPlainText } from '@/domains/sitemap/serializers/plainText.serializer';
+import {
+  PreviewFormat,
+  PreviewSynchronization,
+  SynchronizeMarkdownToNotion,
+} from '@/domains';
 import {
   getInfrastructureInstances,
   InfrastructureInstances,
@@ -41,24 +45,44 @@ export class MkNotes {
    */
   async previewSynchronization({
     inputPath,
+    format,
+    output,
   }: {
     inputPath: string;
-  }): Promise<string> {
+    format: PreviewFormat;
+    output?: string;
+  }): Promise<void> {
     const previewSynchronizationFeature = new PreviewSynchronization({
       sourceRepository: this.infrastructureInstances.fileSystemSource,
     });
 
-    const siteMap = await previewSynchronizationFeature.execute({
-      path: inputPath,
-    });
+    const result = await previewSynchronizationFeature.execute(
+      {
+        path: inputPath,
+      },
+      {
+        format,
+      }
+    );
 
-    return serializeInPlainText(siteMap);
+    if (!output) {
+      // eslint-disable-next-line no-console
+      console.log(result);
+      return;
+    }
+
+    fs.writeFileSync(output, result);
+
+    // eslint-disable-next-line no-console
+    console.log(`Preview saved to ${output}`);
+
+    return;
   }
 
   /**
    *
    */
-  async synchronizeMardownToNotionFromFileSystem({
+  async synchronizeMarkdownToNotionFromFileSystem({
     inputPath,
     parentNotionPageId,
   }: {
