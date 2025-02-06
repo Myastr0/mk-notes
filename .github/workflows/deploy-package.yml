@@ -44,12 +44,6 @@ jobs:
         env:
           PACKAGE_VERSION: ${{ github.event.release.tag_name }}
 
-      - name: Commit files
-        run: |
-          git add package.json
-          
-          git commit -a -m "Update package version to $PACKAGE_VERSION"
-
       - name: Push to master branch
         uses: ad-m/github-push-action@master
         with:
