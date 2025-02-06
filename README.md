@@ -1,8 +1,5 @@
 <p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="./assets/logo_black.svg">
-    <img alt="Mk Notes" src="./assets/logo_black.svg" width="480">
-  </picture>
+    <img src="./assets/logo_full_white.svg" height="100px" style="border-radius: 15px; padding: 10px; padding-left:20px; background-color: #465161"/>
 </p>
 
 <p align="center">
