@@ -1,6 +1,4 @@
-<p align="center">
-    <img src="./assets/mk-notes-banner.png" width="800" style="border-radius: 15px"/>
-</p>
+<img src="./assets/mk-notes-banner.png" width="800" style="border-radius: 15px"/>
 
 <p align="center">
 Sync your Markdown files to Notion with a single command
