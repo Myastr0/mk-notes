@@ -34,7 +34,7 @@ jobs:
           registry-url: 'https://registry.npmjs.org'
 
       - name: Update package version to ${{ github.event.release.tag_name }}
-        run:
+        run: |
           echo "Updating package to version $PACKAGE_VERSION"
           yarn version --new-version $PACKAGE_VERSION
           git add package.json
