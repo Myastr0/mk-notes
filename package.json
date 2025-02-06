@@ -14,7 +14,7 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.json && tsc-alias -p tsconfig.json",
+    "build": "tsc -p tsconfig.production.json && tsc-alias -p tsconfig.production.json",
     "cli": "ts-node src/bin",
     "doc:gen": "nodemon --watch src/**/* -x \"typedoc --options typedoc.json\"",
     "doc:serve": "cd ./docs && yarn start",
