@@ -16,9 +16,17 @@
     "resolveJsonModule": true,
     "skipLibCheck": true,
     "baseUrl": ".",
+    "moduleResolution": "node",
     "paths": {
       "@/*": ["./src/*"]
     }
   },
-  "exclude": ["dist", "__mocks__", "docs", "__tests__", "node_modules", "jest.config.ts"]
+  "exclude": [
+    "dist",
+    "__mocks__",
+    "docs",
+    "__tests__",
+    "node_modules",
+    "jest.config.ts"
+  ]
 }
