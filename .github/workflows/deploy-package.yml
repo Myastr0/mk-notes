@@ -37,6 +37,7 @@ jobs:
         run:
           echo "Updating package to version $PACKAGE_VERSION"
           yarn version --new-version $PACKAGE_VERSION
+          git add package.json
         env:
           PACKAGE_VERSION: ${{ github.event.release.tag_name }}
 
