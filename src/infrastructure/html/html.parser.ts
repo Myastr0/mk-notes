@@ -1,4 +1,5 @@
 import * as DomSerializer from 'dom-serializer';
+import { ElementType } from 'domelementtype';
 import { DomUtils, parseDocument } from 'htmlparser2';
 import { Logger } from 'winston';
 
@@ -8,18 +9,16 @@ import {
   Element,
   ElementCodeLanguage,
   type ParseResult,
-  type ParserRepository,
+  ParserRepository,
   QuoteElement,
   TextElement,
   TextElementStyle,
   ToggleElement,
 } from '@/domains/elements';
 
-export class HtmlParser implements ParserRepository {
-  private logger: Logger;
-
+export class HtmlParser extends ParserRepository {
   constructor({ logger }: { logger: Logger }) {
-    this.logger = logger;
+    super({ logger });
   }
 
   parse({ content }: { content: string }): ParseResult {
@@ -27,7 +26,7 @@ export class HtmlParser implements ParserRepository {
     const elements: Element[] = [];
 
     for (const node of document.children) {
-      if (node.type === 'tag') {
+      if (node.type === ElementType.Tag) {
         switch (node.name) {
           case 'details': {
             const summaryNode = DomUtils.findOne(

@@ -9,12 +9,15 @@ export interface ParseResult {
   icon?: SupportedEmoji;
 }
 
-export interface ParserRepository {
-  parse: ({
-    content,
-    logger,
-  }: {
-    content: string;
-    logger: Logger;
-  }) => ParseResult;
+export class ParserRepository {
+  protected logger: Logger;
+
+  constructor({ logger }: { logger: Logger }) {
+    this.logger = logger;
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  parse(args: { content: string }): ParseResult {
+    throw new Error('Method not implemented.');
+  }
 }

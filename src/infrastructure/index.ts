@@ -1,11 +1,22 @@
 import { Logger } from 'winston';
 
-import { FileConverter } from '@/infrastructure/filesystem/file.converter';
-import { FileSystemSourceRepository } from '@/infrastructure/filesystem/fileSystem.source';
-import { HtmlParser } from '@/infrastructure/html/html.parser';
-import { MarkdownParser } from '@/infrastructure/markdown/markdown.parser';
-import { NotionConverterRepository } from '@/infrastructure/notion/notion.converter';
-import { NotionDestinationRepository } from '@/infrastructure/notion/notion.destination';
+import {
+  DestinationRepository,
+  ElementConverterRepository,
+  PageElement,
+  SourceRepository,
+} from '@/domains';
+import {
+  FileConverter,
+  FileSystemSourceRepository,
+} from '@/infrastructure/filesystem';
+import { HtmlParser } from '@/infrastructure/html';
+import { MarkdownParser } from '@/infrastructure/markdown';
+import {
+  NotionConverterRepository,
+  NotionDestinationRepository,
+  NotionPage,
+} from '@/infrastructure/notion';
 
 let infraInstances: InfrastructureInstances | null;
 
@@ -15,12 +26,12 @@ interface getInfrastructureInstanceProps {
 }
 
 export interface InfrastructureInstances {
-  fileSystemSource: FileSystemSourceRepository;
+  fileSystemSource: SourceRepository<{ path: string }>;
   fileConverter: FileConverter;
   htmlParser: HtmlParser;
   markdownParser: MarkdownParser;
-  notionDestination: NotionDestinationRepository;
-  notionConverter: NotionConverterRepository;
+  notionDestination: DestinationRepository<NotionPage>;
+  notionConverter: ElementConverterRepository<PageElement, NotionPage>;
 }
 
 const buildInstances = ({
@@ -29,7 +40,7 @@ const buildInstances = ({
 }: getInfrastructureInstanceProps): InfrastructureInstances => {
   const notionConverter = new NotionConverterRepository({ logger });
   const htmlParser = new HtmlParser({ logger });
-  const markdownParser = new MarkdownParser({ htmlParser });
+  const markdownParser = new MarkdownParser({ htmlParser, logger });
 
   return {
     fileSystemSource: new FileSystemSourceRepository(),
@@ -38,9 +49,10 @@ const buildInstances = ({
       htmlParser,
       markdownParser,
     }),
-    htmlParser: new HtmlParser({ logger }),
+    htmlParser,
     markdownParser: new MarkdownParser({
-      htmlParser: new HtmlParser({ logger }),
+      htmlParser,
+      logger,
     }),
     notionDestination: new NotionDestinationRepository({
       notionConverter,

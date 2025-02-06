@@ -116,5 +116,5 @@
     "emitDecoratorMetadata": true
   },
   "include": ["**/*.ts"],
-  "exclude": ["node_modules", "coverage", "docs", "__tests__"]
+  "exclude": ["node_modules", "coverage", "docs"]
 }

@@ -1,0 +1,42 @@
+name: Publish package to npm
+
+on:
+  release:
+    types: [published]
+jobs:
+
+  tests:
+    uses: '.github/jobs/tests.yaml'
+
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Update package version to ${{ github.event.release.tag_name }}
+        run:
+          echo "Updating package to version $PACKAGE_VERSION"
+          yarn version --new-version $PACKAGE_VERSION
+        env:
+          PACKAGE_VERSION: ${{ github.event.release.tag_name }}
+
+      - name: Push to master branch
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: master
+
+      - run: yarn install --frozen-lockfile
+
+      - run: yarn build
+
+      - name: "Publish to npm"
+        run: yarn publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+

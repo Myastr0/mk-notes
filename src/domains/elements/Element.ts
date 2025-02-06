@@ -29,9 +29,9 @@ export class Element {
  * Element that represents the concept of page (in knowledge management systems)
  */
 export class PageElement extends Element {
-  public readonly title: string;
-  private readonly icon?: SupportedEmoji;
-  public readonly content: Element[];
+  public title: string;
+  public icon?: SupportedEmoji;
+  public content: Element[];
 
   constructor({
     title,

@@ -1,6 +1,6 @@
 import { Element } from './Element';
 
-export interface ElementConverterRepository<S, E extends Element> {
-  convertToElement(u: S): Promise<E>;
-  convertFromElement?: (e: E) => Promise<S>;
+export interface ElementConverterRepository<E extends Element, S> {
+  convertToElement(u: S): E;
+  convertFromElement?: (e: E) => S;
 }

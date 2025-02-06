@@ -41,7 +41,6 @@ export class MkNotes {
 
   /**
    * Preview the synchronization of a markdown file to Notion
-   *
    */
   async previewSynchronization({
     inputPath,

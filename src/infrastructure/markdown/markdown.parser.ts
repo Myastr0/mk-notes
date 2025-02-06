@@ -1,5 +1,6 @@
 import fm from 'front-matter';
 import { marked, Tokens } from 'marked';
+import { Logger } from 'winston';
 
 import {
   CalloutElement,
@@ -21,7 +22,7 @@ import {
   TextElementLevel,
   TextElementStyle,
 } from '@/domains/elements';
-import type { HtmlParser } from '@/infrastructure/html/html.parser';
+import { HtmlParser } from '@/infrastructure/html';
 
 import { ExtendedToken } from './types';
 
@@ -30,10 +31,17 @@ export interface MarkdownMetadata {
   icon?: string;
 }
 
-export class MarkdownParser implements ParserRepository {
+export class MarkdownParser extends ParserRepository {
   private htmlParser: HtmlParser;
 
-  constructor({ htmlParser }: { htmlParser: HtmlParser }) {
+  constructor({
+    htmlParser,
+    logger,
+  }: {
+    htmlParser: HtmlParser;
+    logger: Logger;
+  }) {
+    super({ logger });
     this.htmlParser = htmlParser;
   }
 
@@ -133,9 +141,7 @@ export class MarkdownParser implements ParserRepository {
   /**
    * Parse a heading token
    */
-  private parseHeadingToken(
-    token: Tokens.Heading | Tokens.Generic
-  ): TextElement {
+  private parseHeadingToken(token: Tokens.Heading): TextElement {
     if (typeof token.depth !== 'number') {
       throw new Error('Token depth is not a number');
     }
@@ -147,10 +153,8 @@ export class MarkdownParser implements ParserRepository {
     });
   }
 
-  private parseListToken(
-    token: Tokens.List | Tokens.Generic
-  ): ListItemElement[] {
-    return token.items!.map(
+  private parseListToken(token: Tokens.List): ListItemElement[] {
+    return token.items.map(
       (item: { text: string }) =>
         new ListItemElement({
           listType: token.ordered ? 'ordered' : 'unordered',
@@ -160,7 +164,7 @@ export class MarkdownParser implements ParserRepository {
   }
 
   private parseBlockQuoteToken(
-    token: Tokens.Blockquote | Tokens.Generic
+    token: Tokens.Blockquote
   ): QuoteElement | CalloutElement {
     if (CalloutElement.isSpecialCalloutText(token.text)) {
       return new CalloutElement({ text: token.text });
@@ -169,7 +173,7 @@ export class MarkdownParser implements ParserRepository {
     return new QuoteElement({ text: token.text });
   }
 
-  private parseCodeToken(token: Tokens.Code | Tokens.Generic): CodeElement {
+  private parseCodeToken(token: Tokens.Code): CodeElement {
     const language = token.lang || ElementCodeLanguage.PlainText;
 
     if (language === 'js') {
@@ -195,33 +199,71 @@ export class MarkdownParser implements ParserRepository {
   }
 
   private parseCalloutToken(token: Tokens.Generic): CalloutElement {
+    if (!token.callout || typeof token.callout !== 'string') {
+      throw new Error('Callout token does not have a callout property');
+    }
+
     return new CalloutElement({
       text: token.callout,
       icon: '💡',
     });
   }
 
-  private parseTableToken(token: Tokens.Table | Tokens.Generic): TableElement {
+  private parseTableToken(token: Tokens.Table): TableElement {
     return new TableElement({
       rows: token.rows.map((row: Tokens.TableCell[]) =>
-        row.map((cell) => this.parseInlineText(cell.text))
+        row.map((cell) => cell.text)
       ),
     });
   }
 
-  private parseImageElement(
-    token: Tokens.Image | Tokens.Generic
-  ): ImageElement {
+  private parseImageToken(token: Tokens.Image): ImageElement {
     return new ImageElement({
       url: token.href,
       caption: token.text,
     });
   }
 
-  private parseHtmlElement(token: Tokens.HTML | Tokens.Generic): Element[] {
-    const { content } = this.htmlParser.parse(token.text);
+  private parseHtmlToken(token: Tokens.HTML): Element[] {
+    const { content } = this.htmlParser.parse({ content: token.text });
 
     return content;
+  }
+
+  private parseLinkToken(token: Tokens.Link): LinkElement {
+    return new LinkElement({
+      text: token.text,
+      url: token.href,
+    });
+  }
+
+  private parseTextToken(
+    token: Tokens.Text | Tokens.Strong | Tokens.Em | Tokens.Del
+  ): TextElement {
+    if (token.type === 'strong') {
+      return new TextElement({
+        text: token.text,
+        style: TextElementStyle.Bold,
+      });
+    }
+
+    if (token.type === 'em') {
+      return new TextElement({
+        text: token.text,
+        style: TextElementStyle.Italic,
+      });
+    }
+
+    if (token.type === 'del') {
+      return new TextElement({
+        text: token.text,
+        style: TextElementStyle.Strikethrough,
+      });
+    }
+
+    return new TextElement({
+      text: token.text,
+    });
   }
 
   parse({ content }: { content: string }): ParseResult {
@@ -232,71 +274,51 @@ export class MarkdownParser implements ParserRepository {
     for (const token of tokens) {
       switch (token.type) {
         case 'heading': {
-          elements.push(this.parseHeadingToken(token));
+          elements.push(this.parseHeadingToken(token as Tokens.Heading));
           break;
         }
         case 'paragraph':
           elements.push(
-            new TextElement({ text: this.parseInlineText(token.text) })
+            new TextElement({
+              text: this.parseInlineText((token as Tokens.Paragraph).text),
+            })
           );
           break;
         case 'list':
-          const listItems = this.parseListToken(token);
+          const listItems = this.parseListToken(token as Tokens.List);
           elements.push(...listItems);
           break;
         case 'blockquote': {
-          elements.push(this.parseBlockQuoteToken(token));
+          elements.push(this.parseBlockQuoteToken(token as Tokens.Blockquote));
           break;
         }
         case 'code':
-          elements.push(this.parseCodeToken(token));
+          elements.push(this.parseCodeToken(token as Tokens.Code));
           break;
         case 'callout':
           elements.push(this.parseCalloutToken(token));
           break;
         case 'table': {
-          elements.push(this.parseTableToken(token));
+          elements.push(this.parseTableToken(token as Tokens.Table));
           break;
         }
         case 'hr':
           elements.push(new DividerElement());
           break;
         case 'image':
-          elements.push(this.parseImageElement(token));
+          elements.push(this.parseImageToken(token as Tokens.Image));
           break;
         case 'html':
-          elements.push(...this.parseHtmlElement(token));
+          elements.push(...this.parseHtmlToken(token as Tokens.HTML));
           break;
         case 'link':
-          elements.push(
-            new LinkElement({
-              text: token.text,
-              url: token.href,
-            })
-          );
+          elements.push(this.parseLinkToken(token as Tokens.Link));
           break;
         case 'strong':
-          elements.push(
-            new TextElement({
-              text: token.text,
-              style: TextElementStyle.Bold,
-            })
-          );
-          break;
         case 'em':
-          elements.push(
-            new TextElement({
-              text: token.text,
-              style: TextElementStyle.Italic,
-            })
-          );
-          break;
         case 'del':
           elements.push(
-            new TextElement({
-              text: token.text,
-              style: TextElementStyle.Strikethrough,
-            })
+            this.parseTextToken(token as Tokens.Strong | Tokens.Em)
           );
           break;
         default:

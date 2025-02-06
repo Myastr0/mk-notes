@@ -1,9 +1,9 @@
 import { type PageElement } from '@/domains/elements';
 
 export interface Page {
-  pageId: string;
-  createdAt: Date;
-  updatedAt: Date;
+  pageId?: string;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 export interface DestinationRepository<T extends Page> {

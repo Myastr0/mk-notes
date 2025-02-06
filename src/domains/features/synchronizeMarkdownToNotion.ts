@@ -18,14 +18,14 @@ import {
 interface SynchronizationServiceParams<T, U extends Page> {
   sourceRepository: SourceRepository<T>;
   destinationRepository: DestinationRepository<U>;
-  elementConverter: ElementConverterRepository<File, Element>;
+  elementConverter: ElementConverterRepository<Element, File>;
   logger: Logger;
 }
 
 export class SynchronizeMarkdownToNotion<T, U extends Page> {
   private sourceRepository: SourceRepository<T>;
   private destinationRepository: DestinationRepository<U>;
-  private elementConverter: ElementConverterRepository<File, Element>;
+  private elementConverter: ElementConverterRepository<Element, File>;
   private logger: Logger;
 
   constructor(params: SynchronizationServiceParams<T, U>) {
@@ -125,7 +125,7 @@ export class SynchronizeMarkdownToNotion<T, U extends Page> {
         } as T);
 
         // Convert the file content to a Notion page element
-        const pageElement = await this.elementConverter.convertToElement(file);
+        const pageElement = this.elementConverter.convertToElement(file);
 
         if (!(pageElement instanceof PageElement)) {
           throw new Error('Element is not a PageElement');
@@ -152,6 +152,10 @@ export class SynchronizeMarkdownToNotion<T, U extends Page> {
 
         // Recursively process the children of the current node
         if (childNode.children.length > 0) {
+          if (newPage.pageId === undefined) {
+            throw new Error('Page ID is undefined');
+          }
+
           await this.synchronizeTreeNode({
             node: childNode,
             parentPageId: newPage.pageId,

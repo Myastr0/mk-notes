@@ -8,10 +8,8 @@ import {
 } from '@notionhq/client/build/src/api-endpoints';
 
 import { PageElement } from '@/domains/elements/Element';
-import {
-  DestinationRepository,
-  Page,
-} from '@/domains/synchronization/destination.repository';
+import { DestinationRepository } from '@/domains/synchronization/destination.repository';
+import { NotionPage } from '@/infrastructure/notion/NotionPage';
 
 import { NotionConverterRepository } from './notion.converter';
 import {
@@ -21,13 +19,6 @@ import {
   TitleProperty,
 } from './types';
 import { isBlockEquals } from './utils';
-
-export interface NotionPage extends Page {
-  pageId: string;
-  children: (BlockObjectResponse | PartialBlockObjectResponse)[];
-  createdAt: Date;
-  updatedAt: Date;
-}
 
 export interface UpdatePageInput {
   pageId: string;
@@ -61,7 +52,8 @@ export class NotionDestinationRepository
     try {
       await this.getPage({ pageId: parentPageId });
       return true;
-    } catch (error) {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (err) {
       return false;
     }
   }
@@ -95,14 +87,13 @@ export class NotionDestinationRepository
     parentPageId: string;
     pageElement: PageElement;
   }): Promise<NotionPage> {
-    const notionPage =
-      await this.notionConverter.convertFromElement(pageElement);
+    const notionPage = this.notionConverter.convertFromElement(pageElement);
 
     const { id: notionPageId } = await this.client.pages.create({
       parent: { type: 'page_id', page_id: parentPageId },
       properties: notionPage.properties as CreatePageParameters['properties'],
       icon: notionPage.icon,
-      children: notionPage.children,
+      children: notionPage.children as BlockObjectRequest[],
     });
 
     return this.getPageById({ notionPageId });
@@ -157,8 +148,7 @@ export class NotionDestinationRepository
     pageElement: PageElement;
   }): Promise<NotionPage> {
     const notionPageId = pageId;
-    const notionPage =
-      await this.notionConverter.convertFromElement(pageElement);
+    const notionPage = this.notionConverter.convertFromElement(pageElement);
 
     const updateBody: UpdatePageParameters = {
       page_id: notionPageId,
@@ -169,8 +159,8 @@ export class NotionDestinationRepository
       updateBody.icon = notionPage.icon;
     }
 
-    if (notionPage.properties.Name) {
-      updateBody!.properties!['Title'] = notionPage.properties
+    if (notionPage?.properties?.Name) {
+      updateBody.properties!['Title'] = notionPage.properties
         .Title as TitleProperty;
     }
 
@@ -184,17 +174,15 @@ export class NotionDestinationRepository
       blockId: notionPageId,
     });
 
-    const pageBlocks = existingBlocks as BlockObjectResponse[];
+    const pageBlocks = existingBlocks;
 
     if (notionPage.children && notionPage.children?.length > 0) {
       const blocks = notionPage.children;
 
       const promises = existingBlocks
         .filter((existingBlock, index) => {
-          return !isBlockEquals(
-            blocks[index],
-            existingBlock as BlockObjectResponse
-          );
+          // @ts-expect-error - We know that the blocks are not equal
+          return !isBlockEquals(blocks[index], existingBlock);
         })
         .map(async (existingBlock, index) =>
           this.client.blocks

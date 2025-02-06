@@ -5,6 +5,7 @@ import { compilerOptions } from './tsconfig.json';
 const moduleNameMapper = pathsToModuleNameMapper(compilerOptions.paths, {
   prefix: '<rootDir>',
 });
+
 const config: JestConfigWithTsJest = {
   collectCoverage: true,
   collectCoverageFrom: ['api/**/*.(ts|js)', '!**/__tests__/*'],

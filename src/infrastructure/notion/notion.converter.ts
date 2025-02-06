@@ -19,6 +19,7 @@ import {
   TextElementLevel,
   ToggleElement,
 } from '@/domains/elements';
+import { NotionPage } from '@/infrastructure/notion/NotionPage';
 
 import {
   BlockObjectRequest,
@@ -47,8 +48,7 @@ type PartialCreatePageBodyParameters = Pick<
 >;
 
 export class NotionConverterRepository
-  implements
-    ElementConverterRepository<PartialCreatePageBodyParameters, PageElement>
+  implements ElementConverterRepository<PageElement, NotionPage>
 {
   private logger: Logger;
 
@@ -56,9 +56,9 @@ export class NotionConverterRepository
     this.logger = logger;
   }
 
-  private async convertPageElement(
+  private convertPageElement(
     element: PageElement
-  ): Promise<PartialCreatePageBodyParameters> {
+  ): PartialCreatePageBodyParameters {
     const title: TitleProperty = {
       id: 'title',
       type: 'title',
@@ -82,7 +82,7 @@ export class NotionConverterRepository
 
     for (const contentElement of element.content) {
       result.children?.push(
-        (await this.convertElement(contentElement)) as BlockObjectRequest
+        this.convertElement(contentElement) as BlockObjectRequest
       );
     }
 
@@ -95,7 +95,7 @@ export class NotionConverterRepository
     return result;
   }
 
-  private async convertElement(element: Element) {
+  private convertElement(element: Element) {
     switch (element.type) {
       case ElementType.Page:
         return this.convertPageElement(element as PageElement);
@@ -127,10 +127,10 @@ export class NotionConverterRepository
         throw new Error(`Unsupported element type: ${element.type}`);
     }
   }
-  async convertFromElement(
-    element: PageElement
-  ): Promise<PartialCreatePageBodyParameters> {
-    return this.convertPageElement(element);
+  convertFromElement(element: PageElement): NotionPage {
+    const notionPageInput = this.convertPageElement(element);
+
+    return NotionPage.fromPartialCreatePageBodyParameters(notionPageInput);
   }
 
   private convertText(
@@ -214,7 +214,7 @@ export class NotionConverterRepository
 
     if (icon) {
       // @ts-expect-error - Notion API types are incorrect
-      calloutParams!.icon = { type: 'emoji', emoji: icon };
+      calloutParams.icon = { type: 'emoji', emoji: icon };
     }
 
     return {
@@ -278,14 +278,12 @@ export class NotionConverterRepository
     };
   }
 
-  private async convertToggle(element: ToggleElement): Promise<ToggleBlock> {
+  private convertToggle(element: ToggleElement): ToggleBlock {
     const children: BlockObjectRequestWithoutChildren[] = [];
 
     for (const contentElement of element.content) {
       children.push(
-        (await this.convertElement(
-          contentElement
-        )) as BlockObjectRequestWithoutChildren
+        this.convertElement(contentElement) as BlockObjectRequestWithoutChildren
       );
     }
 
@@ -442,7 +440,7 @@ export class NotionConverterRepository
     };
   }
 
-  public async convertToElement(): Promise<PageElement> {
+  public convertToElement(): PageElement {
     throw new Error('Method not implemented.');
   }
 }

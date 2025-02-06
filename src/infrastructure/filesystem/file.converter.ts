@@ -12,7 +12,7 @@ import type { HtmlParser } from '@/infrastructure/html/html.parser';
 import type { MarkdownParser } from '@/infrastructure/markdown/markdown.parser';
 
 export class FileConverter
-  implements ElementConverterRepository<File, PageElement>
+  implements ElementConverterRepository<PageElement, File>
 {
   private htmlParser: HtmlParser;
   private markdownParser: MarkdownParser;
@@ -32,7 +32,7 @@ export class FileConverter
     this.logger = logger;
   }
 
-  async convertToElement(file: File): Promise<PageElement> {
+  public convertToElement(file: File): PageElement {
     const { content } = file;
 
     const args: {
@@ -59,7 +59,7 @@ export class FileConverter
       throw new Error('File extension not supported');
     }
 
-    const result = parser.parse({ content, logger: this.logger });
+    const result = parser.parse({ content });
 
     return new PageElement({
       ...args,

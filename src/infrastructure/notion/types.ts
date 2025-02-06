@@ -6,6 +6,11 @@ import {
 
 import { SupportedEmoji } from '@/domains/elements/types';
 
+export type PartialCreatePageBodyParameters = Pick<
+  CreatePageBodyParameters,
+  'properties' | 'children' | 'icon'
+>;
+
 export type BlockObjectRequestWithoutChildren =
   _BlockObjectRequestWithoutChildren;
 
