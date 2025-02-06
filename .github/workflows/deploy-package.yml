@@ -61,3 +61,14 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
+  post-publish:
+    needs:
+      - publish-package
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Discord notification
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.RELEASE_NOTES_DISCORD_WEBHOOK }}
+        uses: Ilshidur/action-discord@master
+        with:
+          args: 'A new Mk Notes version has been released **{{ EVENT_PAYLOAD.release.tag_name }}** ! 🎉\n Check out the [release notes](https://github.com/Myastr0/mk-notes/releases/tag/{{EVENT_PAYLOAD.release.tag_name}}) for more details.'
