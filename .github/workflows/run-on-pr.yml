@@ -1,10 +1,44 @@
+name: Run on PR
 
 on:
   pull_request:
     branches:
       - master
 
-
 jobs:
+  send-pr-message:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - uses: actions/github-script@v7
+        with:
+          github-token: ${{secrets.PAT_PR_ACTION_SCRIPTS}}
+          script: |
+            const welcomeMessage = '👋 Hi, ${{github.actor}}! Thanks for opening a PR. We will review it soon.\nIf you have any questions, feel free to join the [#need-help](https://discord.com/channels/1336688241583325224/1336693925209051241) channel on the [Discord server](https://discord.gg/yN7SD88z)';
+            
+            // Get existing comments
+            const comments = await github.rest.issues.listComments({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo
+            });
+            
+            // Check if welcome message already exists
+            const hasWelcomeMessage = comments.data.some(comment => 
+              comment.body.includes('👋 Hi,') && comment.body.includes('Thanks for opening a PR')
+            );
+            
+            // Only create comment if welcome message doesn't exist
+            if (!hasWelcomeMessage) {
+              await github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: welcomeMessage
+              });
+            }
+
   tests:
-    uses: .github/workflows/tests.yaml
+    uses: ./.github/workflows/tests.yaml
