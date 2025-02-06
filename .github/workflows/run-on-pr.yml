@@ -1,3 +1,4 @@
+name: Run on PR
 
 on:
   pull_request:
