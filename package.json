@@ -1,15 +1,18 @@
 {
   "name": "@mk-notes/cli",
-  "version": "0.0.1-alpha",
-  "private": "true",
+  "version": "0.0.1",
+  "private": "false",
   "description": "Markdown to Notion synchronization CLI 🔄",
   "repository": "git@github.com:Myastr0/mk-notes.git",
   "license": "MIT",
   "author": "Myastr0",
-  "main": "index.js",
+  "main": "dist/index.js",
   "bin": {
     "mk-notes": "dist/bin/index.js"
   },
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsc -p tsconfig.json && tsc-alias -p tsconfig.json",
     "cli": "ts-node src/bin",
