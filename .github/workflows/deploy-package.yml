@@ -26,6 +26,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          ssh-key: ${{ secrets.RELEASE_MANAGEMENT_DEPLOY_KEY_PRV }}
+          persist-credentials: true
           ref: master
 
       - uses: actions/setup-node@v4
@@ -47,8 +49,8 @@ jobs:
       - name: Push to master branch
         uses: ad-m/github-push-action@master
         with:
-          github_token: ${{ secrets.PAT_DEPLOY_UPDATE_BRANCH }}
           branch: master
+          force_with_lease: true
 
       - run: yarn install --frozen-lockfile
 
