@@ -1,5 +1,5 @@
 <p align="center">
-    <img src="./assets/logo_full_white.svg" height="100px" style="border-radius: 15px; padding: 10px; padding-left:20px; background-color: #465161"/>
+    <img src="./assets/mk-notes-banner.png" width="800" style="border-radius: 15px"/>
 </p>
 
 <p align="center">
