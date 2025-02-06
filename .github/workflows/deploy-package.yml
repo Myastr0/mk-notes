@@ -35,6 +35,10 @@ jobs:
 
       - name: Update package version to ${{ github.event.release.tag_name }}
         run: |
+
+          git config --local user.email "mk-notes[bot]@mk-notes.io"
+          git config --local user.name "mk-notes[bot]"
+
           echo "Updating package to version $PACKAGE_VERSION"
           yarn version --new-version $PACKAGE_VERSION
         env:
@@ -42,9 +46,6 @@ jobs:
 
       - name: Commit files
         run: |
-          git config --local user.email "github-actions[bot]@users.noreply.github.com"
-          git config --local user.name "github-actions[bot]"
-          
           git add package.json
           
           git commit -a -m "Update package version to $PACKAGE_VERSION"
