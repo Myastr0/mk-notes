@@ -9,7 +9,14 @@ jobs:
   tests:
     uses: ./.github/workflows/tests.yaml
 
-  publish:
+  publish-documentation:
+    uses: './.github/workflows/deploy-documentation.yaml'
+    needs:
+      - tests
+
+  publish-package:
+    permissions:
+      contents: write
     needs:
       - tests
     runs-on: ubuntu-latest
