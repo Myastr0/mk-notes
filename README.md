@@ -13,7 +13,7 @@ Sync your <b>Markdown files</b> to <b>Notion</b> in a single command
     <a href="https://www.npmjs.com/package/mknotes">
       <img alt="NPM Status" src="https://img.shields.io/npm/v/%40mk-notes%2Fcli?style=flat" />
     </a>
-    <a href="https://github.com/Myastr0/mk-notes/actions?query=branch%3Amain+workflow%3Aci">
+    <a href="https://github.com/Myastr0/mk-notes/actions?query=branch%3Amaster+workflow%3Adeploy-package">
       <img alt="CI Status" src="https://github.com/your-repo/mknotes/workflows/ci/badge.svg?branch=main" />
     </a>
     <a href="">
