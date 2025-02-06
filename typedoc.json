@@ -1,0 +1,30 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "plugin": ["typedoc-plugin-markdown"],
+  "entryPoints": ["./src/index.ts", "./src/bin/index.ts"],
+  "entryPointStrategy": "expand",
+  "out": "./docs/docs/api",
+  "exclude": [
+    "**/node_modules/**/*",
+    "**/dist/**/*",
+    "**/docs/**/*",
+    "**/__tests__/**",
+    "**/src/domains/**",
+    "**/src/infrastructure/**"
+  ],
+  "tsconfig": "tsconfig.production.json",
+  "externalPattern": [
+    "**/node_modules/**/*",
+    "**/dist/**/*",
+    "**/docs/**/*",
+    "**/__tests__/**"
+  ],
+  "readme": "none",
+  "formatWithPrettier": false,
+  "commentStyle": "all",
+  "pageTitleTemplates": {
+    "index": "{projectName} {version}",
+    "member": "{kind}: {name}",
+    "module": "{name}"
+  }
+}

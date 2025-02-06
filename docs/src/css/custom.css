@@ -1,0 +1,140 @@
+/**
+ * Any CSS included here will be global. The classic template
+ * bundles Infima by default. Infima is a CSS framework designed to
+ * work well for content-centric websites.
+ */
+
+/* You can override the default Infima variables here. */
+:root {
+  /* Primary colors from slate-800 */
+  --ifm-color-primary: #1e293b; /* slate-800 */
+  --ifm-color-primary-dark: #1a2334;
+  --ifm-color-primary-darker: #192132;
+  --ifm-color-primary-darkest: #141b29;
+  --ifm-color-primary-light: #222f42;
+  --ifm-color-primary-lighter: #233144;
+  --ifm-color-primary-lightest: #28374d;
+
+  /* Custom status colors */
+  --mk-failed-fill: #F0EEDF;
+  --mk-failed-text: #A18512;
+  --mk-failed-stroke: #D6CB9C;
+
+  --mk-cancelled-fill: #F8F7EF;
+  --mk-cancelled-text: #6B7280;
+  --mk-cancelled-stroke: #D1D5DB;
+
+  --mk-completed-fill: #F5F3F7;
+  --mk-completed-text: #6F4C99;
+  --mk-completed-stroke: #CBBFD8;
+
+  --mk-in-progress-fill: #F8F5F7;
+  --mk-in-progress-text: #B54A87;
+  --mk-in-progress-stroke: #E1C1D4;
+
+  --mk-pending-fill: #F3F2F5;
+  --mk-pending-text: #624E88;
+  --mk-pending-stroke: #CBBFD8;
+
+  /* Custom colors */
+  --mk-white: #FFFFFF;
+  --mk-sunset: #FDD4A1;
+  --mk-light-gray: #F8FAFC;
+  --mk-gray: #E2E8F0;
+
+  /* Font families */
+  --ifm-font-family-base: 'Space Grotesk', system-ui, -apple-system, sans-serif;
+  --ifm-font-family-monospace: 'Cascadia Mono', SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  --ifm-heading-font-family: var(--ifm-font-family-monospace);
+
+  /* Font weights */
+  --ifm-font-weight-light: 300;
+  --ifm-font-weight-normal: 400;
+  --ifm-font-weight-medium: 500;
+  --ifm-font-weight-semibold: 600;
+  --ifm-font-weight-bold: 700;
+
+  /* Code blocks */
+  --ifm-code-font-size: 95%;
+  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.1);
+
+  /* Box shadows */
+  --ifm-global-shadow-md: 0 10px 25px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+  --mk-panel-shadow: 0px 0px 100px -12px rgba(0, 0, 0, 0.1);
+}
+
+/* For readability concerns, you should choose a lighter palette in dark mode. */
+[data-theme='dark'] {
+  --ifm-color-primary: #64748b; /* slate-500 for better dark mode contrast */
+  --ifm-color-primary-dark: #5a697d;
+  --ifm-color-primary-darker: #556376;
+  --ifm-color-primary-darkest: #465161;
+  --ifm-color-primary-light: #6e7f99;
+  --ifm-color-primary-lighter: #7385a0;
+  --ifm-color-primary-lightest: #8697b5;
+  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.3);
+}
+
+/* Ensure proper font loading */
+html {
+  font-family: var(--ifm-font-family-base);
+}
+
+code {
+  font-family: var(--ifm-font-family-monospace) !important;
+}
+
+/* Custom utility classes matching Tailwind config */
+.shadow-3xl {
+  box-shadow: var(--ifm-global-shadow-md);
+}
+
+.shadow-panel {
+  box-shadow: var(--mk-panel-shadow);
+}
+
+/* Status classes */
+.status-failed {
+  background-color: var(--mk-failed-fill);
+  color: var(--mk-failed-text);
+  border-color: var(--mk-failed-stroke);
+}
+
+.status-cancelled {
+  background-color: var(--mk-cancelled-fill);
+  color: var(--mk-cancelled-text);
+  border-color: var(--mk-cancelled-stroke);
+}
+
+.status-completed {
+  background-color: var(--mk-completed-fill);
+  color: var(--mk-completed-text);
+  border-color: var(--mk-completed-stroke);
+}
+
+.status-in-progress {
+  background-color: var(--mk-in-progress-fill);
+  color: var(--mk-in-progress-text);
+  border-color: var(--mk-in-progress-stroke);
+}
+
+.status-pending {
+  background-color: var(--mk-pending-fill);
+  color: var(--mk-pending-text);
+  border-color: var(--mk-pending-stroke);
+}
+
+.header-github-link::before {
+  content: '';
+  width: 24px;
+  height: 24px;
+  display: flex;
+  background-color: var(--ifm-navbar-link-color);
+  mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12'/%3E%3C/svg%3E");
+  transition: background-color var(--ifm-transition-fast)
+  var(--ifm-transition-timing-default);
+}
+
+.header-github-link:hover::before {
+  background-color: var(--ifm-navbar-link-hover-color);
+}
