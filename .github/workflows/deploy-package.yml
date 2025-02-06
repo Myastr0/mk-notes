@@ -3,10 +3,11 @@ name: Publish package to npm
 on:
   release:
     types: [published]
+
 jobs:
 
   tests:
-    uses: '.github/jobs/tests.yaml'
+    uses: .github/workflows/tests.yaml
 
   publish:
     runs-on: ubuntu-latest
