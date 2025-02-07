@@ -142,10 +142,6 @@ export class MarkdownParser extends ParserRepository {
    * Parse a heading token
    */
   private parseHeadingToken(token: Tokens.Heading): TextElement {
-    if (typeof token.depth !== 'number') {
-      throw new Error('Token depth is not a number');
-    }
-
     const level = this.getTextLevelFromDepth(token.depth);
     return new TextElement({
       text: token.text,

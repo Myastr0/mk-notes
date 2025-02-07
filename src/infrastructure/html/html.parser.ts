@@ -39,9 +39,7 @@ export class HtmlParser extends ParserRepository {
             elements.push(
               new ToggleElement({
                 title: summaryNode ? DomUtils.textContent(summaryNode) : '',
-                content: this.parse({
-                  content: detailsContent,
-                }).content,
+                content: [new TextElement({ text: detailsContent })],
               })
             );
 
