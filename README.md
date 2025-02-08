@@ -10,6 +10,9 @@ Sync your <b>Markdown files</b> to <b>Notion</b> in a single command
     <a href="https://github.com/Myastr0/mk-notes/blob/master/LICENSE">
       <img alt="MIT Licensed" src="https://img.shields.io/npm/l/@nrwl/workspace.svg?style=flat" />
     </a>
+    <a href="https://img.shields.io/npm/dm/%40mk-notes%2Fcli">
+        <img alt="NPM Downloads" src="https://img.shields.io/npm/dm/%40mk-notes%2Fcli">
+    </a>
     <a href="https://www.npmjs.com/package/mknotes">
       <img alt="NPM Status" src="https://img.shields.io/npm/v/%40mk-notes%2Fcli?style=flat" />
     </a>
