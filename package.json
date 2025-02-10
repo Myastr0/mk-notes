@@ -3,6 +3,21 @@
   "version": "0.0.3",
   "private": false,
   "description": "Markdown to Notion synchronization CLI 🔄",
+  "keywords": [
+    "markdown",
+    "md",
+    "notion",
+    "notion-api",
+    "synchronization",
+    "mk-notes",
+    "cli",
+    "markdown-to-notion",
+    "md-to-notion",
+    "md2notion"
+  ],
+  "bugs": {
+    "url": "https://github.com/Myastr0/mk-notes/issues"
+  },
   "repository": "git@github.com:Myastr0/mk-notes.git",
   "license": "MIT",
   "author": "Myastr0",
