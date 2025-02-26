@@ -1,7 +1,7 @@
 {
-  "*.js": ["prettier --write --config .prettierrc", "eslint --fix"],
-  "*.json": ["prettier --write --config .prettierrc"],
-  "*.ts": ["prettier --write --config .prettierrc", "eslint --fix"],
+  "*.js": ["eslint --fix"],
+  "*.json": ["eslint --fix"],
+  "*.ts": ["eslint --fix"],
   "*.md": ["prettier --write --config .prettierrc"],
   "package.json": ["npx sort-package-json"]
 }

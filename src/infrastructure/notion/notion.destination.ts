@@ -8,16 +8,16 @@ import {
 } from '@notionhq/client/build/src/api-endpoints';
 
 import { PageElement } from '@/domains/elements/Element';
+import { NotionPage } from '@/domains/notion/NotionPage';
 import { DestinationRepository } from '@/domains/synchronization/destination.repository';
-import { NotionPage } from '@/infrastructure/notion/NotionPage';
 
-import { NotionConverterRepository } from './notion.converter';
 import {
   BlockObjectRequest,
   BlockObjectRequestWithoutChildren,
   Icon,
   TitleProperty,
-} from './types';
+} from '../../domains/notion/types';
+import { NotionConverterRepository } from './notion.converter';
 import { isBlockEquals } from './utils';
 
 export interface UpdatePageInput {
@@ -73,12 +73,12 @@ export class NotionDestinationRepository
 
     const blocks = await this.getBlocksFromPage({ notionPageId });
 
-    return {
+    return new NotionPage({
       pageId: pageObjectResponse.id,
       children: blocks,
       createdAt: new Date(pageObjectResponse.created_time),
       updatedAt: new Date(pageObjectResponse.last_edited_time),
-    };
+    });
   }
   async createPage({
     parentPageId,

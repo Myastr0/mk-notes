@@ -12,7 +12,6 @@ import {
   ParserRepository,
   QuoteElement,
   TextElement,
-  TextElementStyle,
   ToggleElement,
 } from '@/domains/elements';
 
@@ -64,7 +63,7 @@ export class HtmlParser extends ParserRepository {
             elements.push(
               new TextElement({
                 text: DomUtils.textContent(node),
-                style: TextElementStyle.Underline,
+                styles: { underline: true },
               })
             );
             break;
@@ -72,7 +71,7 @@ export class HtmlParser extends ParserRepository {
             elements.push(
               new TextElement({
                 text: DomUtils.textContent(node),
-                style: TextElementStyle.Strikethrough,
+                styles: { strikethrough: true },
               })
             );
             break;
@@ -80,7 +79,7 @@ export class HtmlParser extends ParserRepository {
             elements.push(
               new TextElement({
                 text: DomUtils.textContent(node),
-                style: TextElementStyle.Italic,
+                styles: { italic: true },
               })
             );
             break;

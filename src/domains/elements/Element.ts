@@ -130,33 +130,52 @@ export enum TextElementLevel {
 }
 
 export enum TextElementStyle {
-  Normal = 'normal',
   Italic = 'italic',
   Bold = 'bold',
   Strikethrough = 'strikethrough',
   Underline = 'underline',
 }
 
-export type RichTextElement = (TextElement | LinkElement)[];
+export type RichTextElement = (TextElement | LinkElement | ImageElement)[];
+
+export type TextElementStyles = {
+  italic: boolean;
+  bold: boolean;
+  strikethrough: boolean;
+  underline: boolean;
+};
 
 export class TextElement extends Element {
   public text: string | RichTextElement;
   public level: TextElementLevel;
-  public style: TextElementStyle;
+  public styles: TextElementStyles = {
+    italic: false,
+    bold: false,
+    strikethrough: false,
+    underline: false,
+  };
 
   constructor({
     text,
     level = TextElementLevel.Paragraph,
-    style = TextElementStyle.Normal,
+    styles,
   }: {
     text: string | RichTextElement;
     level?: TextElementLevel;
-    style?: TextElementStyle;
+    styles?: {
+      italic?: boolean;
+      bold?: boolean;
+      strikethrough?: boolean;
+      underline?: boolean;
+    };
   }) {
     super(ElementType.Text);
     this.text = text;
     this.level = level;
-    this.style = style;
+    this.styles.bold = styles?.bold || false;
+    this.styles.italic = styles?.italic || false;
+    this.styles.strikethrough = styles?.strikethrough || false;
+    this.styles.underline = styles?.underline || false;
   }
 }
 

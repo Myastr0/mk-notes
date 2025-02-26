@@ -19,7 +19,7 @@ import {
   TextElementLevel,
   ToggleElement,
 } from '@/domains/elements';
-import { NotionPage } from '@/infrastructure/notion/NotionPage';
+import { NotionPage } from '@/domains/notion/NotionPage';
 
 import {
   BlockObjectRequest,
@@ -40,7 +40,7 @@ import {
   TableRowBlock,
   TitleProperty,
   ToggleBlock,
-} from './types';
+} from '../../domains/notion/types';
 
 type PartialCreatePageBodyParameters = Pick<
   CreatePageBodyParameters,
@@ -81,9 +81,11 @@ export class NotionConverterRepository
     };
 
     for (const contentElement of element.content) {
-      result.children?.push(
-        this.convertElement(contentElement) as BlockObjectRequest
-      );
+      const convertedElement = this.convertElement(contentElement);
+
+      if (convertedElement) {
+        result.children?.push(convertedElement as BlockObjectRequest);
+      }
     }
 
     const icon = element.getIcon();
@@ -124,7 +126,8 @@ export class NotionConverterRepository
       case ElementType.TableOfContents:
         return this.convertTableOfContents();
       default:
-        throw new Error(`Unsupported element type: ${element.type}`);
+        this.logger.warn(`Unsupported element type: ${element.type}`);
+        return null;
     }
   }
   convertFromElement(element: PageElement): NotionPage {
@@ -306,7 +309,9 @@ export class NotionConverterRepository
           {
             text: {
               content: element.text,
-              link: { url: element.url },
+              link: element.url.startsWith('http')
+                ? { url: element.url }
+                : null,
             },
           },
         ],
@@ -388,7 +393,7 @@ export class NotionConverterRepository
 
   private convertRichText(
     content: undefined | string | RichTextElement
-  ): Array<RichTextItemRequest> {
+  ): RichTextItemRequest[] {
     if (content === undefined) {
       return [];
     }
@@ -405,28 +410,37 @@ export class NotionConverterRepository
     }
 
     if (Array.isArray(content)) {
-      return content.map((element) => {
+      return content.reduce<RichTextItemRequest[]>((acc, element) => {
         if (element.type === ElementType.Text) {
-          return {
+          acc.push({
             type: 'text',
             text: {
-              content: element.text as string,
+              content: (element as TextElement).text as string,
             },
-          };
+            annotations: {
+              bold: (element as TextElement).styles.bold,
+              italic: (element as TextElement).styles.italic,
+              strikethrough: (element as TextElement).styles.strikethrough,
+              underline: (element as TextElement).styles.underline,
+            },
+          });
         }
 
         if (element instanceof LinkElement) {
-          return {
+          acc.push({
             type: 'text',
             text: {
               content: element.text,
-              link: { url: element.url },
+              link: element.url.startsWith('http')
+                ? { url: element.url }
+                : null,
             },
-          };
+          });
         }
 
-        throw new Error(`Unsupported element type: ${element.type}`);
-      });
+        this.logger.warn(`Unsupported element type: ${element.type}`);
+        return acc;
+      }, []);
     }
 
     throw new Error(`Unsupported content type: ${typeof content}`);

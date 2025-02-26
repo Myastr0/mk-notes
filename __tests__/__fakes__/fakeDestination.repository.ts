@@ -19,7 +19,11 @@ export class FakeDestinationRepository<T extends Page>
     parentPageId: string;
   }): Promise<T> {
     // Here you would implement the logic to create a new page in the fake destination
-    const fakePage = new FakePage('fakePageId', new Date(), new Date());
+    const fakePage = new FakePage({
+      pageId: 'fakePageId',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
     return fakePage as unknown as T;
   }
 
@@ -33,7 +37,11 @@ export class FakeDestinationRepository<T extends Page>
     pageElement: PageElement;
   }): Promise<T> {
     // Here you would implement the logic to update an existing page in the fake destination
-    const updatedFakePage = new FakePage(pageId, new Date(), new Date());
+    const updatedFakePage = new FakePage({
+      pageId,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
     return updatedFakePage as unknown as T;
   }
 

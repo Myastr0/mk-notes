@@ -1,7 +1,5 @@
 import * as path from 'path';
 
-import { serializeInPlainText } from '@/domains/sitemap/serializers/plainText.serializer';
-
 import { TreeNode } from './TreeNode';
 
 export class SiteMap {
@@ -133,10 +131,10 @@ export class SiteMap {
    * Parses the mkdocs.yaml content and adds nodes to the sitemap
    * @param config - Parsed YAML content from mkdocs.yaml
    */
-  buildFromConfig(config: Record<string, unknown>): void {
-    // Implement logic to handle mkdocs.yaml configuration and build the sitemap
-    // This would require parsing the config and adding nodes appropriately
-  }
+  // buildFromConfig(config: Record<string, unknown>): void {
+  //   // Implement logic to handle mkdocs.yaml configuration and build the sitemap
+  //   // This would require parsing the config and adding nodes appropriately
+  // }
 
   get root(): TreeNode {
     return this._root;

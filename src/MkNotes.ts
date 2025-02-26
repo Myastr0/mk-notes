@@ -50,7 +50,7 @@ export class MkNotes {
     inputPath: string;
     format: PreviewFormat;
     output?: string;
-  }): Promise<void> {
+  }): Promise<string> {
     const previewSynchronizationFeature = new PreviewSynchronization({
       sourceRepository: this.infrastructureInstances.fileSystemSource,
     });
@@ -65,21 +65,16 @@ export class MkNotes {
     );
 
     if (!output) {
-      // eslint-disable-next-line no-console
-      console.log(result);
-      return;
+      return result;
     }
 
     fs.writeFileSync(output, result);
 
-    // eslint-disable-next-line no-console
-    console.log(`Preview saved to ${output}`);
-
-    return;
+    return `Preview saved to ${output}`;
   }
 
   /**
-   *
+   * Synchronize a markdown file to Notion
    */
   async synchronizeMarkdownToNotionFromFileSystem({
     inputPath,

@@ -7,7 +7,15 @@ export class FakePage implements Page {
   createdAt: Date;
   updatedAt: Date;
 
-  constructor(pageId: string, createdAt: Date, updatedAt: Date) {
+  constructor({
+    pageId,
+    createdAt,
+    updatedAt,
+  }: {
+    pageId: string;
+    createdAt: Date;
+    updatedAt: Date;
+  }) {
     this.pageId = pageId;
     this.createdAt = createdAt;
     this.updatedAt = updatedAt;
@@ -21,13 +29,17 @@ export class FakeNotionPage extends NotionPage {
   createdAt = new Date();
   updatedAt = new Date();
 
-  constructor() {
+  constructor({
+    pageId,
+    createdAt,
+    updatedAt,
+  }: { pageId?: string; createdAt?: Date; updatedAt?: Date } = {}) {
     super({
       children: [],
-      createdAt: undefined,
+      createdAt: createdAt ?? new Date(),
       icon: undefined,
-      pageId: '',
-      updatedAt: undefined,
+      pageId: pageId ?? 'fake-page-id',
+      updatedAt: updatedAt ?? new Date(),
       properties: undefined,
     });
   }

@@ -9,7 +9,7 @@ import {
   Icon,
   PageProperties,
   PartialCreatePageBodyParameters,
-} from '@/infrastructure/notion/types';
+} from '@/domains/notion/types';
 
 export class NotionPage implements Page {
   public readonly pageId?: string;
@@ -60,5 +60,12 @@ export class NotionPage implements Page {
       icon:
         args.icon !== undefined && args.icon !== null ? args.icon : undefined,
     });
+  }
+  toCreatePageBodyParameters(): PartialCreatePageBodyParameters {
+    return {
+      children: this.children as BlockObjectRequest[],
+      properties: this.properties as PageProperties,
+      icon: this.icon,
+    };
   }
 }

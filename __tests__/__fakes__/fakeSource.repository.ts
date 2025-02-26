@@ -22,13 +22,13 @@ export class FakeSourceRepository<T> implements SourceRepository<T> {
     const fakeExtension = '.txt';
     const fakeIcon: SupportedEmoji = '😊'; // Example of a supported emoji
 
-    return new FakeFile(
-      'fakeFileName',
-      fakeContent,
-      fakeLastUpdated,
-      fakeExtension,
-      fakeIcon
-    );
+    return new FakeFile({
+      name: 'fakeFileName',
+      content: fakeContent,
+      lastUpdated: fakeLastUpdated,
+      extension: fakeExtension,
+      icon: fakeIcon,
+    });
   }
 
   // Simulate checking if the source is accessible

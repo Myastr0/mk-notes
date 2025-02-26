@@ -20,7 +20,6 @@ import {
   TableElement,
   TextElement,
   TextElementLevel,
-  TextElementStyle,
 } from '@/domains/elements';
 import { HtmlParser } from '@/infrastructure/html';
 
@@ -54,56 +53,73 @@ export class MarkdownParser extends ParserRepository {
     const elements: RichTextElement = [];
 
     const regex =
-      /(\*\*[^*]+\*\*|\*[^*]+\*|__[^_]+__|_[^_]+_|(\[([^\]]+)\]\((http[^)]+)\)))/g;
-
-    let match;
+      /(!?\[([^\]]+)\]\(([^)]+)\)|\*\*[^*]+\*\*|\*[^*]+\*|~~[^~]+~~)/g;
+    const cleanText = text.trim();
     let lastIndex = 0;
+    let match;
 
-    while ((match = regex.exec(text)) !== null) {
-      const [fullMatch, , linkMatch, linkText, linkUrl] = match;
+    while ((match = regex.exec(cleanText)) !== null) {
+      const [fullMatch, , altText, url] = match;
       const startIndex = match.index;
 
-      // Add any text before the match
       if (startIndex > lastIndex) {
         elements.push(
           new TextElement({
-            text: text.slice(lastIndex, startIndex),
+            text: cleanText.slice(lastIndex, startIndex),
           })
         );
       }
 
-      if (linkMatch) {
-        // Add the link text
+      if (fullMatch.startsWith('![')) {
         elements.push(
-          new LinkElement({
-            text: linkText,
-            url: linkUrl,
+          new ImageElement({
+            url: url,
+            caption: altText,
           })
         );
-      } else {
-        let content = fullMatch;
-
-        let textStyle: TextElementStyle = TextElementStyle.Normal;
-
-        if (fullMatch.startsWith('**') || fullMatch.startsWith('__')) {
-          textStyle = TextElementStyle.Bold;
-          content = content.slice(2, -2);
-        } else if (fullMatch.startsWith('*') || fullMatch.startsWith('_')) {
-          textStyle = TextElementStyle.Italic;
-          content = content.slice(1, -1);
-        }
-
-        elements.push(new TextElement({ text: content, style: textStyle }));
+      } else if (fullMatch.startsWith('[')) {
+        elements.push(
+          new LinkElement({
+            text: altText,
+            url: url,
+          })
+        );
+      } else if (fullMatch.startsWith('**')) {
+        elements.push(
+          new TextElement({
+            text: fullMatch.slice(2, -2),
+            styles: {
+              bold: true,
+            },
+          })
+        );
+      } else if (fullMatch.startsWith('*')) {
+        elements.push(
+          new TextElement({
+            text: fullMatch.slice(1, -1),
+            styles: {
+              italic: true,
+            },
+          })
+        );
+      } else if (fullMatch.startsWith('~~')) {
+        elements.push(
+          new TextElement({
+            text: fullMatch.slice(2, -2),
+            styles: {
+              strikethrough: true,
+            },
+          })
+        );
       }
 
       lastIndex = startIndex + fullMatch.length;
     }
 
-    // Add any remaining text after the last match
-    if (lastIndex < text.length) {
+    if (lastIndex < cleanText.length) {
       elements.push(
         new TextElement({
-          text: text.slice(lastIndex),
+          text: cleanText.slice(lastIndex),
         })
       );
     }
@@ -151,7 +167,7 @@ export class MarkdownParser extends ParserRepository {
 
   private parseListToken(token: Tokens.List): ListItemElement[] {
     return token.items.map(
-      (item: { text: string }) =>
+      (item) =>
         new ListItemElement({
           listType: token.ordered ? 'ordered' : 'unordered',
           text: this.parseInlineText(item.text),
@@ -162,11 +178,16 @@ export class MarkdownParser extends ParserRepository {
   private parseBlockQuoteToken(
     token: Tokens.Blockquote
   ): QuoteElement | CalloutElement {
-    if (CalloutElement.isSpecialCalloutText(token.text)) {
-      return new CalloutElement({ text: token.text });
+    const text = token.text.trim();
+    if (text.startsWith('[!NOTE]')) {
+      return new CalloutElement({
+        text: text.replace('[!NOTE]', '').trim(),
+        icon: '💡',
+      });
     }
-
-    return new QuoteElement({ text: token.text });
+    return new QuoteElement({
+      text: text,
+    });
   }
 
   private parseCodeToken(token: Tokens.Code): CodeElement {
@@ -206,10 +227,11 @@ export class MarkdownParser extends ParserRepository {
   }
 
   private parseTableToken(token: Tokens.Table): TableElement {
+    const headers = token.header.map((cell) => cell.text);
+    const rows = token.rows.map((row) => row.map((cell) => cell.text));
+
     return new TableElement({
-      rows: token.rows.map((row: Tokens.TableCell[]) =>
-        row.map((cell) => cell.text)
-      ),
+      rows: [headers, ...rows],
     });
   }
 
@@ -239,21 +261,33 @@ export class MarkdownParser extends ParserRepository {
     if (token.type === 'strong') {
       return new TextElement({
         text: token.text,
-        style: TextElementStyle.Bold,
+        styles: {
+          bold: true,
+          italic: false,
+          strikethrough: false,
+          underline: false,
+        },
       });
     }
 
     if (token.type === 'em') {
       return new TextElement({
         text: token.text,
-        style: TextElementStyle.Italic,
+        styles: {
+          bold: false,
+          italic: true,
+          strikethrough: false,
+          underline: false,
+        },
       });
     }
 
     if (token.type === 'del') {
       return new TextElement({
         text: token.text,
-        style: TextElementStyle.Strikethrough,
+        styles: {
+          strikethrough: true,
+        },
       });
     }
 
@@ -273,13 +307,20 @@ export class MarkdownParser extends ParserRepository {
           elements.push(this.parseHeadingToken(token as Tokens.Heading));
           break;
         }
-        case 'paragraph':
-          elements.push(
-            new TextElement({
-              text: this.parseInlineText((token as Tokens.Paragraph).text),
-            })
-          );
+        case 'paragraph': {
+          const inlineElements = this.parseInlineText(token.text as string);
+          if (inlineElements.length === 1) {
+            elements.push(inlineElements[0]);
+          } else {
+            elements.push(
+              new TextElement({
+                text: inlineElements,
+                level: TextElementLevel.Paragraph,
+              })
+            );
+          }
           break;
+        }
         case 'list':
           const listItems = this.parseListToken(token as Tokens.List);
           elements.push(...listItems);

@@ -1,4 +1,4 @@
-// eslint.config.js
+import pluginJest from 'eslint-plugin-jest';
 import eslint from '@eslint/js';
 import eslintPluginPrettierRecommended from 'eslint-plugin-prettier/recommended';
 import simpleImportSortPlugin from 'eslint-plugin-simple-import-sort';
@@ -26,12 +26,14 @@ export default tseslint.config(
         'docs/',
         'jest.config.js',
         '__generated__/',
+        '**/*.spec.ts',
+        '**/*.test.ts',
       ],
     },
     // 2) Main config for JS/TS files
     {
       files: ['**/*.{js,ts,jsx,tsx}'],
-
+      ignores: ['**/*.spec.ts', '**/*.test.ts'],
       // Bring in ESLint's recommended config, plus custom parser settings
 
       // Register plugins so we can use their rules
@@ -86,6 +88,36 @@ export default tseslint.config(
       files: ['scripts/**/*'],
       rules: {
         'no-console': 'off',
+      },
+    },
+    // 6) Override for test files
+    {
+      // update this to match your test files
+      files: ['**/*.spec.ts', '**/*.test.ts', '**/**.test.ts'],
+      plugins: { jest: pluginJest },
+      languageOptions: {
+        globals: pluginJest.environments.globals.globals,
+      },
+      rules: {
+        'jest/no-disabled-tests': 'warn',
+        'jest/no-focused-tests': 'error',
+        'jest/no-identical-title': 'error',
+        'jest/prefer-to-have-length': 'warn',
+        'jest/valid-expect': 'error',
+      },
+    },
+    // 7) Disable rules for test files
+    {
+      files: ['**/*.spec.ts', '**/*.test.ts', '**/**.test.ts'],
+      rules: {
+        '@typescript-eslint/no-unsafe-call': 'off',
+        '@typescript-eslint/no-unsafe-member-access': 'off',
+        '@typescript-eslint/no-unsafe-assignment': 'off',
+        '@typescript-eslint/no-explicit-any': 'off',
+        '@typescript-eslint/no-unused-vars': 'off',
+        '@typescript-eslint/unbound-method': 'off',
+        '@typescript-eslint/no-unsafe-return': 'off',
+        '@typescript-eslint/no-unsafe-argument': 'off',
       },
     },
   ]

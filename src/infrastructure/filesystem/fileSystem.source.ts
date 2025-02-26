@@ -32,14 +32,17 @@ export class FileSystemSourceRepository
       }
 
       return true;
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (error) {
       return false;
     }
   }
+  // eslint-disable-next-line @typescript-eslint/require-await
   async sourceIsAccessible({ path }: { path: string }) {
     return this.isReadableRecursiveSync(path);
   }
 
+  // eslint-disable-next-line @typescript-eslint/require-await
   async getFilePathList({ path }: { path: string }): Promise<string[]> {
     const markdownFiles: string[] = [];
 
@@ -71,6 +74,7 @@ export class FileSystemSourceRepository
     return stats.mtime; // mtime (modification time) represents last updated date
   }
 
+  // eslint-disable-next-line @typescript-eslint/require-await
   async getFile({ path }: { path: string }): Promise<File> {
     return {
       name: basename(path),

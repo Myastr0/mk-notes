@@ -60,11 +60,14 @@ command.action(
       notionApiKey: '',
     });
 
-    await mkNotes.previewSynchronization({
+    const result = await mkNotes.previewSynchronization({
       inputPath: directoryPath,
       format,
       output,
     });
+
+    // eslint-disable-next-line no-console
+    console.log(result);
   }
 );
 

@@ -1,6 +1,9 @@
 import { BlockObjectResponse } from '@notionhq/client/build/src/api-endpoints';
 
-import { BlockObjectRequest, BlockObjectRequestWithoutChildren } from './types';
+import {
+  BlockObjectRequest,
+  BlockObjectRequestWithoutChildren,
+} from '../../domains/notion/types';
 
 export const normalizeBlock = (
   block:

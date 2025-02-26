@@ -9,17 +9,23 @@ export class FakeFile implements File {
   lastUpdated: Date;
   extension: string;
 
-  constructor(
-    name: string,
-    content: FileContent,
-    lastUpdated: Date,
-    extension: string,
-    icon?: SupportedEmoji
-  ) {
-    this.name = name;
-    this.content = content;
-    this.lastUpdated = lastUpdated;
-    this.extension = extension;
+  constructor({
+    name,
+    content,
+    lastUpdated,
+    extension,
+    icon,
+  }: {
+    name?: string;
+    content?: FileContent;
+    lastUpdated?: Date;
+    extension?: string;
+    icon?: SupportedEmoji;
+  } = {}) {
+    this.name = name ?? 'fake-file-name';
+    this.content = content ?? '# Test';
+    this.lastUpdated = lastUpdated ?? new Date();
+    this.extension = extension ?? 'md';
     if (icon !== undefined) {
       this.icon = icon;
     }
