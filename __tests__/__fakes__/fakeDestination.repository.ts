@@ -9,6 +9,10 @@ import { FakePage } from './fakePage';
 export class FakeDestinationRepository<T extends Page>
   implements DestinationRepository<T>
 {
+  getPageIdFromPageUrl({ pageUrl }: { pageUrl: string }): string {
+    return pageUrl.split('/').pop() ?? '';
+  }
+
   // Simulate creating a new page
   // eslint-disable-next-line @typescript-eslint/require-await
   async createPage({

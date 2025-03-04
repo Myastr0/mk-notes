@@ -9,7 +9,7 @@ import { PageObjectResponse } from '@notionhq/client/build/src/api-endpoints';
 
 jest.mock('@notionhq/client');
 
-describe.skip('NotionDestinationRepository', () => {
+describe('NotionDestinationRepository', () => {
   let repository: NotionDestinationRepository;
   let mockClient: jest.Mocked<Client>;
   let mockNotionConverter: jest.Mocked<NotionConverterRepository>;
@@ -41,7 +41,7 @@ describe.skip('NotionDestinationRepository', () => {
     });
   });
 
-  describe('destinationIsAccessible', () => {
+  describe.skip('destinationIsAccessible', () => {
     it('should return true when page is accessible', async () => {
       jest.spyOn(mockClient.pages,'retrieve').mockResolvedValue({ id: 'page-id', object: 'page' });
 
@@ -66,7 +66,7 @@ describe.skip('NotionDestinationRepository', () => {
     });
   });
 
-  describe('getPageById', () => {
+  describe.skip('getPageById', () => {
     it('should retrieve page with blocks', async () => {
       const mockPage = {
         id: 'page-id',
@@ -102,7 +102,7 @@ describe.skip('NotionDestinationRepository', () => {
     });
   });
 
-  describe('createPage', () => {
+  describe.skip('createPage', () => {
     it('should create page with converted content', async () => {
       const pageElement = new PageElement({
         title: 'Test Page',
@@ -192,7 +192,7 @@ describe.skip('NotionDestinationRepository', () => {
   //   });
   // });
 
-  describe('search', () => {
+  describe.skip('search', () => {
     it('should perform search with filter', async () => {
       const mockSearchResults = {
         results: [{ id: 'page-1' }, { id: 'page-2' }],
@@ -211,7 +211,7 @@ describe.skip('NotionDestinationRepository', () => {
     });
   });
 
-  describe('getBlocksFromPage', () => {
+  describe.skip('getBlocksFromPage', () => {
     it('should retrieve blocks from page', async () => {
       const mockBlocks = {
         results: [{ id: 'block-1' }, { id: 'block-2' }],
@@ -248,5 +248,51 @@ describe.skip('NotionDestinationRepository', () => {
   //     });
   //   });
   // });
+
+  describe('getPageIdFromPageUrl', () => {
+    it('should extract the page ID from a standard Notion URL', () => {
+      const pageUrl = 'https://www.notion.so/workspace/Test-Page-12345678901234567890123456789012';
+      const result = repository.getPageIdFromPageUrl({ pageUrl });
+      expect(result).toBe('12345678901234567890123456789012');
+    });
+
+    it('should extract the page ID from a URL with multiple hyphens', () => {
+      const pageUrl = 'https://www.notion.so/workspace/My-Test-Page-With-Many-Hyphens-12345678901234567890123456789012';
+      const result = repository.getPageIdFromPageUrl({ pageUrl });
+      expect(result).toBe('12345678901234567890123456789012');
+    });
+
+    it('should extract the page ID from a URL without a workspace name', () => {
+      const pageUrl = 'https://www.notion.so/Test-Page-12345678901234567890123456789012';
+      const result = repository.getPageIdFromPageUrl({ pageUrl });
+      expect(result).toBe('12345678901234567890123456789012');
+    });
+
+    it('should throw an error for a URL without a page ID', () => {
+      const pageUrl = 'https://www.notion.so/workspace/Test-Page';
+      expect(() => repository.getPageIdFromPageUrl({ pageUrl })).toThrow('Invalid Notion URL');
+    });
+
+    it('should throw an error for a URL with an invalid page ID length', () => {
+      const pageUrl = 'https://www.notion.so/workspace/Test-Page-123456';
+      expect(() => repository.getPageIdFromPageUrl({ pageUrl })).toThrow('Invalid Notion URL');
+    });
+
+    it('should throw an error for a non-Notion URL', () => {
+      const pageUrl = 'https://example.com/some-page';
+      expect(() => repository.getPageIdFromPageUrl({ pageUrl })).toThrow('Invalid Notion URL');
+    });
+
+    it('should throw an error when the URL is a Notion Database', () => {
+      const pageUrl = 'https://www.notion.so/16d4754ea1e980d1a2fdc2ab5fa4dfaf?v=7d43042815524daa9c5c3a7a4f8e1fe4&pvs=4';
+      expect(() => repository.getPageIdFromPageUrl({ pageUrl })).toThrow('Notion Databases are not supported yet. Please use a Notion Page URL');
+    });
+
+    it('should extract the page ID from a URL with direct ID and query parameters', () => {
+      const pageUrl = 'https://www.notion.so/16d4754ea1e980d1a2fdc2ab5fa4dfaf?pvs=4';
+      const result = repository.getPageIdFromPageUrl({ pageUrl });
+      expect(result).toBe('16d4754ea1e980d1a2fdc2ab5fa4dfaf');
+    });
+  });
 
 }); 

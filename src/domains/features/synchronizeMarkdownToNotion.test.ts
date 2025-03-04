@@ -30,22 +30,6 @@ describe('SynchronizeMarkdownToNotion', () => {
     });
   });
 
-  describe('getPageIdFromPageUrl', () => {
-    it("should correctly extract the page ID from a valid Notion URL", () => {
-      const pageUrl =
-        'https://www.notion.so/workspace/Test-Page-12345678901234567890123456789012';
-      const result = (synchronizer as any).getPageIdFromPageUrl({ pageUrl });
-      expect(result).toBe('12345678901234567890123456789012');
-    });
-
-    it('should throw an error for an invalid Notion URL', () => {
-      const pageUrl = 'https://www.notion.so/workspace/invalid-url';
-      expect(() =>
-        (synchronizer as any).getPageIdFromPageUrl({ pageUrl })
-      ).toThrow('Invalid Notion URL');
-    });
-  });
-
   describe('execute', () => {
     const validNotionUrl =
       'https://www.notion.so/workspace/Test-Page-12345678901234567890123456789012';
@@ -77,7 +61,7 @@ describe('SynchronizeMarkdownToNotion', () => {
       expect(
         destinationRepository.destinationIsAccessible
       ).toHaveBeenCalledWith({
-        parentPageId: '12345678901234567890123456789012',
+        parentPageId: 'Test-Page-12345678901234567890123456789012',
       });
     });
 
@@ -120,7 +104,7 @@ describe('SynchronizeMarkdownToNotion', () => {
       expect(elementConverter.convertToElement).toHaveBeenCalled();
       expect(destinationRepository.createPage).toHaveBeenCalledWith({
         pageElement: expect.any(PageElement),
-        parentPageId: '12345678901234567890123456789012',
+        parentPageId: 'Test-Page-12345678901234567890123456789012',
       });
     });
 

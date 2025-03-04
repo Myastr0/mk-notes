@@ -44,6 +44,39 @@ export class NotionDestinationRepository
     this.notionConverter = notionConverter;
   }
 
+  getPageIdFromPageUrl({ pageUrl }: { pageUrl: string }): string {
+    const urlObj = new URL(pageUrl);
+
+    const pathSegments = urlObj.pathname.split('-');
+    let lastSegment = pathSegments[pathSegments.length - 1];
+
+    /**
+     * If the URL has a query parameter `v`, it's becase it's a Notion Database
+     * Unfortunatly, for now, mk-notes doesn't support Notion Databases
+     **/
+    if (urlObj.searchParams.has('v')) {
+      throw new Error(
+        'Notion Databases are not supported yet. Please use a Notion Page URL'
+      );
+    }
+
+    if (lastSegment.startsWith('/')) {
+      lastSegment = lastSegment.slice(1);
+    }
+
+    const [lastSegmentWithoutQueryParams] = lastSegment.split('?');
+
+    if (!lastSegmentWithoutQueryParams) {
+      throw new Error('Invalid Notion URL');
+    }
+
+    if (lastSegmentWithoutQueryParams.length !== 32) {
+      throw new Error('Invalid Notion URL');
+    }
+
+    return lastSegmentWithoutQueryParams;
+  }
+
   async destinationIsAccessible({
     parentPageId,
   }: {
