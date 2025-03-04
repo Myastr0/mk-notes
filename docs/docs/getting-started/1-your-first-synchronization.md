@@ -44,6 +44,10 @@ Launch the following command:
 - `--destination` : The Notion page URL where you want to synchronize your markdown files.
 - `--notion-api-token` : Your Notion secret token.
 
+:::warning
+Please note that you can only synchronize markdown files to **Notion Pages**. Notion Databases are not supported for now.
+:::
+
 # Going further
 
 Mk Notes allows you to customize the created Notion pages directly from your markdown files using `frontmatter`

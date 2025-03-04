@@ -26,4 +26,5 @@ export interface DestinationRepository<T extends Page> {
   }: {
     parentPageId: string;
   }) => Promise<boolean>;
+  getPageIdFromPageUrl: ({ pageUrl }: { pageUrl: string }) => string;
 }

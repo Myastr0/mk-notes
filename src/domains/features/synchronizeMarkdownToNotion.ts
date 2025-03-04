@@ -35,22 +35,6 @@ export class SynchronizeMarkdownToNotion<T, U extends Page> {
     this.logger = params.logger;
   }
 
-  private getPageIdFromPageUrl({ pageUrl }: { pageUrl: string }): string {
-    const urlObj = new URL(pageUrl);
-
-    const pathSegments = urlObj.pathname.split('-');
-    const lastSegment = pathSegments[pathSegments.length - 1];
-
-    if (!lastSegment) {
-      throw new Error('Invalid Notion URL');
-    }
-
-    if (lastSegment.length !== 32) {
-      throw new Error('Invalid Notion URL');
-    }
-
-    return lastSegment;
-  }
   async execute(
     args: T & {
       notionParentPageUrl: string;
@@ -58,7 +42,7 @@ export class SynchronizeMarkdownToNotion<T, U extends Page> {
   ): Promise<void> {
     const { notionParentPageUrl, ...others } = args;
 
-    const notionPageId = this.getPageIdFromPageUrl({
+    const notionPageId = this.destinationRepository.getPageIdFromPageUrl({
       pageUrl: notionParentPageUrl,
     });
 
