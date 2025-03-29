@@ -37,12 +37,12 @@ Launch the following command:
   mk-notes sync \
     --input <path-where-your-markdown-files-are> \
     --destination <notion-page-url> \
-    --notion-api-token <your-notion-secret>
+    --notion-api-key <your-notion-secret>
 ```
 
 - `--input` : The path where your markdown files are located.
 - `--destination` : The Notion page URL where you want to synchronize your markdown files.
-- `--notion-api-token` : Your Notion secret token.
+- `--notion-api-key` : Your Notion secret token.
 
 :::warning
 Please note that you can only synchronize markdown files to **Notion Pages**. Notion Databases are not supported for now.

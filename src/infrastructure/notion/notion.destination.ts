@@ -121,13 +121,29 @@ export class NotionDestinationRepository
     pageElement: PageElement;
   }): Promise<NotionPage> {
     const notionPage = this.notionConverter.convertFromElement(pageElement);
+    const NOTION_BLOCK_LIMIT = 100;
 
+    // First create the page without children
     const { id: notionPageId } = await this.client.pages.create({
       parent: { type: 'page_id', page_id: parentPageId },
       properties: notionPage.properties as CreatePageParameters['properties'],
       icon: notionPage.icon,
-      children: notionPage.children as BlockObjectRequest[],
+      children: [], // Create page without children initially
     });
+
+    // If there are children blocks, append them in chunks
+    if (notionPage.children && notionPage.children.length > 0) {
+      const children = notionPage.children as BlockObjectRequest[];
+
+      // Split children into chunks of 100 blocks
+      for (let i = 0; i < children.length; i += NOTION_BLOCK_LIMIT) {
+        const chunk = children.slice(i, i + NOTION_BLOCK_LIMIT);
+        await this.client.blocks.children.append({
+          block_id: notionPageId,
+          children: chunk,
+        });
+      }
+    }
 
     return this.getPageById({ notionPageId });
   }
