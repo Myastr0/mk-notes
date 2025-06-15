@@ -1,6 +1,10 @@
 <img src="./assets/mk-notes-banner.png" width="800"/>
 
-<a href="https://www.producthunt.com/products/mk-notes?embed=true&utm_source=badge-featured&utm_medium=badge&utm_source=badge-mk&#0045;notes" target="_blank"><img src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=978916&theme=light&t=1750010974823" alt="MK&#0032;Notes - Seamlessly&#0032;sync&#0032;your&#0032;Markdown&#0032;docs&#0032;to&#0032;Notion | Product Hunt" style="width: 250px; height: 54px;" width="250" height="54" /></a>
+<p align="center">
+    <a href="https://www.producthunt.com/products/mk-notes?embed=true&utm_source=badge-featured&utm_medium=badge&utm_source=badge-mk&#0045;notes" target="_blank">
+      <img src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=978916&theme=light&t=1750010974823" alt="MK&#0032;Notes - Seamlessly&#0032;sync&#0032;your&#0032;Markdown&#0032;docs&#0032;to&#0032;Notion | Product Hunt" style="width: 250px; height: 54px;" width="250" height="54"/>
+    </a>
+</p>
 
 <p align="center">
 Sync your <b>Markdown files</b> to <b>Notion</b> in a single command
@@ -30,6 +34,7 @@ Sync your <b>Markdown files</b> to <b>Notion</b> in a single command
     <a href="https://discord.gg/AuVGNnyMfQ">
       <img alt="Community Discord" src="https://img.shields.io/discord/1336688241583325224?label=Community%20Discord&labelColor=404eee">
     </a>
+
 </p>
 
 <hr />
