@@ -399,14 +399,18 @@ export class NotionConverterRepository
     }
 
     if (typeof content === 'string') {
-      return [
-        {
-          type: 'text',
-          text: {
-            content: content,
-          },
+      // Split string into chunks of 2000 characters
+      const MAX_LENGTH = 2000;
+      const chunks: string[] = [];
+      for (let i = 0; i < content.length; i += MAX_LENGTH) {
+        chunks.push(content.slice(i, i + MAX_LENGTH));
+      }
+      return chunks.map((chunk) => ({
+        type: 'text',
+        text: {
+          content: chunk,
         },
-      ];
+      }));
     }
 
     if (Array.isArray(content)) {
