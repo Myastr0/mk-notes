@@ -110,7 +110,7 @@ describe('FileSystemSourceRepository', () => {
       const result = await repository.getFile({ path: '/test/path/file.md' });
 
       expect(result).toEqual({
-        name: 'file.md',
+        name: 'file',
         content: 'file content',
         extension: 'md',
         lastUpdated: mockDate

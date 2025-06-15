@@ -76,8 +76,23 @@ export class FileSystemSourceRepository
 
   // eslint-disable-next-line @typescript-eslint/require-await
   async getFile({ path }: { path: string }): Promise<File> {
+    // Determine the display name for the Notion page
+    const base = basename(path);
+    let name = base;
+    if (base.toLowerCase() === 'index.md') {
+      // Use parent folder name for index.md
+      const parts = path.split(/[\\/]/); // handle both / and \
+      if (parts.length > 1) {
+        name = parts[parts.length - 2];
+      } else {
+        name = 'index'; // fallback if no parent
+      }
+    } else if (base.toLowerCase().endsWith('.md')) {
+      // Remove .md extension for all other files
+      name = base.slice(0, -3);
+    }
     return {
-      name: basename(path),
+      name,
       content: readFileSync(path, 'utf-8'),
       extension: extname(path).slice(1),
       lastUpdated: this.getLastUpdatedDate(path),
