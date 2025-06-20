@@ -12,6 +12,7 @@ import {
   CalloutElement,
   LinkElement,
   ImageElement,
+  EquationElement,
 } from '@/domains/elements';
 import winston from 'winston';
 import { assert } from 'console';
@@ -78,7 +79,6 @@ describe('MarkdownParser', () => {
       const textElement = result.content[0] as TextElement;
       
       expect(textElement).toBeInstanceOf(TextElement);
-      console.log(result.content[0]);
       
       expect(textElement.text).toMatchObject([
         { text: 'Bold text', styles: { bold: true } },
@@ -212,6 +212,7 @@ describe('MarkdownParser', () => {
 
       const result = parser.parse({ content: markdown });
 
+      console.log({result});
       const textElement = result.content[0] as TextElement;
 
       expect(textElement).toBeInstanceOf(TextElement);
@@ -229,6 +230,57 @@ describe('MarkdownParser', () => {
 
       expect(imageElement).toBeInstanceOf(ImageElement);
       expect(imageElement).toMatchObject({ url: 'https://example.com/image.jpg', caption: 'Image alt' });
+    });
+
+    it('should parse equations', () => {
+      const markdown = `
+$$
+a^2 + b^2 = c^2
+$$
+
+This is an inline equation: $E=mc^2$.
+
+- This is an item with an equation: $E=mc^2$.
+`;
+
+      const result = parser.parse({ content: markdown });
+      expect(result.content).toHaveLength(3);
+
+      const blockEquation = result.content[0] as EquationElement;
+      expect(blockEquation).toBeInstanceOf(EquationElement);
+      expect(blockEquation).toMatchObject({ equation: 'a^2 + b^2 = c^2' });
+
+      const textWithInlineEquation = result.content[1] as TextElement;
+      expect(textWithInlineEquation).toBeInstanceOf(TextElement);
+      expect(textWithInlineEquation.text).toHaveLength(3);
+
+      const textPart = textWithInlineEquation.text[0] as TextElement;
+      expect(textPart).toBeInstanceOf(TextElement);
+      expect(textPart.text).toBe('This is an inline equation: ');
+
+      const inlineEquation = textWithInlineEquation.text[1] as EquationElement;
+      expect(inlineEquation).toBeInstanceOf(EquationElement);
+      expect(inlineEquation).toMatchObject({ equation: 'E=mc^2' });
+
+      const textPart2 = textWithInlineEquation.text[2] as TextElement;
+      expect(textPart2).toBeInstanceOf(TextElement);
+      expect(textPart2.text).toBe('.');
+
+      const listItemWithEquation = result.content[2] as ListItemElement;
+      expect(listItemWithEquation).toBeInstanceOf(ListItemElement);
+      expect(listItemWithEquation.text).toHaveLength(3);
+
+      const listItemTextPart = listItemWithEquation.text[0] as TextElement;
+      expect(listItemTextPart).toBeInstanceOf(TextElement);
+      expect(listItemTextPart.text).toBe('This is an item with an equation: ');
+
+      const listItemInlineEquation = listItemWithEquation.text[1] as EquationElement;
+      expect(listItemInlineEquation).toBeInstanceOf(EquationElement);
+      expect(listItemInlineEquation.equation).toBe('E=mc^2');
+
+      const listItemTextPart2 = listItemWithEquation.text[2] as TextElement;
+      expect(listItemTextPart2).toBeInstanceOf(TextElement);
+      expect(listItemTextPart2.text).toBe('.');
     });
 
     it('should parse front matter metadata', () => {

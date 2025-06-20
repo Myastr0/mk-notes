@@ -7,6 +7,7 @@ import {
   ElementCodeLanguage,
   type ElementConverterRepository,
   ElementType,
+  EquationElement,
   HtmlElement,
   ImageElement,
   LinkElement,
@@ -27,6 +28,7 @@ import {
   BulletedListItemBlock,
   CalloutBlock,
   CreatePageBodyParameters,
+  EquationBlock,
   Heading1Block,
   Heading2Block,
   Heading3Block,
@@ -47,6 +49,17 @@ type PartialCreatePageBodyParameters = Pick<
   'properties' | 'children' | 'icon'
 >;
 
+const SUPPORTED_IMAGE_URL_EXTENSIONS = [
+  '.bmp',
+  '.gif',
+  '.heic',
+  '.jpeg',
+  '.jpg',
+  '.png',
+  '.svg',
+  '.tif',
+  '.tiff',
+];
 export class NotionConverterRepository
   implements ElementConverterRepository<PageElement, NotionPage>
 {
@@ -125,6 +138,8 @@ export class NotionConverterRepository
         return this.convertHtml(element as HtmlElement);
       case ElementType.TableOfContents:
         return this.convertTableOfContents();
+      case ElementType.Equation:
+        return this.convertEquation(element as EquationElement);
       default:
         this.logger.warn(`Unsupported element type: ${element.type}`);
         return null;
@@ -368,6 +383,24 @@ export class NotionConverterRepository
   }
 
   private convertImage(element: ImageElement): BlockObjectRequest {
+    if (
+      element.url &&
+      !SUPPORTED_IMAGE_URL_EXTENSIONS.some((extension) =>
+        element.url?.endsWith(extension)
+      )
+    ) {
+      this.logger.warn(`Unsupported image URL extension: ${element.url}`);
+
+      return {
+        type: 'paragraph',
+        object: 'block',
+        paragraph: {
+          rich_text: [],
+          color: 'default',
+        },
+      };
+    }
+
     return {
       type: 'image',
       object: 'block',
@@ -388,6 +421,14 @@ export class NotionConverterRepository
         language: 'html',
         rich_text: this.convertRichText(element.html),
       },
+    };
+  }
+
+  private convertEquation(element: EquationElement): EquationBlock {
+    return {
+      type: 'equation',
+      object: 'block',
+      equation: { expression: element.equation },
     };
   }
 
@@ -438,6 +479,21 @@ export class NotionConverterRepository
               link: element.url.startsWith('http')
                 ? { url: element.url }
                 : null,
+            },
+          });
+        }
+
+        if (element instanceof EquationElement) {
+          acc.push({
+            type: 'equation',
+            equation: {
+              expression: element.equation,
+            },
+            annotations: {
+              bold: element.styles.bold,
+              italic: element.styles.italic,
+              strikethrough: element.styles.strikethrough,
+              underline: element.styles.underline,
             },
           });
         }

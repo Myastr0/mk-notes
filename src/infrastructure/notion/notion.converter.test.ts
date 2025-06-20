@@ -4,6 +4,7 @@ import {
   CodeElement,
   ElementCodeLanguage,
   ElementType,
+  EquationElement,
   LinkElement,
   ListItemElement,
   PageElement,
@@ -231,6 +232,60 @@ describe.skip('NotionConverterRepository', () => {
             }
           }]
         }
+      });
+    });
+
+    it('should convert equation elements', () => {
+      const pageElement = new PageElement({
+        title: 'Test Page',
+        content: [
+          new EquationElement({
+            equation: 'a^2 + b^2 = c^2',
+          }),
+        ],
+      });
+
+      const result = converter.convertFromElement(pageElement);
+      const children = result.children;
+      expect(children).toHaveLength(1);
+      expect(children[0]).toMatchObject({
+        type: 'equation',
+        equation: {
+          expression: 'a^2 + b^2 = c^2',
+        },
+      });
+    });
+
+    it('should convert rich text with inline equations', () => {
+      const pageElement = new PageElement({
+        title: 'Test Page',
+        content: [
+          new TextElement({
+            text: [
+              new TextElement({ text: 'The equation is ' }),
+              new EquationElement({ equation: 'E=mc^2' }),
+            ],
+            level: TextElementLevel.Paragraph,
+          }),
+        ],
+      });
+
+      const result = converter.convertFromElement(pageElement);
+      const children = result.children;
+      expect(children).toHaveLength(1);
+      expect(children[0]).toMatchObject({
+        type: 'paragraph',
+        paragraph: {
+          rich_text: [
+            { text: { content: 'The equation is ' } },
+            {
+              type: 'equation',
+              equation: {
+                expression: 'E=mc^2',
+              },
+            },
+          ],
+        },
       });
     });
 

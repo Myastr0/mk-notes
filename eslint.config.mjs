@@ -12,6 +12,7 @@ export default tseslint.config(
   {
     languageOptions: {
       parserOptions: {
+        projectService: true,
         project: './tsconfig.eslint.json',
       },
     },
@@ -26,8 +27,11 @@ export default tseslint.config(
         'docs/',
         'jest.config.js',
         '__generated__/',
+        '__tests__/_setup.ts',
+        'jest.config.ts',
         '**/*.spec.ts',
         '**/*.test.ts',
+        'eslint.config.mjs',
       ],
     },
     // 2) Main config for JS/TS files
