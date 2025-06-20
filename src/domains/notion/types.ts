@@ -22,40 +22,55 @@ type SelectColor = string;
 type DateRequest = string;
 type EmptyObject = Record<string, never>;
 
-export type RichTextItemRequest = {
+type TextAnnotation = {
+  bold?: boolean;
+  italic?: boolean;
+  strikethrough?: boolean;
+  underline?: boolean;
+  code?: boolean;
+  color?:
+    | 'default'
+    | 'gray'
+    | 'brown'
+    | 'orange'
+    | 'yellow'
+    | 'green'
+    | 'blue'
+    | 'purple'
+    | 'pink'
+    | 'red'
+    | 'gray_background'
+    | 'brown_background'
+    | 'orange_background'
+    | 'yellow_background'
+    | 'green_background'
+    | 'blue_background'
+    | 'purple_background'
+    | 'pink_background'
+    | 'red_background';
+};
+type TextItemRequest = {
   type?: 'text';
   text: {
     content: string;
     link?: { url: string } | null;
   };
-  annotations?: {
-    bold?: boolean;
-    italic?: boolean;
-    strikethrough?: boolean;
-    underline?: boolean;
-    code?: boolean;
-    color?:
-      | 'default'
-      | 'gray'
-      | 'brown'
-      | 'orange'
-      | 'yellow'
-      | 'green'
-      | 'blue'
-      | 'purple'
-      | 'pink'
-      | 'red'
-      | 'gray_background'
-      | 'brown_background'
-      | 'orange_background'
-      | 'yellow_background'
-      | 'green_background'
-      | 'blue_background'
-      | 'purple_background'
-      | 'pink_background'
-      | 'red_background';
-  };
+  annotations?: TextAnnotation;
+  plain_text?: string;
+  href?: string | null;
 };
+
+type EquationItemRequest = {
+  type?: 'equation';
+  equation: {
+    expression: string;
+  };
+  annotations?: TextAnnotation;
+  plain_text?: string;
+  href?: string | null;
+};
+
+export type RichTextItemRequest = TextItemRequest | EquationItemRequest;
 
 // Parent Interfaces
 export interface ParentPage {

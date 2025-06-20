@@ -14,6 +14,7 @@ export enum ElementType {
   ListItem = 'list-item',
   Html = 'html',
   Toggle = 'toggle',
+  Equation = 'equation',
   TableOfContents = 'table-of-contents',
 }
 
@@ -136,7 +137,12 @@ export enum TextElementStyle {
   Underline = 'underline',
 }
 
-export type RichTextElement = (TextElement | LinkElement | ImageElement)[];
+export type RichTextElement = (
+  | TextElement
+  | LinkElement
+  | ImageElement
+  | EquationElement
+)[];
 
 export type TextElementStyles = {
   italic: boolean;
@@ -322,15 +328,18 @@ export class DividerElement extends Element {
   }
 }
 
-export class ImageElement extends FileElement {
+export class ImageElement extends Element {
   public base64?: string;
   public url?: string;
   public caption?: string;
+  public name?: string;
+  public creationDate?: Date;
+  public lastUpdatedDate?: Date;
+  public extension?: string;
 
   constructor({
     base64,
     url,
-    content = '',
     name,
     creationDate,
     lastUpdatedDate,
@@ -339,14 +348,17 @@ export class ImageElement extends FileElement {
   }: {
     base64?: string;
     url?: string;
-    content?: string;
     name?: string;
     creationDate?: Date;
     lastUpdatedDate?: Date;
     extension?: string;
     caption?: string;
   }) {
-    super({ content, name, creationDate, lastUpdatedDate, extension });
+    super(ElementType.Image);
+    this.name = name;
+    this.creationDate = creationDate;
+    this.lastUpdatedDate = lastUpdatedDate;
+    this.extension = extension;
     this.base64 = base64;
     this.url = url;
     this.caption = caption;
@@ -397,5 +409,35 @@ export class ToggleElement extends Element {
 export class TableOfContentsElement extends Element {
   constructor() {
     super(ElementType.TableOfContents);
+  }
+}
+
+export class EquationElement extends Element {
+  public equation: string;
+  public styles: TextElementStyles = {
+    italic: false,
+    bold: false,
+    strikethrough: false,
+    underline: false,
+  };
+
+  constructor({
+    equation,
+    styles,
+  }: {
+    equation: string;
+    styles?: {
+      italic?: boolean;
+      bold?: boolean;
+      strikethrough?: boolean;
+      underline?: boolean;
+    };
+  }) {
+    super(ElementType.Equation);
+    this.equation = equation;
+    this.styles.bold = styles?.bold || false;
+    this.styles.italic = styles?.italic || false;
+    this.styles.strikethrough = styles?.strikethrough || false;
+    this.styles.underline = styles?.underline || false;
   }
 }

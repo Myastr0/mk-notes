@@ -1,5 +1,6 @@
 import fm from 'front-matter';
 import { marked, Tokens } from 'marked';
+import { default as markedKatex } from 'marked-katex-extension';
 import { Logger } from 'winston';
 
 import {
@@ -8,6 +9,7 @@ import {
   DividerElement,
   Element,
   ElementCodeLanguage,
+  EquationElement,
   ImageElement,
   isElementCodeLanguage,
   LinkElement,
@@ -23,7 +25,7 @@ import {
 } from '@/domains/elements';
 import { HtmlParser } from '@/infrastructure/html';
 
-import { ExtendedToken } from './types';
+import { EquationToken, ExtendedToken } from './types';
 
 export interface MarkdownMetadata {
   title?: string;
@@ -42,90 +44,14 @@ export class MarkdownParser extends ParserRepository {
   }) {
     super({ logger });
     this.htmlParser = htmlParser;
+
+    marked.use(markedKatex({ throwOnError: false, nonStandard: true }));
   }
 
   private preParseMarkdown(src: string): ExtendedToken[] {
     const { body } = fm(src);
     return marked.lexer(body);
   }
-
-  private parseInlineText = (text: string): RichTextElement => {
-    const elements: RichTextElement = [];
-
-    const regex =
-      /(!?\[([^\]]+)\]\(([^)]+)\)|\*\*[^*]+\*\*|\*[^*]+\*|~~[^~]+~~)/g;
-    const cleanText = text.trim();
-    let lastIndex = 0;
-    let match;
-
-    while ((match = regex.exec(cleanText)) !== null) {
-      const [fullMatch, , altText, url] = match;
-      const startIndex = match.index;
-
-      if (startIndex > lastIndex) {
-        elements.push(
-          new TextElement({
-            text: cleanText.slice(lastIndex, startIndex),
-          })
-        );
-      }
-
-      if (fullMatch.startsWith('![')) {
-        elements.push(
-          new ImageElement({
-            url: url,
-            caption: altText,
-          })
-        );
-      } else if (fullMatch.startsWith('[')) {
-        elements.push(
-          new LinkElement({
-            text: altText,
-            url: url,
-          })
-        );
-      } else if (fullMatch.startsWith('**')) {
-        elements.push(
-          new TextElement({
-            text: fullMatch.slice(2, -2),
-            styles: {
-              bold: true,
-            },
-          })
-        );
-      } else if (fullMatch.startsWith('*')) {
-        elements.push(
-          new TextElement({
-            text: fullMatch.slice(1, -1),
-            styles: {
-              italic: true,
-            },
-          })
-        );
-      } else if (fullMatch.startsWith('~~')) {
-        elements.push(
-          new TextElement({
-            text: fullMatch.slice(2, -2),
-            styles: {
-              strikethrough: true,
-            },
-          })
-        );
-      }
-
-      lastIndex = startIndex + fullMatch.length;
-    }
-
-    if (lastIndex < cleanText.length) {
-      elements.push(
-        new TextElement({
-          text: cleanText.slice(lastIndex),
-        })
-      );
-    }
-
-    return elements;
-  };
 
   getMetadata(src: string): MarkdownMetadata {
     const { attributes } = fm(src);
@@ -170,7 +96,7 @@ export class MarkdownParser extends ParserRepository {
       (item) =>
         new ListItemElement({
           listType: token.ordered ? 'ordered' : 'unordered',
-          text: this.parseInlineText(item.text),
+          text: this.parseRawText(item.text),
         })
     );
   }
@@ -296,71 +222,149 @@ export class MarkdownParser extends ParserRepository {
     });
   }
 
+  private parseBlockKatexToken(token: EquationToken): EquationElement {
+    return new EquationElement({
+      equation: token.text,
+      styles: {
+        italic: false,
+        bold: false,
+        strikethrough: false,
+        underline: false,
+      },
+    });
+  }
+
+  private parseRawText(text: string): RichTextElement {
+    const tokens = this.preParseMarkdown(text);
+
+    const elements: RichTextElement = [];
+
+    for (const t of tokens) {
+      switch (t.type) {
+        case 'paragraph':
+          elements.push(...this.parseParagraphToken(t as Tokens.Paragraph));
+          break;
+        case 'text':
+          elements.push(this.parseTextToken(t as Tokens.Text));
+          break;
+      }
+    }
+
+    return elements;
+  }
+
+  private parseParagraphToken(token: Tokens.Paragraph): RichTextElement {
+    const elements: RichTextElement = [];
+
+    token.tokens.forEach((t) => {
+      switch (t.type) {
+        case 'text':
+          elements.push(this.parseTextToken(t as Tokens.Text));
+          break;
+        case 'inlineKatex':
+          elements.push(this.parseBlockKatexToken(t as EquationToken));
+          break;
+        case 'strong':
+          elements.push(this.parseTextToken(t as Tokens.Strong));
+          break;
+        case 'em':
+          elements.push(this.parseTextToken(t as Tokens.Em));
+          break;
+        case 'del':
+          elements.push(this.parseTextToken(t as Tokens.Del));
+          break;
+        case 'link':
+          elements.push(this.parseLinkToken(t as Tokens.Link));
+          break;
+        case 'image':
+          elements.push(this.parseImageToken(t as Tokens.Image));
+          break;
+      }
+    });
+
+    return elements;
+  }
+  private parseToken(token: ExtendedToken): Element[] {
+    const elements: Element[] = [];
+
+    switch (token.type) {
+      case 'heading': {
+        elements.push(this.parseHeadingToken(token as Tokens.Heading));
+        break;
+      }
+      case 'paragraph': {
+        if (token.tokens?.length === 1 && token.tokens[0].type === 'image') {
+          elements.push(this.parseImageToken(token.tokens[0] as Tokens.Image));
+        } else {
+          elements.push(
+            new TextElement({
+              text: this.parseParagraphToken(token as Tokens.Paragraph),
+              level: TextElementLevel.Paragraph,
+            })
+          );
+        }
+
+        break;
+      }
+      case 'text': {
+        elements.push(this.parseTextToken(token as Tokens.Text));
+        break;
+      }
+      case 'list':
+        const listItems = this.parseListToken(token as Tokens.List);
+        elements.push(...listItems);
+        break;
+      case 'blockquote': {
+        elements.push(this.parseBlockQuoteToken(token as Tokens.Blockquote));
+        break;
+      }
+      case 'code':
+        elements.push(this.parseCodeToken(token as Tokens.Code));
+        break;
+      case 'callout':
+        elements.push(this.parseCalloutToken(token));
+        break;
+      case 'table': {
+        elements.push(this.parseTableToken(token as Tokens.Table));
+        break;
+      }
+      case 'hr':
+        elements.push(new DividerElement());
+        break;
+      case 'image':
+        elements.push(this.parseImageToken(token as Tokens.Image));
+        break;
+      case 'html':
+        elements.push(...this.parseHtmlToken(token as Tokens.HTML));
+        break;
+      case 'link':
+        elements.push(this.parseLinkToken(token as Tokens.Link));
+        break;
+      case 'strong':
+      case 'em':
+      case 'del':
+        elements.push(this.parseTextToken(token as Tokens.Strong | Tokens.Em));
+        break;
+      case 'blockKatex':
+        elements.push(this.parseBlockKatexToken(token as EquationToken));
+        break;
+      case 'inlineKatex':
+        elements.push(this.parseBlockKatexToken(token as EquationToken));
+        break;
+      default:
+        break;
+    }
+
+    return elements;
+  }
+
   parse({ content }: { content: string }): ParseResult {
     const tokens = this.preParseMarkdown(content);
 
     const elements: Element[] = [];
 
     for (const token of tokens) {
-      switch (token.type) {
-        case 'heading': {
-          elements.push(this.parseHeadingToken(token as Tokens.Heading));
-          break;
-        }
-        case 'paragraph': {
-          const inlineElements = this.parseInlineText(token.text as string);
-          if (inlineElements.length === 1) {
-            elements.push(inlineElements[0]);
-          } else {
-            elements.push(
-              new TextElement({
-                text: inlineElements,
-                level: TextElementLevel.Paragraph,
-              })
-            );
-          }
-          break;
-        }
-        case 'list':
-          const listItems = this.parseListToken(token as Tokens.List);
-          elements.push(...listItems);
-          break;
-        case 'blockquote': {
-          elements.push(this.parseBlockQuoteToken(token as Tokens.Blockquote));
-          break;
-        }
-        case 'code':
-          elements.push(this.parseCodeToken(token as Tokens.Code));
-          break;
-        case 'callout':
-          elements.push(this.parseCalloutToken(token));
-          break;
-        case 'table': {
-          elements.push(this.parseTableToken(token as Tokens.Table));
-          break;
-        }
-        case 'hr':
-          elements.push(new DividerElement());
-          break;
-        case 'image':
-          elements.push(this.parseImageToken(token as Tokens.Image));
-          break;
-        case 'html':
-          elements.push(...this.parseHtmlToken(token as Tokens.HTML));
-          break;
-        case 'link':
-          elements.push(this.parseLinkToken(token as Tokens.Link));
-          break;
-        case 'strong':
-        case 'em':
-        case 'del':
-          elements.push(
-            this.parseTextToken(token as Tokens.Strong | Tokens.Em)
-          );
-          break;
-        default:
-          break;
-      }
+      elements.push(...this.parseToken(token));
     }
 
     const result: ParseResult = {

@@ -11,4 +11,11 @@ export interface MetadataToken {
   };
 }
 
-export type ExtendedToken = Token | MetadataToken;
+export type EquationToken = {
+  type: 'blockKatex';
+  raw: string;
+  text: string;
+  displayMode: boolean;
+};
+
+export type ExtendedToken = Token | MetadataToken | EquationToken;
