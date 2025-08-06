@@ -7,6 +7,24 @@ import { SourceRepository } from '@/domains/synchronization';
 export class FileSystemSourceRepository
   implements SourceRepository<{ path: string }>
 {
+  private isFile(path: string): boolean {
+    try {
+      const stats = statSync(path);
+      return stats.isFile();
+    } catch {
+      return false;
+    }
+  }
+
+  private isDirectory(path: string): boolean {
+    try {
+      const stats = statSync(path);
+      return stats.isDirectory();
+    } catch {
+      return false;
+    }
+  }
+
   private isReadableRecursiveSync(path: string): boolean {
     try {
       // Check if the path is readable
@@ -37,13 +55,43 @@ export class FileSystemSourceRepository
       return false;
     }
   }
+
+  private isReadableFile(path: string): boolean {
+    try {
+      accessSync(path, constants.R_OK);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   // eslint-disable-next-line @typescript-eslint/require-await
   async sourceIsAccessible({ path }: { path: string }) {
-    return this.isReadableRecursiveSync(path);
+    if (this.isFile(path)) {
+      return this.isReadableFile(path);
+    } else if (this.isDirectory(path)) {
+      return this.isReadableRecursiveSync(path);
+    }
+    return false;
   }
 
   // eslint-disable-next-line @typescript-eslint/require-await
   async getFilePathList({ path }: { path: string }): Promise<string[]> {
+    // If it's a single file, return it as a single-item array
+    if (this.isFile(path)) {
+      if (!path.endsWith('.md')) {
+        throw new Error(
+          `File ${path} is not a markdown file. Only .md files are supported.`
+        );
+      }
+      return [path];
+    }
+
+    // If it's a directory, collect all markdown files recursively
+    if (!this.isDirectory(path)) {
+      throw new Error(`Path ${path} is neither a file nor a directory.`);
+    }
+
     const markdownFiles: string[] = [];
 
     const collectMarkdownFiles = (dirPath: string) => {

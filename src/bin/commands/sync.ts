@@ -4,7 +4,7 @@ import { MkNotes } from '@/MkNotes';
 
 const COMMAND_NAME = 'sync';
 const COMMAND_DESCRIPTION =
-  'Synchronize a directory to a dedicated notion page';
+  'Synchronize a markdown file or directory to a dedicated notion page';
 
 const command = new Command();
 
@@ -12,8 +12,8 @@ command.name(COMMAND_NAME);
 command.description(COMMAND_DESCRIPTION);
 
 command.requiredOption(
-  '-i, --input <directoryPath>',
-  'Path of the directory to synchronize'
+  '-i, --input <path>',
+  'Path of the markdown file or directory to synchronize'
 );
 
 command.requiredOption(
@@ -34,7 +34,7 @@ interface SyncOptions {
 
 command.action(async (opts: SyncOptions) => {
   const {
-    input: directoryPath,
+    input: inputPath,
     destination: notionParentPageUrl,
     notionApiKey,
   } = opts;
@@ -42,7 +42,7 @@ command.action(async (opts: SyncOptions) => {
   const mkNotes = new MkNotes({ notionApiKey });
 
   await mkNotes.synchronizeMarkdownToNotionFromFileSystem({
-    inputPath: directoryPath,
+    inputPath: inputPath,
     parentNotionPageId: notionParentPageUrl,
   });
 
