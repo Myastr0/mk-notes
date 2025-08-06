@@ -24,7 +24,7 @@ In this tutorial, you will learn how to synchronize your markdown files in a Not
 Before starting the synchronization, you can preview the result of the synchronization by running the following command:
 
 ```bash
-  mk-notes preview-sync --input <path-where-your-markdown-files-are>
+  mk-notes preview-sync --input <path-to-your-markdown-file-or-directory>
 ```
 
 You will see the Notion page architecture that will be generated based on your markdown files.
@@ -35,12 +35,12 @@ Launch the following command:
 
 ```bash
   mk-notes sync \
-    --input <path-where-your-markdown-files-are> \
+    --input <path-to-your-markdown-file-or-directory> \
     --destination <notion-page-url> \
     --notion-api-key <your-notion-secret>
 ```
 
-- `--input` : The path where your markdown files are located.
+- `--input` : The path to your markdown file or directory containing markdown files.
 - `--destination` : The Notion page URL where you want to synchronize your markdown files.
 - `--notion-api-key` : Your Notion secret token.
 
