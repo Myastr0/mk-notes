@@ -13,9 +13,10 @@ describe('FileSystemSourceRepository', () => {
   });
 
   describe('sourceIsAccessible', () => {
-    it('should return true when path is readable', async () => {
+    it('should return true when directory path is readable', async () => {
       jest.mocked(accessSync).mockImplementation(() => undefined);
       jest.mocked(readdirSync).mockReturnValue([]);
+      jest.mocked(statSync).mockReturnValue({ isFile: () => false, isDirectory: () => true } as any);
 
       const result = await repository.sourceIsAccessible({ path: '/test/path' });
 
@@ -23,12 +24,33 @@ describe('FileSystemSourceRepository', () => {
       expect(accessSync).toHaveBeenCalledWith('/test/path', constants.R_OK);
     });
 
-    it('should return false when path is not readable', async () => {
+    it('should return true when file path is readable', async () => {
+      jest.mocked(accessSync).mockImplementation(() => undefined);
+      jest.mocked(statSync).mockReturnValue({ isFile: () => true, isDirectory: () => false } as any);
+
+      const result = await repository.sourceIsAccessible({ path: '/test/file.md' });
+
+      expect(result).toBe(true);
+      expect(accessSync).toHaveBeenCalledWith('/test/file.md', constants.R_OK);
+    });
+
+    it('should return false when file path is not readable', async () => {
       jest.mocked(accessSync).mockImplementation(() => {
         throw new Error('Access denied');
       });
+      jest.mocked(statSync).mockReturnValue({ isFile: () => true, isDirectory: () => false } as any);
 
-      const result = await repository.sourceIsAccessible({ path: '/test/path' });
+      const result = await repository.sourceIsAccessible({ path: '/test/file.md' });
+
+      expect(result).toBe(false);
+    });
+
+    it('should return false when path is neither file nor directory', async () => {
+      jest.mocked(statSync).mockImplementation(() => {
+        throw new Error('Path does not exist');
+      });
+
+      const result = await repository.sourceIsAccessible({ path: '/test/nonexistent' });
 
       expect(result).toBe(false);
     });
@@ -42,6 +64,7 @@ describe('FileSystemSourceRepository', () => {
       jest.mocked(readdirSync).mockReturnValueOnce([
         { name: 'file2.md', isDirectory: () => false }
       ] as any);
+      jest.mocked(statSync).mockReturnValue({ isFile: () => false, isDirectory: () => true } as any);
 
       const result = await repository.sourceIsAccessible({ path: '/test/path' });
 
@@ -51,8 +74,33 @@ describe('FileSystemSourceRepository', () => {
   });
 
   describe('getFilePathList', () => {
+    it('should return single file path when input is a markdown file', async () => {
+      jest.mocked(statSync).mockReturnValue({ isFile: () => true, isDirectory: () => false } as any);
+
+      const result = await repository.getFilePathList({ path: '/test/file.md' });
+
+      expect(result).toEqual(['/test/file.md']);
+    });
+
+    it('should throw error when input file is not a markdown file', async () => {
+      jest.mocked(statSync).mockReturnValue({ isFile: () => true, isDirectory: () => false } as any);
+
+      await expect(repository.getFilePathList({ path: '/test/file.txt' }))
+        .rejects.toThrow('File /test/file.txt is not a markdown file. Only .md files are supported.');
+    });
+
+    it('should throw error when path is neither file nor directory', async () => {
+      jest.mocked(statSync).mockImplementation(() => {
+        throw new Error('Path does not exist');
+      });
+
+      await expect(repository.getFilePathList({ path: '/test/nonexistent' }))
+        .rejects.toThrow('Path /test/nonexistent is neither a file nor a directory.');
+    });
+
     it('should return empty array for empty directory', async () => {
       jest.mocked(readdirSync).mockReturnValue([]);
+      jest.mocked(statSync).mockReturnValue({ isFile: () => false, isDirectory: () => true } as any);
 
       const result = await repository.getFilePathList({ path: '/test/path' });
 
@@ -65,6 +113,7 @@ describe('FileSystemSourceRepository', () => {
         { name: 'file2.txt', isDirectory: () => false, isFile: () => true },
         { name: 'file3.md', isDirectory: () => false, isFile: () => true }
       ] as any);
+      jest.mocked(statSync).mockReturnValue({ isFile: () => false, isDirectory: () => true } as any);
 
       const result = await repository.getFilePathList({ path: '/test/path' });
 
@@ -82,6 +131,7 @@ describe('FileSystemSourceRepository', () => {
       jest.mocked(readdirSync).mockReturnValueOnce([
         { name: 'file2.md', isDirectory: () => false, isFile: () => true }
       ] as any);
+      jest.mocked(statSync).mockReturnValue({ isFile: () => false, isDirectory: () => true } as any);
 
       const result = await repository.getFilePathList({ path: '/test/path' });
 
@@ -95,6 +145,7 @@ describe('FileSystemSourceRepository', () => {
       jest.mocked(readdirSync).mockImplementation(() => {
         throw new Error('Permission denied');
       });
+      jest.mocked(statSync).mockReturnValue({ isFile: () => false, isDirectory: () => true } as any);
 
       await expect(repository.getFilePathList({ path: '/test/path' }))
         .rejects.toThrow('Error reading directory /test/path');

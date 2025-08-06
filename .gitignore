@@ -16,3 +16,5 @@ dist/
 # Extras
 coverage/
 tsconfig.production.tsbuildinfo
+
+.DS_Store
