@@ -25,6 +25,10 @@ mk-notes sync -i <path> -d <notionPageUrl> -k <notionApiKey>
 - `-d, --destination <notionPageUrl>`: URL of the parent Notion page where content will be synchronized
 - `-k, --notion-api-key <notionApiKey>`: Your Notion API key for authentication
 
+### Optional Options
+
+- `-c, --clean`: Clean sync mode - removes all existing content from the destination page before syncing. This prevents duplicate content when repeatedly syncing to the same destination.
+
 ### Examples
 
 #### Syncing a Directory
@@ -42,6 +46,24 @@ This command will:
 2. Create a matching page hierarchy in Notion
 3. Convert and sync the content to your specified Notion page
 4. Display a success message with the Notion page URL when complete
+
+#### Syncing a Directory with Clean Sync
+
+```bash
+mk-notes sync \
+  --input ./my-docs \
+  --destination https://notion.so/myworkspace/doc-123456 \
+  --notion-api-key secret_abc123... \
+  --clean
+```
+
+This command will:
+
+1. Remove all existing content from the destination Notion page
+2. Read all markdown files in the `./my-docs` directory
+3. Create a matching page hierarchy in Notion
+4. Convert and sync the content to your specified Notion page
+5. Display a success message with the Notion page URL when complete
 
 #### Syncing a Single File
 

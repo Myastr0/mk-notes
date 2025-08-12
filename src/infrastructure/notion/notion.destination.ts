@@ -43,6 +43,28 @@ export class NotionDestinationRepository
     this.client = new Client({ auth: apiKey });
     this.notionConverter = notionConverter;
   }
+  
+  /**
+   * Delete all child blocks from a parent page
+   */
+  async deleteChildBlocks({
+    parentPageId,
+  }: {
+    parentPageId: string;
+  }): Promise<void> {
+    try {
+      // Get all blocks in the parent page
+      const blocks = await this.getBlocksFromPage({ notionPageId: parentPageId });
+      
+      // Delete each block
+      for (const block of blocks) {
+        await this.client.blocks.delete({ block_id: block.id });
+      }
+    } catch (error) {
+      console.error('Failed to delete child blocks:', error);
+      throw error;
+    }
+  }
 
   getPageIdFromPageUrl({ pageUrl }: { pageUrl: string }): string {
     const urlObj = new URL(pageUrl);
