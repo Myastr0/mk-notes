@@ -25,6 +25,10 @@ mk-notes sync -i <path> -d <notionPageUrl> -k <notionApiKey>
 - `-d, --destination <notionPageUrl>`: URL of the parent Notion page where content will be synchronized
 - `-k, --notion-api-key <notionApiKey>`: Your Notion API key for authentication
 
+### Optional Options
+
+- `-c, --clean`: Clean sync mode - **WARNING: removes ALL existing content** from the destination page before syncing, including any manually added content or blocks not created by mk-notes. This prevents duplicate content when repeatedly syncing to the same destination, but will delete any custom content you've added to the page.
+
 ### Examples
 
 #### Syncing a Directory
@@ -42,6 +46,24 @@ This command will:
 2. Create a matching page hierarchy in Notion
 3. Convert and sync the content to your specified Notion page
 4. Display a success message with the Notion page URL when complete
+
+#### Syncing a Directory with Clean Sync (Caution)
+
+```bash
+mk-notes sync \
+  --input ./my-docs \
+  --destination https://notion.so/myworkspace/doc-123456 \
+  --notion-api-key secret_abc123... \
+  --clean
+```
+
+This command will:
+
+1. Remove ALL existing content from the destination Notion page (including any custom blocks and content not created by mk-notes)
+2. Read all markdown files in the `./my-docs` directory
+3. Create a matching page hierarchy in Notion
+4. Convert and sync the content to your specified Notion page
+5. Display a success message with the Notion page URL when complete
 
 #### Syncing a Single File
 
@@ -173,5 +195,7 @@ Mk Notes automatically detects whether your input path is a single markdown file
 4. **Regular Backups**
    - Consider backing up your Notion pages before large syncs
    - Use `preview-sync` to verify changes before updating existing content
+   - Be extremely cautious when using the `--clean` flag as it will delete ALL content on the destination page
+   - Avoid using `--clean` on Notion pages that contain important manual content not created by mk-notes
 
 For more details about how MK Notes organizes your content, see the [Architecture](./architecture.md) documentation.

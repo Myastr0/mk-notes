@@ -26,10 +26,16 @@ command.requiredOption(
   'The Notion API to use to launch the synchronization'
 );
 
+command.option(
+  '-c, --clean',
+  'Clean sync - WARNING: removes ALL existing content from the destination page before syncing, including any custom content not created by mk-notes'
+);
+
 interface SyncOptions {
   input: string;
   destination: string;
   notionApiKey: string;
+  clean?: boolean;
 }
 
 command.action(async (opts: SyncOptions) => {
@@ -37,6 +43,7 @@ command.action(async (opts: SyncOptions) => {
     input: inputPath,
     destination: notionParentPageUrl,
     notionApiKey,
+    clean = false,
   } = opts;
 
   const mkNotes = new MkNotes({ notionApiKey });
@@ -44,6 +51,7 @@ command.action(async (opts: SyncOptions) => {
   await mkNotes.synchronizeMarkdownToNotionFromFileSystem({
     inputPath: inputPath,
     parentNotionPageId: notionParentPageUrl,
+    cleanSync: clean,
   });
 
   // eslint-disable-next-line no-console

@@ -22,6 +22,11 @@ interface SynchronizationServiceParams<T, U extends Page> {
   logger: Logger;
 }
 
+export interface SynchronizeOptions {
+  /** When true, delete all existing content before syncing */
+  cleanSync?: boolean;
+}
+
 export class SynchronizeMarkdownToNotion<T, U extends Page> {
   private sourceRepository: SourceRepository<T>;
   private destinationRepository: DestinationRepository<U>;
@@ -38,13 +43,24 @@ export class SynchronizeMarkdownToNotion<T, U extends Page> {
   async execute(
     args: T & {
       notionParentPageUrl: string;
-    }
+    } & SynchronizeOptions
   ): Promise<void> {
-    const { notionParentPageUrl, ...others } = args;
+    const { notionParentPageUrl, cleanSync = false, ...others } = args;
 
     const notionPageId = this.destinationRepository.getPageIdFromPageUrl({
       pageUrl: notionParentPageUrl,
     });
+
+    // If clean sync is enabled, delete all existing content first
+    if (cleanSync) {
+      this.logger.info('Clean sync enabled - removing existing content');
+      try {
+        await this.destinationRepository.deleteChildBlocks({ parentPageId: notionPageId });
+        this.logger.info('Successfully removed existing content');
+      } catch (error) {
+        this.logger.warn('Failed to remove existing content, continuing with sync', { error });
+      }
+    }
 
     try {
       // Check if the Notion page is accessible

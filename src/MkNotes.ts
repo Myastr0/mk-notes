@@ -79,9 +79,11 @@ export class MkNotes {
   async synchronizeMarkdownToNotionFromFileSystem({
     inputPath,
     parentNotionPageId,
+    cleanSync = false,
   }: {
     inputPath: string;
     parentNotionPageId: string;
+    cleanSync?: boolean;
   }): Promise<void> {
     const synchronizeMarkdownToNotion = new SynchronizeMarkdownToNotion({
       logger: this.logger,
@@ -93,6 +95,7 @@ export class MkNotes {
     await synchronizeMarkdownToNotion.execute({
       path: inputPath,
       notionParentPageUrl: parentNotionPageId,
+      cleanSync,
     });
   }
 }

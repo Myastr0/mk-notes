@@ -7,8 +7,7 @@ import {
 import { FakePage } from './fakePage';
 
 export class FakeDestinationRepository<T extends Page>
-  implements DestinationRepository<T>
-{
+  implements DestinationRepository<T> {
   getPageIdFromPageUrl({ pageUrl }: { pageUrl: string }): string {
     return pageUrl.split('/').pop() ?? '';
   }
@@ -59,5 +58,13 @@ export class FakeDestinationRepository<T extends Page>
     // Here you would implement the logic to check if the destination is accessible
     // For demonstration purposes, let's return a boolean value
     return true;
+  }
+  // eslint-disable-next-line @typescript-eslint/require-await
+  async deleteChildBlocks({
+    parentPageId,
+  }: {
+    parentPageId: string;
+  }): Promise<void> {
+    // no-op in fake repository
   }
 }
