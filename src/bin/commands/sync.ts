@@ -28,7 +28,7 @@ command.requiredOption(
 
 command.option(
   '-c, --clean',
-  'Clean sync - removes all existing content before syncing'
+  'Clean sync - WARNING: removes ALL existing content from the destination page before syncing, including any custom content not created by mk-notes'
 );
 
 interface SyncOptions {
