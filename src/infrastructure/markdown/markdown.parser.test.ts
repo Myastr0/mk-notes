@@ -89,6 +89,56 @@ describe('MarkdownParser', () => {
       ]);
     });
 
+    it('should parse inline code with single backticks', () => {
+      const markdown = `
+This is normal text with \`inline code\` and more text.
+Another line with \`code\` and **bold \`code in bold\`** text.
+`;
+
+      const result = parser.parse({ content: markdown });
+
+      expect(result.content).toHaveLength(1);
+
+      assert(result.content[0] instanceof TextElement);
+      const textElement = result.content[0] as TextElement;
+      
+      expect(textElement).toBeInstanceOf(TextElement);
+      
+      // Check that we have the right structure based on actual parsed output
+      expect(textElement.text).toHaveLength(7);
+      
+      // First text: "This is normal text with "
+      const text1 = textElement.text[0] as TextElement;
+      expect(text1).toBeInstanceOf(TextElement);
+      expect(text1).toMatchObject({ 
+        text: 'This is normal text with ', 
+        styles: { bold: false, italic: false, strikethrough: false, underline: false, code: false } 
+      });
+      
+      // First inline code: "inline code" - THIS IS THE KEY TEST!
+      const codeElement1 = textElement.text[1] as TextElement;
+      expect(codeElement1).toBeInstanceOf(TextElement);
+      expect(codeElement1).toMatchObject({ 
+        text: 'inline code', 
+        styles: { bold: false, italic: false, strikethrough: false, underline: false, code: true } 
+      });
+      
+      // Text between: " and more text.\n\nAnother line with "  
+      const text2 = textElement.text[2] as TextElement;
+      expect(text2).toBeInstanceOf(TextElement);
+      expect(text2.styles).toMatchObject({ 
+        bold: false, italic: false, strikethrough: false, underline: false, code: false
+      });
+      
+      // Second inline code: "code" - ANOTHER KEY TEST!
+      const codeElement2 = textElement.text[3] as TextElement;
+      expect(codeElement2).toBeInstanceOf(TextElement);
+      expect(codeElement2).toMatchObject({ 
+        text: 'code', 
+        styles: { bold: false, italic: false, strikethrough: false, underline: false, code: true } 
+      });
+    });
+
     it('should parse lists', () => {
       const markdown = `
 - Unordered item 1
