@@ -126,8 +126,8 @@ describe('NotionFileUploadService', () => {
         basePath: '/test/base',
       });
 
-      expect(fs.statSync).toHaveBeenCalledWith('/test/image.png');
-      expect(fs.readFileSync).toHaveBeenCalledWith('/test/image.png');
+      expect(fs.statSync).toHaveBeenCalledWith('/test/base/image.png');
+      expect(fs.readFileSync).toHaveBeenCalledWith('/test/base/image.png');
     });
 
     it('should handle absolute file paths correctly', async () => {

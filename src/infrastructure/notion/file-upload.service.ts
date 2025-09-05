@@ -51,7 +51,7 @@ export class NotionFileUploadService {
 
     // If basePath is provided, resolve relative to it
     if (basePath) {
-      return path.resolve(path.dirname(basePath), imagePath);
+      return path.resolve(basePath, imagePath);
     }
 
     // Otherwise resolve relative to current working directory

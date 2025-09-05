@@ -594,11 +594,17 @@ export class NotionConverterRepository
       return {
         type: 'image',
         object: 'block',
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         image: {
           type: 'file_upload',
-          file_upload: { id: uploadResult.id },
-        } as { type: 'file_upload'; file_upload: { id: string } }, // Type assertion for file upload
-      };
+          file_upload: {
+            id: uploadResult.id,
+          },
+          caption: element.caption
+            ? [{ type: 'text', text: { content: element.caption } }]
+            : [],
+        } as any, // eslint-disable-line @typescript-eslint/no-explicit-any -- Notion file upload block structure not in types yet
+      } as BlockObjectRequest;
     } catch (error) {
       this.logger.error(`Failed to upload local image ${element.url}:`, error);
 
