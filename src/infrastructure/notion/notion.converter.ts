@@ -155,7 +155,7 @@ export class NotionConverterRepository
   ): Promise<BlockObjectRequest | null> {
     switch (element.type) {
       case ElementType.Page:
-        return await this.convertPageElement(element as PageElement);
+        return null; // Pages should not be converted as child blocks
       case ElementType.Text:
         return this.convertText(element as TextElement);
       case ElementType.Quote:
@@ -187,125 +187,9 @@ export class NotionConverterRepository
         return null;
     }
   }
-  convertFromElement(element: PageElement): NotionPage {
-    // For backward compatibility, we provide a sync version that doesn't support file uploads
-    this.logger.warn(
-      'Using sync convertFromElement - local images will not be uploaded. Use convertFromElementAsync for full support.'
-    );
-
-    // We need to handle this synchronously, so we'll skip file uploads for now
-    const originalFileUploadService = this.fileUploadService;
-    this.fileUploadService = undefined; // Temporarily disable to force fallback behavior
-
-    try {
-      // This will now be sync because no file upload service is available
-      const notionPageInput = this.convertPageElementSync(element);
-      return NotionPage.fromPartialCreatePageBodyParameters(notionPageInput);
-    } finally {
-      this.fileUploadService = originalFileUploadService; // Restore
-    }
-  }
-
-  async convertFromElementAsync(element: PageElement): Promise<NotionPage> {
+  async convertFromElement(element: PageElement): Promise<NotionPage> {
     const notionPageInput = await this.convertPageElement(element);
     return NotionPage.fromPartialCreatePageBodyParameters(notionPageInput);
-  }
-
-  private convertPageElementSync(
-    element: PageElement
-  ): PartialCreatePageBodyParameters {
-    const title: TitleProperty = {
-      id: 'title',
-      type: 'title',
-      title: [
-        {
-          type: 'text',
-          text: {
-            content: element.title,
-            link: null,
-          },
-        },
-      ],
-    };
-
-    const result: PartialCreatePageBodyParameters = {
-      children: [],
-      properties: {
-        title,
-      },
-    };
-
-    for (const contentElement of element.content) {
-      const convertedElement = this.convertElementSync(contentElement);
-
-      if (convertedElement) {
-        result.children?.push(convertedElement);
-      }
-    }
-
-    const icon = element.getIcon();
-
-    if (icon) {
-      result.icon = { type: 'emoji', emoji: icon };
-    }
-
-    return result;
-  }
-
-  private convertElementSync(element: Element): BlockObjectRequest | null {
-    switch (element.type) {
-      case ElementType.Page:
-        return null; // Pages should not be converted as child blocks
-      case ElementType.Text:
-        return this.convertText(element as TextElement);
-      case ElementType.Quote:
-        return this.convertQuote(element as QuoteElement);
-      case ElementType.Callout:
-        return this.convertCallout(element as CalloutElement);
-      case ElementType.ListItem:
-        return this.convertListItem(element as ListItemElement);
-      case ElementType.Table:
-        return this.convertTable(element as TableElement);
-      case ElementType.Toggle:
-        return this.convertToggleSync(element as ToggleElement);
-      case ElementType.Link:
-        return this.convertLink(element as LinkElement);
-      case ElementType.Divider:
-        return this.convertDivider();
-      case ElementType.Code:
-        return this.convertCodeBlock(element as CodeElement);
-      case ElementType.Image:
-        return this.convertExternalImage(element as ImageElement); // Only external images in sync mode
-      case ElementType.Html:
-        return this.convertHtml(element as HtmlElement);
-      case ElementType.TableOfContents:
-        return this.convertTableOfContents();
-      case ElementType.Equation:
-        return this.convertEquation(element as EquationElement);
-      default:
-        this.logger.warn(`Unsupported element type: ${element.type}`);
-        return null;
-    }
-  }
-
-  private convertToggleSync(element: ToggleElement): ToggleBlock {
-    const children: BlockObjectRequestWithoutChildren[] = [];
-
-    for (const contentElement of element.content) {
-      const convertedElement = this.convertElementSync(contentElement);
-      if (convertedElement) {
-        children.push(convertedElement as BlockObjectRequestWithoutChildren);
-      }
-    }
-
-    return {
-      type: 'toggle',
-      object: 'block',
-      toggle: {
-        rich_text: this.convertRichText(element.title),
-        children,
-      },
-    };
   }
 
   private convertText(
