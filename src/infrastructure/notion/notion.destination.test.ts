@@ -30,7 +30,7 @@ describe('NotionDestinationRepository', () => {
       search: jest.fn(),
     } as unknown as jest.Mocked<Client>;
 
-    
+
     mockNotionConverter = {
       convertFromElement: jest.fn(),
     } as unknown as jest.Mocked<NotionConverterRepository>;
@@ -295,4 +295,4 @@ describe('NotionDestinationRepository', () => {
     });
   });
 
-}); 
+});
