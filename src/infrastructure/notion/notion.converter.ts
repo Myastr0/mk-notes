@@ -155,7 +155,7 @@ export class NotionConverterRepository
   ): Promise<BlockObjectRequest | null> {
     switch (element.type) {
       case ElementType.Page:
-        return null; // Pages should not be converted as child blocks
+        return await this.convertPageElement(element as PageElement);
       case ElementType.Text:
         return this.convertText(element as TextElement);
       case ElementType.Quote:
