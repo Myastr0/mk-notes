@@ -467,6 +467,7 @@ export class NotionConverterRepository
               italic: (element as TextElement).styles.italic,
               strikethrough: (element as TextElement).styles.strikethrough,
               underline: (element as TextElement).styles.underline,
+              code: (element as TextElement).styles.code,
             },
           });
         }
@@ -494,6 +495,7 @@ export class NotionConverterRepository
               italic: element.styles.italic,
               strikethrough: element.styles.strikethrough,
               underline: element.styles.underline,
+              code: element.styles.code,
             },
           });
         }

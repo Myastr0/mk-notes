@@ -182,7 +182,12 @@ export class MarkdownParser extends ParserRepository {
   }
 
   private parseTextToken(
-    token: Tokens.Text | Tokens.Strong | Tokens.Em | Tokens.Del
+    token:
+      | Tokens.Text
+      | Tokens.Strong
+      | Tokens.Em
+      | Tokens.Del
+      | Tokens.Codespan
   ): TextElement {
     if (token.type === 'strong') {
       return new TextElement({
@@ -192,6 +197,7 @@ export class MarkdownParser extends ParserRepository {
           italic: false,
           strikethrough: false,
           underline: false,
+          code: false,
         },
       });
     }
@@ -204,6 +210,7 @@ export class MarkdownParser extends ParserRepository {
           italic: true,
           strikethrough: false,
           underline: false,
+          code: false,
         },
       });
     }
@@ -212,7 +219,24 @@ export class MarkdownParser extends ParserRepository {
       return new TextElement({
         text: token.text,
         styles: {
+          bold: false,
+          italic: false,
           strikethrough: true,
+          underline: false,
+          code: false,
+        },
+      });
+    }
+
+    if (token.type === 'codespan') {
+      return new TextElement({
+        text: token.text,
+        styles: {
+          bold: false,
+          italic: false,
+          strikethrough: false,
+          underline: false,
+          code: true,
         },
       });
     }
@@ -272,6 +296,9 @@ export class MarkdownParser extends ParserRepository {
           break;
         case 'del':
           elements.push(this.parseTextToken(t as Tokens.Del));
+          break;
+        case 'codespan':
+          elements.push(this.parseTextToken(t as Tokens.Codespan));
           break;
         case 'link':
           elements.push(this.parseLinkToken(t as Tokens.Link));
