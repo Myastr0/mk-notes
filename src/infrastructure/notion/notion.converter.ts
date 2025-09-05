@@ -1,3 +1,4 @@
+import * as path from 'path';
 import { Logger } from 'winston';
 
 import {
@@ -43,6 +44,7 @@ import {
   TitleProperty,
   ToggleBlock,
 } from '../../domains/notion/types';
+import { NotionFileUploadService } from './file-upload.service';
 
 type PartialCreatePageBodyParameters = Pick<
   CreatePageBodyParameters,
@@ -64,12 +66,152 @@ export class NotionConverterRepository
   implements ElementConverterRepository<PageElement, NotionPage>
 {
   private logger: Logger;
+  private fileUploadService?: NotionFileUploadService;
+  private currentFilePath?: string;
+  private basePath?: string;
 
-  constructor({ logger }: { logger: Logger }) {
+  constructor({
+    logger,
+    fileUploadService,
+  }: {
+    logger: Logger;
+    fileUploadService?: NotionFileUploadService;
+  }) {
     this.logger = logger;
+    this.fileUploadService = fileUploadService;
   }
 
-  private convertPageElement(
+  setCurrentFilePath(filePath: string): void {
+    this.currentFilePath = filePath;
+  }
+
+  setBasePath(basePath: string): void {
+    this.basePath = basePath;
+  }
+
+  /**
+   * Determine if an image URL is a local file path (relative or absolute local path)
+   */
+  private isLocalImagePath(url?: string): boolean {
+    if (!url) return false;
+
+    // External URLs (http/https)
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      return false;
+    }
+
+    // Data URLs
+    if (url.startsWith('data:')) {
+      return false;
+    }
+
+    // Relative paths or absolute local paths
+    return true;
+  }
+
+  private async convertPageElement(
+    element: PageElement
+  ): Promise<PartialCreatePageBodyParameters> {
+    const title: TitleProperty = {
+      id: 'title',
+      type: 'title',
+      title: [
+        {
+          type: 'text',
+          text: {
+            content: element.title,
+            link: null,
+          },
+        },
+      ],
+    };
+
+    const result: PartialCreatePageBodyParameters = {
+      children: [],
+      properties: {
+        title,
+      },
+    };
+
+    for (const contentElement of element.content) {
+      const convertedElement = await this.convertElement(contentElement);
+
+      if (convertedElement) {
+        result.children?.push(convertedElement);
+      }
+    }
+
+    const icon = element.getIcon();
+
+    if (icon) {
+      result.icon = { type: 'emoji', emoji: icon };
+    }
+
+    return result;
+  }
+
+  private async convertElement(
+    element: Element
+  ): Promise<BlockObjectRequest | null> {
+    switch (element.type) {
+      case ElementType.Page:
+        return null; // Pages should not be converted as child blocks
+      case ElementType.Text:
+        return this.convertText(element as TextElement);
+      case ElementType.Quote:
+        return this.convertQuote(element as QuoteElement);
+      case ElementType.Callout:
+        return this.convertCallout(element as CalloutElement);
+      case ElementType.ListItem:
+        return this.convertListItem(element as ListItemElement);
+      case ElementType.Table:
+        return this.convertTable(element as TableElement);
+      case ElementType.Toggle:
+        return await this.convertToggle(element as ToggleElement);
+      case ElementType.Link:
+        return this.convertLink(element as LinkElement);
+      case ElementType.Divider:
+        return this.convertDivider();
+      case ElementType.Code:
+        return this.convertCodeBlock(element as CodeElement);
+      case ElementType.Image:
+        return await this.convertImage(element as ImageElement);
+      case ElementType.Html:
+        return this.convertHtml(element as HtmlElement);
+      case ElementType.TableOfContents:
+        return this.convertTableOfContents();
+      case ElementType.Equation:
+        return this.convertEquation(element as EquationElement);
+      default:
+        this.logger.warn(`Unsupported element type: ${element.type}`);
+        return null;
+    }
+  }
+  convertFromElement(element: PageElement): NotionPage {
+    // For backward compatibility, we provide a sync version that doesn't support file uploads
+    this.logger.warn(
+      'Using sync convertFromElement - local images will not be uploaded. Use convertFromElementAsync for full support.'
+    );
+
+    // We need to handle this synchronously, so we'll skip file uploads for now
+    const originalFileUploadService = this.fileUploadService;
+    this.fileUploadService = undefined; // Temporarily disable to force fallback behavior
+
+    try {
+      // This will now be sync because no file upload service is available
+      const notionPageInput = this.convertPageElementSync(element);
+      return NotionPage.fromPartialCreatePageBodyParameters(notionPageInput);
+    } finally {
+      this.fileUploadService = originalFileUploadService; // Restore
+    }
+  }
+
+  async convertFromElementAsync(element: PageElement): Promise<NotionPage> {
+    const notionPageInput = await this.convertPageElement(element);
+    return NotionPage.fromPartialCreatePageBodyParameters(notionPageInput);
+  }
+
+  private convertPageElementSync(
     element: PageElement
   ): PartialCreatePageBodyParameters {
     const title: TitleProperty = {
@@ -94,10 +236,10 @@ export class NotionConverterRepository
     };
 
     for (const contentElement of element.content) {
-      const convertedElement = this.convertElement(contentElement);
+      const convertedElement = this.convertElementSync(contentElement);
 
       if (convertedElement) {
-        result.children?.push(convertedElement as BlockObjectRequest);
+        result.children?.push(convertedElement);
       }
     }
 
@@ -110,10 +252,10 @@ export class NotionConverterRepository
     return result;
   }
 
-  private convertElement(element: Element) {
+  private convertElementSync(element: Element): BlockObjectRequest | null {
     switch (element.type) {
       case ElementType.Page:
-        return this.convertPageElement(element as PageElement);
+        return null; // Pages should not be converted as child blocks
       case ElementType.Text:
         return this.convertText(element as TextElement);
       case ElementType.Quote:
@@ -125,7 +267,7 @@ export class NotionConverterRepository
       case ElementType.Table:
         return this.convertTable(element as TableElement);
       case ElementType.Toggle:
-        return this.convertToggle(element as ToggleElement);
+        return this.convertToggleSync(element as ToggleElement);
       case ElementType.Link:
         return this.convertLink(element as LinkElement);
       case ElementType.Divider:
@@ -133,7 +275,7 @@ export class NotionConverterRepository
       case ElementType.Code:
         return this.convertCodeBlock(element as CodeElement);
       case ElementType.Image:
-        return this.convertImage(element as ImageElement);
+        return this.convertExternalImage(element as ImageElement); // Only external images in sync mode
       case ElementType.Html:
         return this.convertHtml(element as HtmlElement);
       case ElementType.TableOfContents:
@@ -145,10 +287,25 @@ export class NotionConverterRepository
         return null;
     }
   }
-  convertFromElement(element: PageElement): NotionPage {
-    const notionPageInput = this.convertPageElement(element);
 
-    return NotionPage.fromPartialCreatePageBodyParameters(notionPageInput);
+  private convertToggleSync(element: ToggleElement): ToggleBlock {
+    const children: BlockObjectRequestWithoutChildren[] = [];
+
+    for (const contentElement of element.content) {
+      const convertedElement = this.convertElementSync(contentElement);
+      if (convertedElement) {
+        children.push(convertedElement as BlockObjectRequestWithoutChildren);
+      }
+    }
+
+    return {
+      type: 'toggle',
+      object: 'block',
+      toggle: {
+        rich_text: this.convertRichText(element.title),
+        children,
+      },
+    };
   }
 
   private convertText(
@@ -296,13 +453,14 @@ export class NotionConverterRepository
     };
   }
 
-  private convertToggle(element: ToggleElement): ToggleBlock {
+  private async convertToggle(element: ToggleElement): Promise<ToggleBlock> {
     const children: BlockObjectRequestWithoutChildren[] = [];
 
     for (const contentElement of element.content) {
-      children.push(
-        this.convertElement(contentElement) as BlockObjectRequestWithoutChildren
-      );
+      const convertedElement = await this.convertElement(contentElement);
+      if (convertedElement) {
+        children.push(convertedElement as BlockObjectRequestWithoutChildren);
+      }
     }
 
     return {
@@ -382,7 +540,91 @@ export class NotionConverterRepository
     };
   }
 
-  private convertImage(element: ImageElement): BlockObjectRequest {
+  private async convertImage(
+    element: ImageElement
+  ): Promise<BlockObjectRequest> {
+    // Check if it's a local image path
+    if (this.isLocalImagePath(element.url)) {
+      return this.convertLocalImage(element);
+    } else {
+      return this.convertExternalImage(element);
+    }
+  }
+
+  /**
+   * Convert local image using file upload service
+   */
+  private async convertLocalImage(
+    element: ImageElement
+  ): Promise<BlockObjectRequest> {
+    if (!this.fileUploadService || !element.url) {
+      this.logger.warn(
+        'File upload service not available or no image URL provided, converting to paragraph'
+      );
+      return {
+        type: 'paragraph',
+        object: 'block',
+        paragraph: {
+          rich_text: [
+            {
+              type: 'text',
+              text: {
+                content: `[Image: ${element.caption || element.url || 'unknown'}]`,
+              },
+            },
+          ],
+          color: 'default',
+        },
+      };
+    }
+
+    try {
+      // Determine the base path for resolving relative image paths
+      const imageBasePath = this.currentFilePath
+        ? path.dirname(this.currentFilePath)
+        : this.basePath;
+
+      this.logger.info(`Uploading local image: ${element.url}`);
+
+      const uploadResult = await this.fileUploadService.uploadFile({
+        filePath: element.url,
+        basePath: imageBasePath,
+      });
+
+      return {
+        type: 'image',
+        object: 'block',
+        image: {
+          type: 'file_upload',
+          file_upload: { id: uploadResult.id },
+        } as { type: 'file_upload'; file_upload: { id: string } }, // Type assertion for file upload
+      };
+    } catch (error) {
+      this.logger.error(`Failed to upload local image ${element.url}:`, error);
+
+      // Fallback to paragraph with image reference
+      return {
+        type: 'paragraph',
+        object: 'block',
+        paragraph: {
+          rich_text: [
+            {
+              type: 'text',
+              text: {
+                content: `[Failed to upload image: ${element.caption || element.url}]`,
+              },
+            },
+          ],
+          color: 'default',
+        },
+      };
+    }
+  }
+
+  /**
+   * Convert external image using external URL (original behavior)
+   */
+  private convertExternalImage(element: ImageElement): BlockObjectRequest {
     if (
       element.url &&
       !SUPPORTED_IMAGE_URL_EXTENSIONS.some((extension) =>

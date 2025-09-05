@@ -52,12 +52,19 @@ export class NotionDestinationRepository
   }: {
     parentPageId: string;
   }): Promise<void> {
-    // Get all blocks in the parent page
-    const blocks = await this.getBlocksFromPage({ notionPageId: parentPageId });
+    try {
+      // Get all blocks in the parent page
+      const blocks = await this.getBlocksFromPage({
+        notionPageId: parentPageId,
+      });
 
-    // Delete each block
-    for (const block of blocks) {
-      await this.client.blocks.delete({ block_id: block.id });
+      // Delete each block
+      for (const block of blocks) {
+        await this.client.blocks.delete({ block_id: block.id });
+      }
+    } catch (error: unknown) {
+      // Deletion failed - throw the error to be handled upstream
+      throw error instanceof Error ? error : new Error(String(error));
     }
   }
 
@@ -133,11 +140,19 @@ export class NotionDestinationRepository
   async createPage({
     parentPageId,
     pageElement,
+    filePath,
   }: {
     parentPageId: string;
     pageElement: PageElement;
+    filePath?: string;
   }): Promise<NotionPage> {
-    const notionPage = this.notionConverter.convertFromElement(pageElement);
+    // Set the current file path for image resolution
+    if (filePath) {
+      this.notionConverter.setCurrentFilePath(filePath);
+    }
+
+    const notionPage =
+      await this.notionConverter.convertFromElement(pageElement);
     const NOTION_BLOCK_LIMIT = 100;
 
     // First create the page without children
@@ -209,12 +224,21 @@ export class NotionDestinationRepository
   async updatePage({
     pageId,
     pageElement,
+    filePath,
   }: {
     pageId: string;
     pageElement: PageElement;
+    filePath?: string;
   }): Promise<NotionPage> {
     const notionPageId = pageId;
-    const notionPage = this.notionConverter.convertFromElement(pageElement);
+
+    // Set the current file path for image resolution
+    if (filePath) {
+      this.notionConverter.setCurrentFilePath(filePath);
+    }
+
+    const notionPage =
+      await this.notionConverter.convertFromElement(pageElement);
 
     const updateBody: UpdatePageParameters = {
       page_id: notionPageId,
@@ -277,7 +301,7 @@ export class NotionDestinationRepository
     pageId: string;
     pageElement: PageElement;
   }): Promise<void> {
-    const notionPage = this.notionConverter.convertFromElement(pageElement);
+    const notionPage = await this.notionConverter.convertFromElement(pageElement);
 
     // Update page properties (title/icon) if specified in metadata
     await this.updatePageProperties({ pageId, pageElement });
@@ -298,7 +322,7 @@ export class NotionDestinationRepository
     pageId: string;
     pageElement: PageElement;
   }): Promise<void> {
-    const notionPage = this.notionConverter.convertFromElement(pageElement);
+    const notionPage = await this.notionConverter.convertFromElement(pageElement);
 
     // Only update if there are properties to update
     if (notionPage.properties || notionPage.icon) {

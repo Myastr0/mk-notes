@@ -188,6 +188,7 @@ export class SynchronizeMarkdownToNotion<T, U extends Page> {
         const newPage = await this.destinationRepository.createPage({
           pageElement,
           parentPageId,
+          filePath,
         });
 
         this.logger.info(`Created Notion page for file: ${filePath}`);

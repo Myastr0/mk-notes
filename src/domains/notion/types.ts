@@ -402,6 +402,15 @@ export interface ExternalFileBlock {
   caption?: Array<RichTextItemRequest>;
 }
 
+export interface NotionFileBlock {
+  file: {
+    url: string;
+    expiry_time: string;
+  };
+  type?: 'file';
+  caption?: Array<RichTextItemRequest>;
+}
+
 export interface ImageBlock {
   image: ExternalFileBlock;
   type?: 'image';
