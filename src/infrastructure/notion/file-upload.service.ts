@@ -20,15 +20,91 @@ export interface FileUploadOptions {
   basePath?: string;
 }
 
+export interface WorkspaceFileLimits {
+  maxFileSize: number;
+  detectedAt: Date;
+}
+
 export class NotionFileUploadService {
   private client: Client;
   private apiKey: string;
   private logger: Logger;
+  private workspaceLimits: WorkspaceFileLimits | null = null;
 
   constructor({ apiKey, logger }: { apiKey: string; logger: Logger }) {
     this.client = new Client({ auth: apiKey });
     this.apiKey = apiKey;
     this.logger = logger;
+  }
+
+  /**
+   * Get the workspace file upload limits by retrieving bot user information
+   */
+  async getWorkspaceFileLimits(): Promise<WorkspaceFileLimits> {
+    // Return cached limits if they exist and are recent (within 1 hour)
+    if (this.workspaceLimits) {
+      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+      if (this.workspaceLimits.detectedAt > oneHourAgo) {
+        return this.workspaceLimits;
+      }
+    }
+
+    try {
+      // Retrieve bot user information to get workspace limits
+      const response = await this.client.users.me({});
+
+      // Type-safe property access with type guards
+      if (!response || typeof response !== 'object') {
+        throw new Error('Invalid response from users.me() API');
+      }
+
+      const user = response as Record<string, unknown>;
+
+      if (user.type !== 'bot' || !user.bot || typeof user.bot !== 'object') {
+        throw new Error('Expected bot user, but got different user type');
+      }
+
+      const bot = user.bot as Record<string, unknown>;
+
+      if (!bot.workspace_limits || typeof bot.workspace_limits !== 'object') {
+        throw new Error('No workspace_limits found in bot user response');
+      }
+
+      const workspaceLimits = bot.workspace_limits as Record<string, unknown>;
+      const maxFileUploadSize = workspaceLimits.max_file_upload_size_in_bytes;
+
+      if (typeof maxFileUploadSize !== 'number') {
+        throw new Error('max_file_upload_size_in_bytes is not a number');
+      }
+
+      // Cache the limits
+      this.workspaceLimits = {
+        maxFileSize: maxFileUploadSize,
+        detectedAt: new Date(),
+      };
+
+      this.logger.info(
+        `Retrieved workspace file upload limit: ${maxFileUploadSize} bytes (${(maxFileUploadSize / (1024 * 1024)).toFixed(1)} MB)`
+      );
+
+      return this.workspaceLimits;
+    } catch (error) {
+      this.logger.error('Failed to retrieve workspace limits:', error);
+
+      // Fallback to conservative 5MB limit for free workspaces
+      const fallbackLimit = 5 * 1024 * 1024; // 5MB in bytes
+      this.logger.warn(
+        `Using fallback file size limit: ${fallbackLimit} bytes (5MB)`
+      );
+
+      const fallbackLimits = {
+        maxFileSize: fallbackLimit,
+        detectedAt: new Date(),
+      };
+
+      this.workspaceLimits = fallbackLimits;
+      return fallbackLimits;
+    }
   }
 
   /**
@@ -79,10 +155,16 @@ export class NotionFileUploadService {
       const fileStats = fs.statSync(resolvedPath);
       const fileSize = fileStats.size;
 
-      // Check file size (Notion has a 5MB limit for files)
-      const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
-      if (fileSize > MAX_FILE_SIZE) {
-        throw new Error(`File too large: ${fileName}. Maximum size is 5MB.`);
+      // Get workspace-specific file size limits
+      const workspaceLimits = await this.getWorkspaceFileLimits();
+      if (fileSize > workspaceLimits.maxFileSize) {
+        const maxSizeMB = (workspaceLimits.maxFileSize / (1024 * 1024)).toFixed(
+          1
+        );
+        const fileSizeMB = (fileSize / (1024 * 1024)).toFixed(1);
+        throw new Error(
+          `File too large: ${fileName} (${fileSizeMB}MB). Maximum size is ${maxSizeMB}MB for this workspace.`
+        );
       }
 
       this.logger.info(`Uploading file: ${fileName} (${fileSize} bytes)`);

@@ -16,15 +16,19 @@ describe('NotionFileUploadService', () => {
   let mockLogger: jest.Mocked<Logger>;
 
   beforeEach(() => {
-    // Create mock client
+    // Create mock client with proper structure
     mockClient = {
       request: jest.fn(),
+      users: {
+        me: jest.fn(),
+      },
     } as any;
 
     // Create mock logger
     mockLogger = {
       info: jest.fn(),
       error: jest.fn(),
+      warn: jest.fn(),
     } as any;
 
     // Mock Client constructor
@@ -40,18 +44,19 @@ describe('NotionFileUploadService', () => {
     jest.resetAllMocks();
   });
 
+  const mockFileStats = {
+    size: 1024,
+    isFile: () => true,
+  };
+
+  const mockFileBuffer = Buffer.from('test file content');
+
+  const mockCreateFileUploadResponse = {
+    id: 'test-upload-id',
+    upload_url: 'https://test-upload-url.com',
+  };
+
   describe('uploadFile', () => {
-    const mockFileStats = {
-      size: 1024,
-      isFile: () => true,
-    };
-
-    const mockFileBuffer = Buffer.from('test file content');
-
-    const mockCreateFileUploadResponse = {
-      id: 'test-upload-id',
-      upload_url: 'https://test-upload-url.com',
-    };
 
     beforeEach(() => {
       // Mock fs.existsSync to return true by default
@@ -62,6 +67,17 @@ describe('NotionFileUploadService', () => {
 
       // Mock fs.readFileSync
       (fs.readFileSync as jest.Mock).mockReturnValue(mockFileBuffer);
+
+      // Mock client.users.me for workspace limits
+      (mockClient.users.me as jest.Mock).mockResolvedValue({
+        object: 'user',
+        type: 'bot',
+        bot: {
+          workspace_limits: {
+            max_file_upload_size_in_bytes: 5 * 1024 * 1024, // 5MB
+          },
+        },
+      } as any);
 
       // Mock client.request for createFileUpload
       mockClient.request.mockResolvedValue(mockCreateFileUploadResponse);
@@ -167,7 +183,7 @@ describe('NotionFileUploadService', () => {
           filePath: '/test/large-file.png',
           basePath: '/test',
         })
-      ).rejects.toThrow('File too large: large-file.png. Maximum size is 5MB.');
+      ).rejects.toThrow('File too large: large-file.png (6.0MB). Maximum size is 5.0MB for this workspace.');
     });
 
     it('should handle createFileUpload API errors', async () => {
@@ -270,6 +286,181 @@ describe('NotionFileUploadService', () => {
       } else {
         fail('Expected fetch to be called with options');
       }
+    });
+  });
+
+  describe('getWorkspaceFileLimits', () => {
+    it('should retrieve workspace limits from Notion API', async () => {
+      (mockClient.users.me as jest.Mock).mockResolvedValue({
+        object: 'user',
+        type: 'bot',
+        bot: {
+          workspace_limits: {
+            max_file_upload_size_in_bytes: 5368709120, // 5GB
+          },
+        },
+      } as any);
+
+      const limits = await service.getWorkspaceFileLimits();
+
+      expect(limits).toEqual({
+        maxFileSize: 5368709120,
+        detectedAt: expect.any(Date),
+      });
+
+      expect(mockLogger.info).toHaveBeenCalledWith(
+        'Retrieved workspace file upload limit: 5368709120 bytes (5120.0 MB)'
+      );
+    });
+
+    it('should cache workspace limits and reuse them', async () => {
+      const mockResponse = {
+        object: 'user',
+        type: 'bot',
+        bot: {
+          workspace_limits: {
+            max_file_upload_size_in_bytes: 5242880, // 5MB
+          },
+        },
+      } as any;
+
+      (mockClient.users.me as jest.Mock).mockResolvedValue(mockResponse);
+
+      // First call
+      const limits1 = await service.getWorkspaceFileLimits();
+      // Second call (should use cache)
+      const limits2 = await service.getWorkspaceFileLimits();
+
+      expect(limits1).toEqual(limits2);
+      expect(mockClient.users.me).toHaveBeenCalledTimes(1); // Only called once due to caching
+    });
+
+    it('should fallback to 5MB limit when API fails', async () => {
+      (mockClient.users.me as jest.Mock).mockRejectedValue(new Error('API Error'));
+
+      const limits = await service.getWorkspaceFileLimits();
+
+      expect(limits).toEqual({
+        maxFileSize: 5 * 1024 * 1024, // 5MB fallback
+        detectedAt: expect.any(Date),
+      });
+
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        'Failed to retrieve workspace limits:',
+        expect.any(Error)
+      );
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        'Using fallback file size limit: 5242880 bytes (5MB)'
+      );
+    });
+
+    it('should handle invalid response format gracefully', async () => {
+      (mockClient.users.me as jest.Mock).mockResolvedValue({
+        object: 'user',
+        type: 'person', // Invalid type - should be 'bot'
+      } as any);
+
+      const limits = await service.getWorkspaceFileLimits();
+
+      expect(limits.maxFileSize).toBe(5 * 1024 * 1024); // Fallback to 5MB
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        'Failed to retrieve workspace limits:',
+        expect.any(Error)
+      );
+    });
+
+    it('should handle missing workspace_limits in response', async () => {
+      (mockClient.users.me as jest.Mock).mockResolvedValue({
+        object: 'user',
+        type: 'bot',
+        bot: {
+          // Missing workspace_limits
+        },
+      } as any);
+
+      const limits = await service.getWorkspaceFileLimits();
+
+      expect(limits.maxFileSize).toBe(5 * 1024 * 1024); // Fallback to 5MB
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        'Failed to retrieve workspace limits:',
+        expect.any(Error)
+      );
+    });
+
+    it('should refresh cache after 1 hour', async () => {
+      const mockResponse = {
+        object: 'user',
+        type: 'bot',
+        bot: {
+          workspace_limits: {
+            max_file_upload_size_in_bytes: 5242880,
+          },
+        },
+      } as any;
+
+      (mockClient.users.me as jest.Mock).mockResolvedValue(mockResponse);
+
+      // First call
+      await service.getWorkspaceFileLimits();
+
+      // Manually set the cache to be older than 1 hour
+      (service as any).workspaceLimits = {
+        maxFileSize: 5242880,
+        detectedAt: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
+      };
+
+      // Second call should fetch fresh data
+      await service.getWorkspaceFileLimits();
+
+      expect(mockClient.users.me).toHaveBeenCalledTimes(2); // Called twice due to cache expiry
+    });
+  });
+
+  describe('file size limit integration', () => {
+    it('should work with paid workspace limits (5GB)', async () => {
+      // Mock paid workspace with 5GB limit
+      (mockClient.users.me as jest.Mock).mockResolvedValue({
+        object: 'user',
+        type: 'bot',
+        bot: {
+          workspace_limits: {
+            max_file_upload_size_in_bytes: 5368709120, // 5GB
+          },
+        },
+      } as any);
+
+      // Mock file exists
+      (fs.existsSync as jest.Mock).mockReturnValue(true);
+
+      // Mock a 100MB file (should be allowed in paid workspace)
+      (fs.statSync as jest.Mock).mockReturnValue({
+        size: 100 * 1024 * 1024, // 100MB
+        isFile: () => true,
+      });
+
+      // Mock the file upload request (this is not setup in the general beforeEach for this test)
+      mockClient.request.mockResolvedValue(mockCreateFileUploadResponse);
+
+      // Mock fetch for sendFileContent
+      (fetch as jest.MockedFunction<typeof fetch>).mockResolvedValue({
+        ok: true,
+        status: 200,
+      } as any);
+
+      const result = await service.uploadFile({
+        filePath: '/test/large-file.png',
+        basePath: '/test',
+      });
+
+      expect(result).toEqual({
+        id: 'test-upload-id',
+        type: 'file_upload',
+      });
+
+      // Should not throw an error for 100MB file in 5GB workspace
+      expect(mockLogger.info).toHaveBeenCalledWith(
+        'Retrieved workspace file upload limit: 5368709120 bytes (5120.0 MB)'
+      );
     });
   });
 });
