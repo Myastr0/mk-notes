@@ -149,6 +149,7 @@ export type TextElementStyles = {
   bold: boolean;
   strikethrough: boolean;
   underline: boolean;
+  code: boolean;
 };
 
 export class TextElement extends Element {
@@ -159,6 +160,7 @@ export class TextElement extends Element {
     bold: false,
     strikethrough: false,
     underline: false,
+    code: false,
   };
 
   constructor({
@@ -173,6 +175,7 @@ export class TextElement extends Element {
       bold?: boolean;
       strikethrough?: boolean;
       underline?: boolean;
+      code?: boolean;
     };
   }) {
     super(ElementType.Text);
@@ -182,6 +185,7 @@ export class TextElement extends Element {
     this.styles.italic = styles?.italic || false;
     this.styles.strikethrough = styles?.strikethrough || false;
     this.styles.underline = styles?.underline || false;
+    this.styles.code = styles?.code || false;
   }
 }
 
@@ -419,6 +423,7 @@ export class EquationElement extends Element {
     bold: false,
     strikethrough: false,
     underline: false,
+    code: false,
   };
 
   constructor({
@@ -431,6 +436,7 @@ export class EquationElement extends Element {
       bold?: boolean;
       strikethrough?: boolean;
       underline?: boolean;
+      code?: boolean;
     };
   }) {
     super(ElementType.Equation);
@@ -439,5 +445,6 @@ export class EquationElement extends Element {
     this.styles.italic = styles?.italic || false;
     this.styles.strikethrough = styles?.strikethrough || false;
     this.styles.underline = styles?.underline || false;
+    this.styles.code = styles?.code || false;
   }
 }
