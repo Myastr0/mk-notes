@@ -105,6 +105,25 @@ export class SiteMap {
         }
       }
     }
+
+    // Handle root-level index.md separately
+    if (node === this._root && !node.filepath) {
+      const rootIndexChild = node.children.find(
+        (child) => child.filepath === 'index.md'
+      );
+
+      if (rootIndexChild) {
+        node.filepath = rootIndexChild.filepath;
+        // Remove index.md from children and merge its children
+        const nonIndexChildren = node.children.filter(
+          (child) => child !== rootIndexChild
+        );
+        node.children = [...nonIndexChildren, ...rootIndexChild.children];
+        rootIndexChild.children.forEach((child) => {
+          child.parent = node;
+        });
+      }
+    }
   }
 
   private removeUselessNodesTree(node: TreeNode): TreeNode {

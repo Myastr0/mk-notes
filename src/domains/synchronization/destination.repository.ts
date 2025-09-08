@@ -32,4 +32,18 @@ export interface DestinationRepository<T extends Page> {
   }: {
     parentPageId: string;
   }) => Promise<void>;
+  appendToPage: ({
+    pageId,
+    pageElement,
+  }: {
+    pageId: string;
+    pageElement: PageElement;
+  }) => Promise<void>;
+  updatePageProperties: ({
+    pageId,
+    pageElement,
+  }: {
+    pageId: string;
+    pageElement: PageElement;
+  }) => Promise<void>;
 }

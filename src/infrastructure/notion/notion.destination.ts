@@ -43,7 +43,7 @@ export class NotionDestinationRepository
     this.client = new Client({ auth: apiKey });
     this.notionConverter = notionConverter;
   }
-  
+
   /**
    * Delete all child blocks from a parent page
    */
@@ -52,17 +52,12 @@ export class NotionDestinationRepository
   }: {
     parentPageId: string;
   }): Promise<void> {
-    try {
-      // Get all blocks in the parent page
-      const blocks = await this.getBlocksFromPage({ notionPageId: parentPageId });
-      
-      // Delete each block
-      for (const block of blocks) {
-        await this.client.blocks.delete({ block_id: block.id });
-      }
-    } catch (error) {
-      console.error('Failed to delete child blocks:', error);
-      throw error;
+    // Get all blocks in the parent page
+    const blocks = await this.getBlocksFromPage({ notionPageId: parentPageId });
+
+    // Delete each block
+    for (const block of blocks) {
+      await this.client.blocks.delete({ block_id: block.id });
     }
   }
 
@@ -272,6 +267,62 @@ export class NotionDestinationRepository
     // and update the existing blocks with the new ones
 
     return this.getPageById({ notionPageId });
+  }
+
+  // Used for root level index.md where the page is already present
+  async appendToPage({
+    pageId,
+    pageElement,
+  }: {
+    pageId: string;
+    pageElement: PageElement;
+  }): Promise<void> {
+    const notionPage = this.notionConverter.convertFromElement(pageElement);
+
+    // Update page properties (title/icon) if specified in metadata
+    await this.updatePageProperties({ pageId, pageElement });
+
+    if (notionPage.children && notionPage.children.length > 0) {
+      // Append blocks to the existing page
+      await this.client.blocks.children.append({
+        block_id: pageId,
+        children: notionPage.children as BlockObjectRequest[],
+      });
+    }
+  }
+
+  async updatePageProperties({
+    pageId,
+    pageElement,
+  }: {
+    pageId: string;
+    pageElement: PageElement;
+  }): Promise<void> {
+    const notionPage = this.notionConverter.convertFromElement(pageElement);
+
+    // Only update if there are properties to update
+    if (notionPage.properties || notionPage.icon) {
+      // Update page properties and icon separately to avoid type conflicts
+      const updatePayload: {
+        page_id: string;
+        properties?: unknown;
+        icon?: unknown;
+      } = {
+        page_id: pageId,
+      };
+
+      if (notionPage.properties) {
+        updatePayload.properties = notionPage.properties;
+      }
+
+      if (notionPage.icon) {
+        updatePayload.icon = notionPage.icon;
+      }
+
+      await this.client.pages.update(
+        updatePayload as Parameters<typeof this.client.pages.update>[0]
+      );
+    }
   }
 
   async search({

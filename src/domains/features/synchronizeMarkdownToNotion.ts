@@ -55,10 +55,15 @@ export class SynchronizeMarkdownToNotion<T, U extends Page> {
     if (cleanSync) {
       this.logger.info('Clean sync enabled - removing existing content');
       try {
-        await this.destinationRepository.deleteChildBlocks({ parentPageId: notionPageId });
+        await this.destinationRepository.deleteChildBlocks({
+          parentPageId: notionPageId,
+        });
         this.logger.info('Successfully removed existing content');
       } catch (error) {
-        this.logger.warn('Failed to remove existing content, continuing with sync', { error });
+        this.logger.warn(
+          'Failed to remove existing content, continuing with sync',
+          { error }
+        );
       }
     }
 
@@ -114,6 +119,43 @@ export class SynchronizeMarkdownToNotion<T, U extends Page> {
     node: TreeNode;
     parentPageId: string;
   }): Promise<void> {
+    // If the current node has content (e.g., root node with index.md), add it to the parent page
+    if (node.filepath) {
+      try {
+        this.logger.info(`Adding content from ${node.filepath} to parent page`);
+
+        // Retrieve the file content
+        const file = await this.sourceRepository.getFile({
+          path: node.filepath,
+        } as T);
+
+        // Convert the file content to elements
+        const pageElement = this.elementConverter.convertToElement(file);
+
+        if (!(pageElement instanceof PageElement)) {
+          throw new Error('Element is not a PageElement');
+        }
+
+        // Add the content to the existing parent page by appending it
+        await this.destinationRepository.appendToPage({
+          pageId: parentPageId,
+          pageElement,
+        });
+
+        this.logger.info(`Added content from ${node.filepath} to parent page`);
+      } catch (error) {
+        if (error instanceof Error) {
+          this.logger.error(
+            `Failed to add content from ${node.filepath} to parent page`,
+            {
+              error,
+            }
+          );
+        }
+        throw error;
+      }
+    }
+
     for (const childNode of node.children) {
       const filePath = childNode.filepath;
       this.logger.info(`Processing file: ${filePath}`);

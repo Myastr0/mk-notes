@@ -9,7 +9,7 @@ describe('SiteMap', () => {
 
     it('should build a flat structure for files in root', () => {
       const siteMap = SiteMap.buildFromFilePaths(['file1.md', 'file2.md']);
-      
+
       expect(siteMap.root.children).toHaveLength(2);
       expect(siteMap.root.children[0].name).toBe('file1.md');
       expect(siteMap.root.children[1].name).toBe('file2.md');
@@ -55,6 +55,62 @@ describe('SiteMap', () => {
       expect(siteMap.root.children[0].name).toBe('file1.md');
       expect(siteMap.root.children[0].children.length).toBe(0);
     });
+
+    it('should handle root-level index.md files', () => {
+      const siteMap = SiteMap.buildFromFilePaths([
+        'index.md',
+        'folder1/file1.md',
+        'folder2/file2.md'
+      ]);
+
+      // Root should have the index.md content
+      expect(siteMap.root.filepath).toBe('index.md');
+      expect(siteMap.root.name).toBe('root');
+
+      // Children should be the folders (first-file rule applied)
+      expect(siteMap.root.children).toHaveLength(2);
+      expect(siteMap.root.children[0].name).toBe('folder1');
+      expect(siteMap.root.children[0].filepath).toBe('folder1/file1.md');
+      expect(siteMap.root.children[1].name).toBe('folder2');
+      expect(siteMap.root.children[1].filepath).toBe('folder2/file2.md');
+    });
+
+    it('should prioritize root-level index.md over other files', () => {
+      const siteMap = SiteMap.buildFromFilePaths([
+        'README.md',
+        'index.md',
+        'folder1/file1.md'
+      ]);
+
+      // Root should use index.md, not README.md
+      expect(siteMap.root.filepath).toBe('index.md');
+
+      // README.md should appear as a child
+      const readmeChild = siteMap.root.children.find(child => child.name === 'README.md');
+      expect(readmeChild).toBeDefined();
+      expect(readmeChild?.filepath).toBe('README.md');
+    });
+
+    it('should handle complex structure with root index.md', () => {
+      const siteMap = SiteMap.buildFromFilePaths([
+        'index.md',
+        'docs/index.md',
+        'docs/guide.md',
+        'src/README.md'
+      ]);
+
+      // Root should have index.md content
+      expect(siteMap.root.filepath).toBe('index.md');
+
+      // docs folder should use its own index.md
+      const docsChild = siteMap.root.children.find(child => child.name === 'docs');
+      expect(docsChild).toBeDefined();
+      expect(docsChild?.filepath).toBe('docs/index.md');
+
+      // docs should have guide.md as child
+      expect(docsChild?.children).toHaveLength(1);
+      expect(docsChild?.children[0].name).toBe('guide.md');
+    });
   });
 
   describe('fromJSON/toJSON', () => {
@@ -77,4 +133,4 @@ describe('SiteMap', () => {
       expect(() => SiteMap.fromJSON({})).toThrow('Invalid data');
     });
   });
-}); 
+});
