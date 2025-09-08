@@ -10,16 +10,20 @@ export interface DestinationRepository<T extends Page> {
   createPage: ({
     pageElement,
     parentPageId,
+    filePath,
   }: {
     pageElement: PageElement;
     parentPageId: string;
+    filePath?: string;
   }) => Promise<T>;
   updatePage: ({
     pageId,
     pageElement,
+    filePath,
   }: {
     pageId: string;
     pageElement: PageElement;
+    filePath?: string;
   }) => Promise<T>;
   destinationIsAccessible: ({
     parentPageId,

@@ -77,9 +77,9 @@ describe('MarkdownParser', () => {
       expect(result.content[0].type).toBe(ElementType.Text);
 
       const textElement = result.content[0] as TextElement;
-      
+
       expect(textElement).toBeInstanceOf(TextElement);
-      
+
       expect(textElement.text).toMatchObject([
         { text: 'Bold text', styles: { bold: true } },
         { text: '\n', styles: { bold: false } },
@@ -189,7 +189,7 @@ Another line with \`code\` and **bold \`code in bold\`** text.
       expect(textElement3).toBeInstanceOf(TextElement);
       expect(textElement3).toMatchObject({ text: 'Ordered item 1', styles: { bold: false, italic: false, strikethrough: false, underline: false } });
 
-      
+
     });
 
     it('should parse code blocks with language', () => {
@@ -372,7 +372,7 @@ Content
 
       expect(textElement).toBeInstanceOf(TextElement);
       expect(textElement.text).toHaveLength(5);
-      
+
       const boldElement = textElement.text[0] as TextElement;
       expect(boldElement).toBeInstanceOf(TextElement);
       expect(boldElement).toMatchObject({ text: 'This is ', styles: { bold: false, italic: false , strikethrough: false, underline: false } });
@@ -388,7 +388,7 @@ Content
       const textElement2 = textElement.text[3] as TextElement;
       expect(textElement2).toBeInstanceOf(TextElement);
       expect(textElement2).toMatchObject({ text: ' text', styles: { bold: false, italic: false, strikethrough: false, underline: false } });
-      
+
     });
   });
-}); 
+});

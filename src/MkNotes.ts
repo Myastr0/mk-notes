@@ -22,10 +22,12 @@ export class MkNotes {
     LOG_LEVEL = 'error',
     logger,
     notionApiKey,
+    basePath,
   }: {
     logger?: winston.Logger;
     LOG_LEVEL?: string;
     notionApiKey: string;
+    basePath?: string;
   }) {
     this.logger =
       logger ??
@@ -36,6 +38,7 @@ export class MkNotes {
     this.infrastructureInstances = getInfrastructureInstances({
       logger: this.logger,
       notionApiKey,
+      basePath,
     });
   }
 

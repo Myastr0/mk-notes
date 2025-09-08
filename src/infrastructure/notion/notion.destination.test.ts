@@ -30,7 +30,7 @@ describe('NotionDestinationRepository', () => {
       search: jest.fn(),
     } as unknown as jest.Mocked<Client>;
 
-    
+
     mockNotionConverter = {
       convertFromElement: jest.fn(),
     } as unknown as jest.Mocked<NotionConverterRepository>;
@@ -121,7 +121,7 @@ describe('NotionDestinationRepository', () => {
         object: 'page',
       };
 
-      jest.spyOn(mockNotionConverter,'convertFromElement').mockReturnValue(mockNotionPage as unknown as NotionPage);
+      jest.spyOn(mockNotionConverter,'convertFromElement').mockResolvedValue(mockNotionPage as unknown as NotionPage);
       jest.spyOn(mockClient.pages,'create').mockResolvedValue({ id: 'new-page-id' } as unknown as CreatePageResponse);
       jest.spyOn(mockClient.pages,'retrieve').mockResolvedValue(mockCreatedPage as unknown as GetPageResponse);
       jest.spyOn(mockClient.blocks.children,'list').mockResolvedValue({ results: [] } as unknown as ListBlockChildrenResponse);
@@ -295,4 +295,4 @@ describe('NotionDestinationRepository', () => {
     });
   });
 
-}); 
+});

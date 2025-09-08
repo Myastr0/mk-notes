@@ -30,13 +30,13 @@ describe.skip('NotionConverterRepository', () => {
   });
 
   describe('convertFromElement', () => {
-    it('should convert a basic page element', () => {
+    it('should convert a basic page element', async () => {
       const pageElement = new PageElement({
         title: 'Test Page',
         content: [],
       });
 
-      const result = converter.convertFromElement(pageElement);
+      const result = await converter.convertFromElement(pageElement);
 
       expect(result.toCreatePageBodyParameters()).toMatchObject({
         properties: {
@@ -50,21 +50,21 @@ describe.skip('NotionConverterRepository', () => {
       });
     });
 
-    it('should convert a page with icon', () => {
+    it('should convert a page with icon', async () => {
       const pageElement = new PageElement({
         title: 'Test Page',
         content: [],
         icon: '👋'
       });
 
-      const result = converter.convertFromElement(pageElement);
+      const result = await converter.convertFromElement(pageElement);
 
       expect(result.toCreatePageBodyParameters()).toMatchObject({
         icon: { type: 'emoji', emoji: '👋' }
       });
     });
 
-    it('should convert text elements with different levels', () => {
+    it('should convert text elements with different levels', async () => {
       const pageElement = new PageElement({
         title: 'Test Page',
         content: [
@@ -73,7 +73,7 @@ describe.skip('NotionConverterRepository', () => {
         ]
       });
 
-      const result = converter.convertFromElement(pageElement);
+      const result = await converter.convertFromElement(pageElement);
 
       const children = result.children;
       expect(result.children).toHaveLength(2);
@@ -91,7 +91,7 @@ describe.skip('NotionConverterRepository', () => {
       });
     });
 
-    it('should convert list items', () => {
+    it('should convert list items', async () => {
       const pageElement = new PageElement({
         title: 'Test Page',
         content: [
@@ -100,7 +100,7 @@ describe.skip('NotionConverterRepository', () => {
         ]
       });
 
-      const result = converter.convertFromElement(pageElement);
+      const result = await converter.convertFromElement(pageElement);
       const children = result.children;
 
       expect(children).toHaveLength(2);
@@ -118,7 +118,7 @@ describe.skip('NotionConverterRepository', () => {
       });
     });
 
-    it('should convert code blocks with language', () => {
+    it('should convert code blocks with language', async () => {
       const pageElement = new PageElement({
         title: 'Test Page',
         content: [
@@ -129,7 +129,7 @@ describe.skip('NotionConverterRepository', () => {
         ]
       });
 
-      const result = converter.convertFromElement(pageElement);
+      const result = await converter.convertFromElement(pageElement);
       const children = result.children;
       expect(children[0]).toMatchObject({
         type: 'code',
@@ -140,7 +140,7 @@ describe.skip('NotionConverterRepository', () => {
       });
     });
 
-    it('should convert tables', () => {
+    it('should convert tables', async () => {
       const pageElement = new PageElement({
         title: 'Test Page',
         content: [
@@ -153,7 +153,7 @@ describe.skip('NotionConverterRepository', () => {
         ]
       });
 
-      const result = converter.convertFromElement(pageElement);
+      const result = await converter.convertFromElement(pageElement);
       const children = result.children;
       expect(children[0]).toMatchObject({
         type: 'table',
@@ -183,7 +183,7 @@ describe.skip('NotionConverterRepository', () => {
       });
     });
 
-    it('should convert callouts with icons', () => {
+    it('should convert callouts with icons', async () => {
       const pageElement = new PageElement({
         title: 'Test Page',
         content: [
@@ -194,7 +194,7 @@ describe.skip('NotionConverterRepository', () => {
         ]
       });
 
-      const result = converter.convertFromElement(pageElement);
+      const result = await converter.convertFromElement(pageElement);
       const children = result.children;
       expect(children[0]).toMatchObject({
         type: 'callout',
@@ -205,7 +205,7 @@ describe.skip('NotionConverterRepository', () => {
       });
     });
 
-    it('should convert toggle blocks', () => {
+    it('should convert toggle blocks', async () => {
       const pageElement = new PageElement({
         title: 'Test Page',
         content: [
@@ -218,7 +218,7 @@ describe.skip('NotionConverterRepository', () => {
         ]
       });
 
-      const result = converter.convertFromElement(pageElement);
+      const result = await converter.convertFromElement(pageElement);
 
       const children = result.children;
       expect(children[0]).toMatchObject({
@@ -235,7 +235,7 @@ describe.skip('NotionConverterRepository', () => {
       });
     });
 
-    it('should convert equation elements', () => {
+    it('should convert equation elements', async () => {
       const pageElement = new PageElement({
         title: 'Test Page',
         content: [
@@ -245,7 +245,7 @@ describe.skip('NotionConverterRepository', () => {
         ],
       });
 
-      const result = converter.convertFromElement(pageElement);
+      const result = await converter.convertFromElement(pageElement);
       const children = result.children;
       expect(children).toHaveLength(1);
       expect(children[0]).toMatchObject({
@@ -256,7 +256,7 @@ describe.skip('NotionConverterRepository', () => {
       });
     });
 
-    it('should convert rich text with inline equations', () => {
+    it('should convert rich text with inline equations', async () => {
       const pageElement = new PageElement({
         title: 'Test Page',
         content: [
@@ -270,7 +270,7 @@ describe.skip('NotionConverterRepository', () => {
         ],
       });
 
-      const result = converter.convertFromElement(pageElement);
+      const result = await converter.convertFromElement(pageElement);
       const children = result.children;
       expect(children).toHaveLength(1);
       expect(children[0]).toMatchObject({
@@ -289,7 +289,7 @@ describe.skip('NotionConverterRepository', () => {
       });
     });
 
-    it('should handle unsupported element types', () => {
+    it('should handle unsupported element types', async () => {
       const pageElement = new PageElement({
         title: 'Test Page',
         content: [
@@ -297,8 +297,8 @@ describe.skip('NotionConverterRepository', () => {
         ]
       });
 
-      expect(() => converter.convertFromElement(pageElement))
-        .toThrow('Unsupported element type: unsupported');
+      await expect(converter.convertFromElement(pageElement))
+        .rejects.toThrow('Unsupported element type: unsupported');
     });
   });
-}); 
+});
