@@ -182,5 +182,39 @@ describe('FileSystemSourceRepository', () => {
         lastUpdated: mockDate
       });
     });
+
+    describe('index.md file handling', () => {
+      it('should use parent folder name for index.md in subdirectory', async () => {
+        const mockDate = new Date();
+        jest.mocked(readFileSync).mockReturnValue('# Some Title\nContent here');
+        jest.mocked(statSync).mockReturnValue({ mtime: mockDate } as any);
+
+        const result = await repository.getFile({ path: '/test/docs/index.md' });
+
+        expect(result).toEqual({
+          name: 'index',
+          content: '# Some Title\nContent here',
+          extension: 'md',
+          lastUpdated: mockDate
+        });
+      });
+
+      it('should remove .md extension from index.md files', async () => {
+        const mockDate = new Date();
+
+        jest.mocked(readFileSync).mockReturnValue('# My Amazing Project\nWelcome to my project');
+        jest.mocked(statSync).mockReturnValue({ mtime: mockDate } as any);
+
+        const result = await repository.getFile({ path: 'index.md' });
+
+        expect(result).toEqual({
+          name: 'index',
+          content: '# My Amazing Project\nWelcome to my project',
+          extension: 'md',
+          lastUpdated: mockDate
+        });
+      });
+
+    });
   });
-}); 
+});
