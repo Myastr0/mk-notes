@@ -1,4 +1,5 @@
 import { Client } from '@notionhq/client';
+import * as crypto from 'crypto';
 import FormData from 'form-data';
 import * as fs from 'fs';
 import fetch from 'node-fetch';
@@ -170,7 +171,11 @@ export class NotionFileUploadService {
       this.logger.info(`Uploading file: ${fileName} (${fileSize} bytes)`);
 
       // Step 1: Create file upload
-      const fileUpload = await this.createFileUpload(fileName, fileSize);
+      const fileUpload = await this.createFileUpload(
+        fileName,
+        fileSize,
+        resolvedPath
+      );
 
       // Step 2: Send file content
       await this.sendFileContent(fileUpload.upload_url, resolvedPath);
@@ -192,18 +197,99 @@ export class NotionFileUploadService {
   }
 
   /**
+   * Generate a unique 8-character hash from filename and file path
+   */
+  private generateFileHash(fileName: string, filePath?: string): string {
+    const uniqueContent = filePath ? `${filePath}${fileName}` : fileName;
+    return crypto
+      .createHash('md5')
+      .update(uniqueContent)
+      .digest('hex')
+      .substring(0, 8);
+  }
+
+  /**
+   * Split filename into base name and extension
+   */
+  private parseFileName(fileName: string): {
+    baseName: string;
+    extension: string;
+  } {
+    const extension = path.extname(fileName);
+    const baseName = path.basename(fileName, extension);
+    return { baseName, extension };
+  }
+
+  /**
+   * Truncate base name to fit within available space (accounting for extension + hash suffix)
+   */
+  private truncateToFitAvailableSpace(
+    baseName: string,
+    availableSpace: number
+  ): string {
+    return baseName.length > availableSpace
+      ? baseName.substring(0, availableSpace)
+      : baseName;
+  }
+
+  /**
+   * Construct filename with hash suffix, ensuring total filename length (including extension)
+   * fits within the Notion API limit of 900 bytes
+   */
+  private constructHashedFileName(
+    baseName: string,
+    extension: string,
+    hash: string,
+    maxLength: number
+  ): string {
+    const hashSuffix = `-${hash}`;
+    const reservedLength = extension.length + hashSuffix.length;
+    const availableSpaceForBaseName = maxLength - reservedLength;
+
+    if (availableSpaceForBaseName <= 0) {
+      // If even the hash + extension is too long, just return hash + extension
+      return `${hash}${extension}`.substring(0, maxLength);
+    }
+
+    const truncatedBase = this.truncateToFitAvailableSpace(
+      baseName,
+      availableSpaceForBaseName
+    );
+    return `${truncatedBase}${hashSuffix}${extension}`;
+  }
+
+  /**
+   * Generate a unique filename with hash suffix to ensure uniqueness and comply with Notion API limits
+   * According to Notion API docs, maximum filename length is 900 bytes
+   * Always adds a hash suffix for consistency, regardless of original filename length
+   */
+  private generateUniqueFileName(
+    fileName: string,
+    filePath?: string,
+    maxLength: number = 900
+  ): string {
+    const { baseName, extension } = this.parseFileName(fileName);
+    const hash = this.generateFileHash(fileName, filePath);
+    return this.constructHashedFileName(baseName, extension, hash, maxLength);
+  }
+
+  /**
    * Step 1: Create a file upload in Notion using the client's request method
    */
   private async createFileUpload(
     fileName: string,
-    fileSize: number
+    fileSize: number,
+    filePath?: string
   ): Promise<FileUploadResponse> {
     try {
+      // Generate unique filename to avoid conflicts and comply with Notion API length limitations
+      const uniqueFileName = this.generateUniqueFileName(fileName, filePath);
+
       const result = await this.client.request({
         path: 'file_uploads',
         method: 'post',
         body: {
-          filename: fileName,
+          filename: uniqueFileName,
           file_size: fileSize,
         },
       });
@@ -244,10 +330,11 @@ export class NotionFileUploadService {
     this.logger.info(`Sending file content to URL: ${uploadUrl}`);
     const fileBuffer = fs.readFileSync(filePath);
     const fileName = path.basename(filePath);
+    const uniqueFileName = this.generateUniqueFileName(fileName, filePath);
 
     const formData = new FormData();
     formData.append('file', fileBuffer, {
-      filename: fileName,
+      filename: uniqueFileName,
       contentType: this.getMimeType(filePath),
     });
 

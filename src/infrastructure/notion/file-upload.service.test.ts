@@ -44,6 +44,194 @@ describe('NotionFileUploadService', () => {
     jest.resetAllMocks();
   });
 
+  describe('unique filename generation', () => {
+    it('should generate unique filenames for long filenames', async () => {
+      const longFileName = 'this-is-a-very-long-filename-that-exceeds-the-maximum-allowed-length-for-notion-api-and-should-be-truncated.png';
+      const filePath = '/path/to/file.png';
+
+      // Use reflection to access private method for testing
+      const generateUniqueFileName = (service as any).generateUniqueFileName.bind(service);
+      const result = generateUniqueFileName(longFileName, filePath, 100);
+
+      expect(result.length).toBeLessThanOrEqual(100);
+      expect(result.endsWith('.png')).toBe(true);
+      expect(result.startsWith('this-is-a-very-long-filename')).toBe(true);
+      expect(result).toMatch(/-[a-f0-9]{8}\.png$/); // Should end with hash-extension pattern
+    });
+
+    it('should always add hash suffix even for short filenames', async () => {
+      const shortFileName = 'short-filename.jpg';
+
+      // Use reflection to access private method for testing
+      const generateUniqueFileName = (service as any).generateUniqueFileName.bind(service);
+      const result = generateUniqueFileName(shortFileName, '/path/to/short-filename.jpg', 900);
+
+      expect(result).not.toBe(shortFileName); // Should be different due to hash
+      expect(result.endsWith('.jpg')).toBe(true);
+      expect(result).toMatch(/short-filename-[a-f0-9]{8}\.jpg$/); // Should have hash suffix
+    });
+
+    it('should generate different hashes for different file paths', async () => {
+      const fileName = 'same-filename.png';
+
+      // Use reflection to access private method for testing
+      const generateUniqueFileName = (service as any).generateUniqueFileName.bind(service);
+      const result1 = generateUniqueFileName(fileName, '/path1/same-filename.png', 50);
+      const result2 = generateUniqueFileName(fileName, '/path2/same-filename.png', 50);
+
+      expect(result1).not.toBe(result2);
+      expect(result1.endsWith('.png')).toBe(true);
+      expect(result2.endsWith('.png')).toBe(true);
+      expect(result1.length).toBeLessThanOrEqual(50);
+      expect(result2.length).toBeLessThanOrEqual(50);
+    });
+
+    it('should use default 900 byte limit from Notion API', async () => {
+      const longFileName = 'a'.repeat(950) + '.png'; // 954 characters
+
+      // Use reflection to access private method for testing
+      const generateUniqueFileName = (service as any).generateUniqueFileName.bind(service);
+      const result = generateUniqueFileName(longFileName); // Using default limit
+
+      expect(result.length).toBeLessThanOrEqual(900);
+      expect(result.endsWith('.png')).toBe(true);
+      expect(result).toMatch(/-[a-f0-9]{8}\.png$/); // Should have hash suffix
+    });
+
+    it('should handle edge case where extension is very long', async () => {
+      const fileName = 'file.verylongextensionnamethatexceedslimit';
+
+      // Use reflection to access private method for testing
+      const generateUniqueFileName = (service as any).generateUniqueFileName.bind(service);
+      const result = generateUniqueFileName(fileName, undefined, 20);
+
+      expect(result.length).toBeLessThanOrEqual(20);
+      expect(result).toMatch(/^[a-f0-9]+\.verylongext/); // Should start with hash and have extension
+    });
+
+    it('should handle files without extensions', async () => {
+      const fileName = 'this-is-a-very-long-filename-without-extension-that-should-be-truncated-to-fit-the-limit';
+
+      // Use reflection to access private method for testing
+      const generateUniqueFileName = (service as any).generateUniqueFileName.bind(service);
+      const result = generateUniqueFileName(fileName, undefined, 50);
+
+      expect(result.length).toBeLessThanOrEqual(50);
+      expect(result).toMatch(/this-is-a-very-long-filename.*-[a-f0-9]{8}$/); // Should have hash suffix
+    });
+
+    it('should ensure filename uniqueness for similar filenames', async () => {
+      const baseFileName = 'very-long-filename-that-gets-truncated-when-uploaded-to-notion-api';
+      const fileName1 = `${baseFileName}-image1.png`;
+      const fileName2 = `${baseFileName}-image2.png`;
+      const fileName3 = `${baseFileName}-image3.png`;
+
+      // Use reflection to access private method for testing
+      const generateUniqueFileName = (service as any).generateUniqueFileName.bind(service);
+      const result1 = generateUniqueFileName(fileName1, '/path/image1.png', 100);
+      const result2 = generateUniqueFileName(fileName2, '/path/image2.png', 100);
+      const result3 = generateUniqueFileName(fileName3, '/path/image3.png', 100);
+
+      // All should be different due to unique hashes
+      expect(result1).not.toBe(result2);
+      expect(result2).not.toBe(result3);
+      expect(result1).not.toBe(result3);
+
+      // All should end with .png
+      expect(result1.endsWith('.png')).toBe(true);
+      expect(result2.endsWith('.png')).toBe(true);
+      expect(result3.endsWith('.png')).toBe(true);
+
+      // All should be within length limit
+      expect(result1.length).toBeLessThanOrEqual(100);
+      expect(result2.length).toBeLessThanOrEqual(100);
+      expect(result3.length).toBeLessThanOrEqual(100);
+    });
+
+    it('should be deterministic - same input produces same output', async () => {
+      const fileName = 'test-file.png';
+      const filePath = '/path/to/test-file.png';
+
+      // Use reflection to access private method for testing
+      const generateUniqueFileName = (service as any).generateUniqueFileName.bind(service);
+      const result1 = generateUniqueFileName(fileName, filePath);
+      const result2 = generateUniqueFileName(fileName, filePath);
+
+      expect(result1).toBe(result2); // Should be deterministic
+      expect(result1).toMatch(/test-file-[a-f0-9]{8}\.png$/);
+    });
+  });
+
+  describe('decoupled helper methods', () => {
+    it('should generate consistent hash for same input', async () => {
+      const generateFileHash = (service as any).generateFileHash.bind(service);
+
+      const hash1 = generateFileHash('test.png', '/path/test.png');
+      const hash2 = generateFileHash('test.png', '/path/test.png');
+      const hash3 = generateFileHash('test.png', '/different/path/test.png');
+
+      expect(hash1).toBe(hash2); // Same input = same hash
+      expect(hash1).not.toBe(hash3); // Different path = different hash
+      expect(hash1).toMatch(/^[a-f0-9]{8}$/); // 8-char hex
+    });
+
+    it('should correctly parse filename into parts', async () => {
+      const parseFileName = (service as any).parseFileName.bind(service);
+
+      expect(parseFileName('test.png')).toEqual({ baseName: 'test', extension: '.png' });
+      expect(parseFileName('complex-name.jpeg')).toEqual({ baseName: 'complex-name', extension: '.jpeg' });
+      expect(parseFileName('no-extension')).toEqual({ baseName: 'no-extension', extension: '' });
+      expect(parseFileName('.hidden')).toEqual({ baseName: '.hidden', extension: '' });
+    });
+
+    it('should truncate base name to fit available space', async () => {
+      const truncateToFitAvailableSpace = (service as any).truncateToFitAvailableSpace.bind(service);
+
+      expect(truncateToFitAvailableSpace('short', 10)).toBe('short');
+      expect(truncateToFitAvailableSpace('very-long-filename', 5)).toBe('very-');
+      expect(truncateToFitAvailableSpace('exact', 5)).toBe('exact');
+    });
+
+    it('should construct hashed filename with proper length limits including extension', async () => {
+      const constructHashedFileName = (service as any).constructHashedFileName.bind(service);
+
+      // Normal case
+      const result1 = constructHashedFileName('test', '.png', 'abcd1234', 50);
+      expect(result1).toBe('test-abcd1234.png');
+      expect(result1.length).toBeLessThanOrEqual(50);
+
+      // Verify total filename length includes extension
+      const result2 = constructHashedFileName('very-long-filename', '.png', 'abcd1234', 20);
+      expect(result2.endsWith('-abcd1234.png'));
+      expect(result2.length).toBeLessThanOrEqual(20);
+      expect(result2.length).toBe(20); // Should be exactly 20 (base + hash + extension)
+
+      // Extreme case - only hash + extension when no space for base name
+      const result3 = constructHashedFileName('test', '.verylongext', 'abcd1234', 15);
+      expect(result3.startsWith('abcd1234'));
+      expect(result3.includes('.verylongext'));
+      expect(result3.length).toBeLessThanOrEqual(15);
+    });
+
+    it('should respect total filename length limit (900 bytes) including extension', async () => {
+      const generateUniqueFileName = (service as any).generateUniqueFileName.bind(service);
+
+      // Test with very long filename and extension
+      const longBase = 'a'.repeat(800);
+      const longExtension = '.verylongextension';
+      const longFileName = `${longBase}${longExtension}`;
+
+      const result = generateUniqueFileName(longFileName, '/some/path', 900);
+
+      // Total length should not exceed 900 bytes
+      expect(result.length).toBeLessThanOrEqual(900);
+      // Should still have the extension
+      expect(result.endsWith(longExtension)).toBe(true);
+      // Should have hash suffix
+      expect(result).toMatch(/-[a-f0-9]{8}\.verylongextension$/);
+    });
+  });
+
   const mockFileStats = {
     size: 1024,
     isFile: () => true,
@@ -103,12 +291,12 @@ describe('NotionFileUploadService', () => {
       // Verify file stats were checked
       expect(fs.statSync).toHaveBeenCalledWith('/test/path/image.png');
 
-      // Verify createFileUpload was called
+      // Verify createFileUpload was called with hash suffix
       expect(mockClient.request).toHaveBeenCalledWith({
         path: 'file_uploads',
         method: 'post',
         body: {
-          filename: 'image.png',
+          filename: expect.stringMatching(/^image-[a-f0-9]{8}\.png$/),
           file_size: 1024,
         },
       });
@@ -247,7 +435,7 @@ describe('NotionFileUploadService', () => {
       ).rejects.toThrow('Invalid response from file upload API');
     });
 
-    it('should use correct filename extraction', async () => {
+    it('should use correct filename extraction with hash suffix', async () => {
       await service.uploadFile({
         filePath: '/very/long/path/to/my-image-file.jpeg',
         basePath: '/test',
@@ -257,7 +445,7 @@ describe('NotionFileUploadService', () => {
         path: 'file_uploads',
         method: 'post',
         body: {
-          filename: 'my-image-file.jpeg',
+          filename: expect.stringMatching(/^my-image-file-[a-f0-9]{8}\.jpeg$/),
           file_size: 1024,
         },
       });
