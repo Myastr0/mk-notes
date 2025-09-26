@@ -20,4 +20,6 @@ export class ParserRepository {
   parse(args: { content: string }): ParseResult {
     throw new Error('Method not implemented.');
   }
+
+  setCurrentFilePath?(filePath: string): void;
 }

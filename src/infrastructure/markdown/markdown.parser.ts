@@ -34,6 +34,7 @@ export interface MarkdownMetadata {
 
 export class MarkdownParser extends ParserRepository {
   private htmlParser: HtmlParser;
+  private currentFilePath?: string;
 
   constructor({
     htmlParser,
@@ -46,6 +47,10 @@ export class MarkdownParser extends ParserRepository {
     this.htmlParser = htmlParser;
 
     marked.use(markedKatex({ throwOnError: false, nonStandard: true }));
+  }
+
+  setCurrentFilePath(filePath: string): void {
+    this.currentFilePath = filePath;
   }
 
   private preParseMarkdown(src: string): ExtendedToken[] {
@@ -165,6 +170,7 @@ export class MarkdownParser extends ParserRepository {
     return new ImageElement({
       url: token.href,
       caption: token.text,
+      filepath: this.currentFilePath,
     });
   }
 

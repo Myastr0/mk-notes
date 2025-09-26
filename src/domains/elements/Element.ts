@@ -340,6 +340,7 @@ export class ImageElement extends Element {
   public creationDate?: Date;
   public lastUpdatedDate?: Date;
   public extension?: string;
+  public filepath?: string;
 
   constructor({
     base64,
@@ -349,6 +350,7 @@ export class ImageElement extends Element {
     lastUpdatedDate,
     extension,
     caption,
+    filepath,
   }: {
     base64?: string;
     url?: string;
@@ -357,6 +359,7 @@ export class ImageElement extends Element {
     lastUpdatedDate?: Date;
     extension?: string;
     caption?: string;
+    filepath?: string;
   }) {
     super(ElementType.Image);
     this.name = name;
@@ -366,6 +369,7 @@ export class ImageElement extends Element {
     this.base64 = base64;
     this.url = url;
     this.caption = caption;
+    this.filepath = filepath;
   }
 }
 

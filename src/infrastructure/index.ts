@@ -24,7 +24,6 @@ let infraInstances: InfrastructureInstances | null;
 interface getInfrastructureInstanceProps {
   logger: Logger;
   notionApiKey: string;
-  basePath?: string;
 }
 
 export interface InfrastructureInstances {

@@ -464,9 +464,16 @@ export class NotionConverterRepository
 
     try {
       // Determine the base path for resolving relative image paths
-      const imageBasePath = this.currentFilePath
-        ? path.dirname(this.currentFilePath)
-        : this.basePath;
+      // Prefer the filepath from the ImageElement, fallback to currentFilePath, then basePath
+      let imageBasePath: string | undefined;
+
+      if (element.filepath) {
+        imageBasePath = path.dirname(element.filepath);
+      } else if (this.currentFilePath) {
+        imageBasePath = path.dirname(this.currentFilePath);
+      } else {
+        imageBasePath = this.basePath;
+      }
 
       this.logger.info(`Uploading local image: ${element.url}`);
 

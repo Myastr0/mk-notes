@@ -48,7 +48,6 @@ command.action(async (opts: SyncOptions) => {
 
   const mkNotes = new MkNotes({
     notionApiKey,
-    basePath: inputPath,
   });
 
   await mkNotes.synchronizeMarkdownToNotionFromFileSystem({
