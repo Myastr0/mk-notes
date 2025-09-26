@@ -32,6 +32,12 @@ export class FileConverter
     this.logger = logger;
   }
 
+  setCurrentFilePath(filePath: string): void {
+    if (this.markdownParser.setCurrentFilePath) {
+      this.markdownParser.setCurrentFilePath(filePath);
+    }
+  }
+
   public convertToElement(file: File): PageElement {
     const { content } = file;
 

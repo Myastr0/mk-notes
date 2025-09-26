@@ -15,6 +15,7 @@ import { MarkdownParser } from '@/infrastructure/markdown';
 import {
   NotionConverterRepository,
   NotionDestinationRepository,
+  NotionFileUploadService,
   NotionPage,
 } from '@/infrastructure/notion';
 
@@ -38,7 +39,14 @@ const buildInstances = ({
   logger,
   notionApiKey,
 }: getInfrastructureInstanceProps): InfrastructureInstances => {
-  const notionConverter = new NotionConverterRepository({ logger });
+  const fileUploadService = new NotionFileUploadService({
+    apiKey: notionApiKey,
+    logger,
+  });
+  const notionConverter = new NotionConverterRepository({
+    logger,
+    fileUploadService,
+  });
   const htmlParser = new HtmlParser({ logger });
   const markdownParser = new MarkdownParser({ htmlParser, logger });
 

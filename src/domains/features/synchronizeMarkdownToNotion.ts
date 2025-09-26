@@ -129,6 +129,11 @@ export class SynchronizeMarkdownToNotion<T, U extends Page> {
           path: node.filepath,
         } as T);
 
+        // Set the current file path for image resolution
+        if (this.elementConverter.setCurrentFilePath) {
+          this.elementConverter.setCurrentFilePath(node.filepath);
+        }
+
         // Convert the file content to elements
         const pageElement = this.elementConverter.convertToElement(file);
 
@@ -166,6 +171,11 @@ export class SynchronizeMarkdownToNotion<T, U extends Page> {
           path: filePath,
         } as T);
 
+        // Set the current file path for image resolution
+        if (this.elementConverter.setCurrentFilePath) {
+          this.elementConverter.setCurrentFilePath(filePath);
+        }
+
         // Convert the file content to a Notion page element
         const pageElement = this.elementConverter.convertToElement(file);
 
@@ -188,6 +198,7 @@ export class SynchronizeMarkdownToNotion<T, U extends Page> {
         const newPage = await this.destinationRepository.createPage({
           pageElement,
           parentPageId,
+          filePath,
         });
 
         this.logger.info(`Created Notion page for file: ${filePath}`);

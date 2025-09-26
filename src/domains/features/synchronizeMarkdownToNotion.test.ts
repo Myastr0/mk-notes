@@ -105,6 +105,7 @@ describe('SynchronizeMarkdownToNotion', () => {
       expect(destinationRepository.createPage).toHaveBeenCalledWith({
         pageElement: expect.any(PageElement),
         parentPageId: 'Test-Page-12345678901234567890123456789012',
+        filePath: 'file1.md',
       });
     });
 

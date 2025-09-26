@@ -32,7 +32,7 @@ export class FakeFileConverter extends FileConverter {
 }
 
 export class FakeNotionConverter extends NotionConverterRepository {
-  public convertFromElement(elem: PageElement): NotionPage {
-    return aFakeNotionPage();
+  public convertFromElement(elem: PageElement): Promise<NotionPage> {
+    return Promise.resolve(aFakeNotionPage());
   }
 }
