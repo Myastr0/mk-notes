@@ -30,6 +30,7 @@ const sync = async (earlyExit = false) => {
         // due to retries or timeouts. We know that if we got here
         // that all promises that we care about have successfully
         // resolved, so simply exit with success.
+        (0, core_1.info)(`Synchronization done. View the result at ${destination}`);
         if (earlyExit) {
             process.exit(0);
         }
