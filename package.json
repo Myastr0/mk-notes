@@ -23,14 +23,14 @@
   "author": "Myastr0",
   "main": "dist/index.js",
   "bin": {
-    "mk-notes": "./dist/bin/index.js"
+    "mk-notes": "./dist/bin/cli/index.js"
   },
   "files": [
     "dist"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.production.json && tsc-alias -p tsconfig.production.json",
-    "cli": "ts-node src/bin",
+    "cli": "ts-node src/bin/cli",
     "docs:gen": "nodemon --watch src/**/* -x \"typedoc --options typedoc.json\"",
     "docs:serve": "cd ./docs && yarn dev",
     "docs:watch": "yarn docs:gen & yarn docs:serve",
@@ -40,6 +40,7 @@
     "test": "jest --passWithNoTests"
   },
   "dependencies": {
+    "@actions/core": "^1.11.1",
     "@notionhq/client": "^5.1.0",
     "commander": "^13.1.0",
     "dom-serializer": "^2.0.0",
