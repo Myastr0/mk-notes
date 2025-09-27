@@ -1,0 +1,23 @@
+name: 'Synchronize a markdown file or directory to a dedicated notion page'
+description: 'Synchronize a markdown file or directory to a dedicated notion page'
+author: 'GitHub'
+inputs:
+  input:
+    description: 'The path to the markdown file or directory to synchronize'
+    required: true
+  destination:
+    description: 'The Notion page URL where you want to synchronize your markdown files'
+    required: true
+  notion-api-key:
+    description: 'Your Notion secret token'
+    required: true
+  clean:
+    description: 'Clean sync mode - WARNING: removes ALL existing content from the destination page before syncing, including any custom content not created by mk-notes'
+    required: false
+    default: 'false'
+runs:
+  using: 'node20'
+  main: '../dist/bin/actions/sync.js'
+branding:
+  icon: 'refresh-cw'
+  color: 'blue'
