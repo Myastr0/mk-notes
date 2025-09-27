@@ -38,6 +38,7 @@ const preview = async (earlyExit = false) => {
         // due to retries or timeouts. We know that if we got here
         // that all promises that we care about have successfully
         // resolved, so simply exit with success.
+        (0, core_1.info)(`Preview saved to ${output}`);
         if (earlyExit) {
             process.exit(0);
         }
