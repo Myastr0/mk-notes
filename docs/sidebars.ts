@@ -32,7 +32,7 @@ const sidebars: SidebarsConfig = {
     {
       type: 'category',
       label: 'Guides',
-      items: ['guides/styling-notion-page', 'guides/using-equations'],
+      items: ['guides/github-actions', 'guides/styling-notion-page', 'guides/using-equations'],
     },
     {
       type: 'category',

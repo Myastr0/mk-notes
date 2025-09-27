@@ -11,6 +11,7 @@ This guide will help you install Mk Notes on your local machine.
 ---
 
 ## Requirements
+
 - Node.js version 20.0 or higher.
 
 ## Installation
@@ -20,15 +21,9 @@ import TabItem from '@theme/TabItem';
 
 <Tabs>
   <TabItem value="npm" default>
-    ```bash
-      npm install -g @mk-notes/cli
-    ```
+    ```bash npm install -g @mk-notes/cli ```
   </TabItem>
-  <TabItem value="yarn">
-    ```bash
-      yarn global add @mk-notes/cli
-    ```
-  </TabItem>
+  <TabItem value="yarn">```bash yarn global add @mk-notes/cli ```</TabItem>
 </Tabs>
 
 To verify that Mk Notes is installed correctly, run the following command:
@@ -42,3 +37,7 @@ To verify that Mk Notes is installed correctly, run the following command:
 Ask for help on our [GitHub repository](https://github.com/Myastr0/mk-notes/issues), or on our Discord server
 
 If the installation was successful, you should see the version of Mk Notes that you have installed.
+
+## Alternative: GitHub Actions
+
+If you prefer to automate your markdown to Notion synchronization without installing Mk Notes locally, you can use our [GitHub Actions](../guides/github-actions.md) to run the synchronization directly in your CI/CD pipeline.

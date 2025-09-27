@@ -5,7 +5,7 @@ title: CLI Commands
 
 # CLI Commands
 
-MK Notes provides two main commands to help you manage your markdown to Notion synchronization:
+MK Notes provides two main commands to help you manage your markdown to Notion synchronization. You can also use [GitHub Actions](../guides/github-actions.md) to automate these operations in your CI/CD pipeline.
 
 ---
 
