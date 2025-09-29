@@ -108,8 +108,10 @@ export class SiteMap {
 
     // Handle root-level index.md separately
     if (node === this._root && !node.filepath) {
+      // Look for ANY index.md file that should be treated as root content
+      // This includes both relative paths (index.md) and full paths (*/index.md)
       const rootIndexChild = node.children.find(
-        (child) => child.filepath === 'index.md'
+        (child) => path.basename(child.filepath) === 'index.md'
       );
 
       if (rootIndexChild) {

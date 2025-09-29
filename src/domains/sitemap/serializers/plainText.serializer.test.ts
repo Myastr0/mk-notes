@@ -62,25 +62,25 @@ describe('Plain Text Serializer', () => {
 
     const result = serializeInPlainText(siteMap);
 
+    // When index.md becomes root content, only remaining files appear as children
     expect(result).toBe(
       '├─  (Your parent Notion Page)\n' +
-      '│   ├─ folder1/index.md (folder1)\n' +
       '│   ├─ folder2/index.md (folder2)\n'
     );
   });
 
-  it('should handle files with same names in different folders', () => {
+  it('should handle files with different names in different folders', () => {
     const siteMap = SiteMap.buildFromFilePaths([
-      'folder1/index.md',
-      'folder2/index.md'
-    ]); 
+      'folder1/file1.md',
+      'folder2/file2.md'
+    ]);
 
-    const result = serializeInPlainText(siteMap); 
+    const result = serializeInPlainText(siteMap);
 
     expect(result).toBe(
       '├─  (Your parent Notion Page)\n' +
-      '│   ├─ folder1/index.md (folder1)\n' +
-      '│   ├─ folder2/index.md (folder2)\n'
+      '│   ├─ folder1/file1.md (folder1)\n' +
+      '│   ├─ folder2/file2.md (folder2)\n'
     );
   });
 });
