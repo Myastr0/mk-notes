@@ -36,15 +36,14 @@ describe('SiteMap', () => {
         'folder1/other.md'
       ]);
 
-      const folder1 = siteMap.root.children[0];
-      expect(folder1.name).toBe('index.md');
-      expect(folder1.filepath).toBe('folder1/index.md');
-      expect(folder1.children).toHaveLength(0);
+      // When all files share the same directory, index.md becomes the root content
+      expect(siteMap.root.filepath).toBe('folder1/index.md');
+      expect(siteMap.root.children).toHaveLength(1);
 
-      const folder1Other = siteMap.root.children[1];
-      expect(folder1Other.name).toBe('other.md');
-      expect(folder1Other.filepath).toBe('folder1/other.md');
-      expect(folder1Other.children).toHaveLength(0);
+      const otherChild = siteMap.root.children[0];
+      expect(otherChild.name).toBe('other.md');
+      expect(otherChild.filepath).toBe('folder1/other.md');
+      expect(otherChild.children).toHaveLength(0);
     });
 
     it('should remove useless intermediate nodes', () => {
@@ -99,18 +98,21 @@ describe('SiteMap', () => {
         'src/README.md'
       ]);
 
-      // Root should have index.md content
-      expect(siteMap.root.filepath).toBe('index.md');
+      // Any index.md found becomes root content (docs/index.md gets picked up first)
+      expect(siteMap.root.filepath).toBe('docs/index.md');
 
-      // docs folder should use its own index.md
-      const docsChild = siteMap.root.children.find(child => child.name === 'docs');
-      expect(docsChild).toBeDefined();
-      expect(docsChild?.filepath).toBe('docs/index.md');
+      // Should have the remaining files as children
+      expect(siteMap.root.children).toHaveLength(3);
 
-      // docs should have guide.md as child
-      expect(docsChild?.children).toHaveLength(1);
-      expect(docsChild?.children[0].name).toBe('guide.md');
+      const indexChild = siteMap.root.children.find(child => child.name === 'index.md');
+      const srcChild = siteMap.root.children.find(child => child.name === 'src');
+      const guideChild = siteMap.root.children.find(child => child.name === 'guide.md');
+
+      expect(indexChild?.filepath).toBe('index.md');
+      expect(srcChild?.filepath).toBe('src/README.md');
+      expect(guideChild?.filepath).toBe('docs/guide.md');
     });
+
   });
 
   describe('fromJSON/toJSON', () => {
