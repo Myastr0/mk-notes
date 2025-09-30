@@ -119,8 +119,8 @@ export class SynchronizeMarkdownToNotion<T, U extends Page> {
     node: TreeNode;
     parentPageId: string;
   }): Promise<void> {
-    // If the current node has content (e.g., root node with index.md), add it to the parent page
-    if (node.filepath) {
+    // If the current node has content AND is the root node, add it to the parent page
+    if (node.filepath && node.parent === null) {
       try {
         this.logger.info(`Adding content from ${node.filepath} to parent page`);
 

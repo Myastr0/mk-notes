@@ -126,5 +126,95 @@ describe('SynchronizeMarkdownToNotion', () => {
 
       expect(destinationRepository.createPage).toHaveBeenCalledTimes(2);
     });
+
+    it('should prevent content duplication when root index.md exists with child directory content files', async () => {
+      // Setup file structure with root index.md and numbered directory structure
+      jest
+        .spyOn(sourceRepository, 'getFilePathList')
+        .mockResolvedValue([
+          'index.md',
+          '01_Section/00_Root.md',
+          '01_Section/01_Subsection.md'
+        ]);
+
+      // Mock different content for each file
+      const rootContent = new PageElement({
+        title: 'Project Documentation',
+        content: [new TextElement({ text: 'Welcome to the documentation' })],
+      });
+
+      const sectionContent = new PageElement({
+        title: 'Section Overview',
+        content: [new TextElement({ text: 'This is the main section' })],
+      });
+
+      const subsectionContent = new PageElement({
+        title: 'Subsection',
+        content: [new TextElement({ text: 'Subsection content' })],
+      });
+
+      // Mock getFile to return different content based on filepath
+      jest
+        .spyOn(sourceRepository, 'getFile')
+        .mockImplementation(async (args: any) => {
+          const path = args.path;
+          if (path === 'index.md') {
+            return new FakeFile({ content: 'Welcome to the documentation' });
+          } else if (path === '01_Section/00_Root.md') {
+            return new FakeFile({ content: 'This is the main section' });
+          } else if (path === '01_Section/01_Subsection.md') {
+            return new FakeFile({ content: 'Subsection content' });
+          }
+          return new FakeFile({ content: 'Default content' });
+        });
+
+      // Mock convertToElement to return appropriate content
+      jest
+        .spyOn(elementConverter, 'convertToElement')
+        .mockImplementation((file: any) => {
+          const content = file.content;
+          if (content.includes('Welcome to the documentation')) {
+            return rootContent;
+          } else if (content.includes('This is the main section')) {
+            return sectionContent;
+          } else if (content.includes('Subsection content')) {
+            return subsectionContent;
+          }
+          return new PageElement({ title: 'Default', content: [] });
+        });
+
+      const appendToPageSpy = jest.spyOn(destinationRepository, 'appendToPage');
+      const createPageSpy = jest.spyOn(destinationRepository, 'createPage');
+
+      await synchronizer.execute(defaultArgs);
+
+      // Verify that appendToPage is called exactly once (only for root index.md)
+      expect(appendToPageSpy).toHaveBeenCalledTimes(1);
+      expect(appendToPageSpy).toHaveBeenCalledWith({
+        pageId: 'Test-Page-12345678901234567890123456789012',
+        pageElement: rootContent,
+      });
+
+      // Verify that createPage is called for child pages (Section and Subsection)
+      expect(createPageSpy).toHaveBeenCalledTimes(2);
+
+      // Verify Section page creation
+      expect(createPageSpy).toHaveBeenCalledWith({
+        pageElement: expect.objectContaining({
+          title: 'Section Overview'
+        }),
+        parentPageId: 'Test-Page-12345678901234567890123456789012',
+        filePath: '01_Section/00_Root.md',
+      });
+
+      // Verify Subsection page creation
+      expect(createPageSpy).toHaveBeenCalledWith({
+        pageElement: expect.objectContaining({
+          title: 'Subsection'
+        }),
+        parentPageId: 'new-page-id', // This should be the Section page ID
+        filePath: '01_Section/01_Subsection.md',
+      });
+    });
   });
 });
