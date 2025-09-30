@@ -2,6 +2,7 @@ import { type PageElement } from '@/domains/elements';
 import {
   DestinationRepository,
   Page,
+  PageLockedStatus,
 } from '@/domains/synchronization/destination.repository';
 
 import { FakePage } from './fakePage';
@@ -27,6 +28,7 @@ export class FakeDestinationRepository<T extends Page>
       pageId: 'fakePageId',
       createdAt: new Date(),
       updatedAt: new Date(),
+      isLocked: false,
     });
     return fakePage as unknown as T;
   }
@@ -45,6 +47,7 @@ export class FakeDestinationRepository<T extends Page>
       pageId,
       createdAt: new Date(),
       updatedAt: new Date(),
+      isLocked: false,
     });
     return updatedFakePage as unknown as T;
   }
@@ -87,5 +90,24 @@ export class FakeDestinationRepository<T extends Page>
     pageElement: PageElement;
   }): Promise<void> {
     // no-op in fake repository for testing
+  }
+
+  async setPageLockedStatus({
+    pageId,
+    lockStatus,
+  }: {
+    pageId: string;
+    lockStatus: PageLockedStatus;
+  }): Promise<void> {
+    // no-op in fake repository for testing
+  }
+
+  // eslint-disable-next-line @typescript-eslint/require-await
+  async getPageLockedStatus({
+    pageId,
+  }: {
+    pageId: string;
+  }): Promise<PageLockedStatus> {
+    return 'unlocked';
   }
 }

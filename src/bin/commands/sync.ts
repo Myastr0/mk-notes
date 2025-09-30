@@ -31,11 +31,14 @@ command.option(
   'Clean sync - WARNING: removes ALL existing content from the destination page before syncing, including any custom content not created by mk-notes'
 );
 
+command.option('-l, --lock', 'Lock the Notion page after syncing');
+
 interface SyncOptions {
   input: string;
   destination: string;
   notionApiKey: string;
   clean?: boolean;
+  lock?: boolean;
 }
 
 command.action(async (opts: SyncOptions) => {
@@ -44,6 +47,7 @@ command.action(async (opts: SyncOptions) => {
     destination: notionParentPageUrl,
     notionApiKey,
     clean = false,
+    lock = false,
   } = opts;
 
   const mkNotes = new MkNotes({
@@ -54,6 +58,7 @@ command.action(async (opts: SyncOptions) => {
     inputPath: inputPath,
     parentNotionPageId: notionParentPageUrl,
     cleanSync: clean,
+    lockPage: lock,
   });
 
   // eslint-disable-next-line no-console

@@ -23,6 +23,7 @@ export class NotionPage implements Page {
   )[];
   public readonly createdAt?: Date;
   public readonly updatedAt?: Date;
+  public readonly isLocked?: boolean;
 
   constructor({
     pageId,
@@ -31,6 +32,7 @@ export class NotionPage implements Page {
     icon,
     updatedAt,
     properties,
+    isLocked,
   }: {
     pageId?: string;
     children: (
@@ -42,6 +44,7 @@ export class NotionPage implements Page {
     icon?: Icon;
     updatedAt?: Date;
     properties?: PageProperties;
+    isLocked?: boolean;
   }) {
     this.pageId = pageId;
     this.children = children;
@@ -49,6 +52,7 @@ export class NotionPage implements Page {
     this.updatedAt = updatedAt || createdAt;
     this.icon = icon;
     this.properties = properties;
+    this.isLocked = isLocked;
   }
 
   static fromPartialCreatePageBodyParameters(
@@ -59,6 +63,8 @@ export class NotionPage implements Page {
       properties: args.properties,
       icon:
         args.icon !== undefined && args.icon !== null ? args.icon : undefined,
+      // Notion page is not locked on creation
+      isLocked: false,
     });
   }
   toCreatePageBodyParameters(): PartialCreatePageBodyParameters {

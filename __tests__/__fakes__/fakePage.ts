@@ -6,19 +6,22 @@ export class FakePage implements Page {
   pageId: string;
   createdAt: Date;
   updatedAt: Date;
-
+  isLocked: boolean;
   constructor({
     pageId,
     createdAt,
     updatedAt,
+    isLocked,
   }: {
     pageId: string;
     createdAt: Date;
     updatedAt: Date;
+    isLocked: boolean;
   }) {
     this.pageId = pageId;
     this.createdAt = createdAt;
     this.updatedAt = updatedAt;
+    this.isLocked = isLocked;
   }
 }
 
@@ -33,7 +36,13 @@ export class FakeNotionPage extends NotionPage {
     pageId,
     createdAt,
     updatedAt,
-  }: { pageId?: string; createdAt?: Date; updatedAt?: Date } = {}) {
+    isLocked,
+  }: {
+    pageId?: string;
+    createdAt?: Date;
+    updatedAt?: Date;
+    isLocked?: boolean;
+  } = {}) {
     super({
       children: [],
       createdAt: createdAt ?? new Date(),
@@ -41,6 +50,7 @@ export class FakeNotionPage extends NotionPage {
       pageId: pageId ?? 'fake-page-id',
       updatedAt: updatedAt ?? new Date(),
       properties: undefined,
+      isLocked: isLocked ?? false,
     });
   }
 

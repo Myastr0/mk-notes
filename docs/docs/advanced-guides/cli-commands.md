@@ -16,7 +16,7 @@ The `sync` command synchronizes markdown files to a Notion page. You can sync ei
 ### Usage
 
 ```bash
-mk-notes sync -i <path> -d <notionPageUrl> -k <notionApiKey>
+mk-notes sync -i <path> -d <notionPageUrl> -k <notionApiKey> [options]
 ```
 
 ### Required Options
@@ -28,6 +28,7 @@ mk-notes sync -i <path> -d <notionPageUrl> -k <notionApiKey>
 ### Optional Options
 
 - `-c, --clean`: Clean sync mode - **WARNING: removes ALL existing content** from the destination page before syncing, including any manually added content or blocks not created by mk-notes. This prevents duplicate content when repeatedly syncing to the same destination, but will delete any custom content you've added to the page.
+- `-l, --lock`: Lock the Notion page after syncing to prevent further editing. This is useful when you want to preserve the synchronized content and prevent accidental modifications.
 
 ### Examples
 
@@ -59,7 +60,7 @@ mk-notes sync \
 
 This command will:
 
-1. Remove ALL existing content from the destination Notion page (including any custom blocks and content not created by mk-notes)
+1. Remove ALL existing content from the destination Notion page (including any custom blocks and content not created by mk-notes and locked pages)
 2. Read all markdown files in the `./my-docs` directory
 3. Create a matching page hierarchy in Notion
 4. Convert and sync the content to your specified Notion page
@@ -80,6 +81,44 @@ This command will:
 2. Create a single Notion page with the file content
 3. Convert and sync the content to your specified Notion page
 4. Display a success message with the Notion page URL when complete
+
+#### Syncing with Page Locking
+
+```bash
+mk-notes sync \
+  --input ./my-docs \
+  --destination https://notion.so/myworkspace/doc-123456 \
+  --notion-api-key secret_abc123... \
+  --lock
+```
+
+This command will:
+
+1. Read all markdown files in the `./my-docs` directory
+2. Create a matching page hierarchy in Notion
+3. Convert and sync the content to your specified Notion page
+4. **Lock the Notion page** to prevent further editing
+5. Display a success message with the Notion page URL when complete
+
+#### Syncing with Both Clean and Lock Options
+
+```bash
+mk-notes sync \
+  --input ./my-docs \
+  --destination https://notion.so/myworkspace/doc-123456 \
+  --notion-api-key secret_abc123... \
+  --clean \
+  --lock
+```
+
+This command will:
+
+1. Remove ALL existing content from the destination Notion page (including pages that arelocked)
+2. Read all markdown files in the `./my-docs` directory
+3. Create a matching page hierarchy in Notion
+4. Convert and sync the content to your specified Notion page
+5. **Lock the Notion page** to prevent further editing
+6. Display a success message with the Notion page URL when complete
 
 ## `preview-sync`
 
@@ -193,9 +232,16 @@ Mk Notes automatically detects whether your input path is a single markdown file
    - Make sure your API key has the necessary permissions
 
 4. **Regular Backups**
+
    - Consider backing up your Notion pages before large syncs
    - Use `preview-sync` to verify changes before updating existing content
    - Be extremely cautious when using the `--clean` flag as it will delete ALL content on the destination page
    - Avoid using `--clean` on Notion pages that contain important manual content not created by mk-notes
+
+5. **Page Locking**
+   - Use the `--lock` option when you want to preserve synchronized content and prevent accidental modifications
+   - Locked pages cannot be edited until manually unlocked in Notion
+   - Consider using `--lock` for production documentation or final versions
+   - Remember that locked pages will need to be manually unlocked if you need to make future updates
 
 For more details about how MK Notes organizes your content, see the [Architecture](./architecture.md) documentation.

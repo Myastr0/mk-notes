@@ -24,7 +24,10 @@ interface SynchronizationServiceParams<T, U extends Page> {
 
 export interface SynchronizeOptions {
   /** When true, delete all existing content before syncing */
-  cleanSync?: boolean;
+  cleanSync: boolean;
+
+  /** When true, lock the Notion page after syncing */
+  lockPage: boolean;
 }
 
 export class SynchronizeMarkdownToNotion<T, U extends Page> {
@@ -45,7 +48,7 @@ export class SynchronizeMarkdownToNotion<T, U extends Page> {
       notionParentPageUrl: string;
     } & SynchronizeOptions
   ): Promise<void> {
-    const { notionParentPageUrl, cleanSync = false, ...others } = args;
+    const { notionParentPageUrl, cleanSync, lockPage, ...others } = args;
 
     const notionPageId = this.destinationRepository.getPageIdFromPageUrl({
       pageUrl: notionParentPageUrl,
@@ -99,6 +102,7 @@ export class SynchronizeMarkdownToNotion<T, U extends Page> {
       await this.synchronizeTreeNode({
         node: siteMap.root,
         parentPageId: notionPageId,
+        lockPage,
       });
 
       this.logger.info('Synchronization process completed successfully');
@@ -115,9 +119,11 @@ export class SynchronizeMarkdownToNotion<T, U extends Page> {
   private async synchronizeTreeNode({
     node,
     parentPageId,
+    lockPage,
   }: {
     node: TreeNode;
     parentPageId: string;
+    lockPage: boolean;
   }): Promise<void> {
     // If the current node has content AND is the root node, add it to the parent page
     if (node.filepath && node.parent === null) {
@@ -148,6 +154,14 @@ export class SynchronizeMarkdownToNotion<T, U extends Page> {
         });
 
         this.logger.info(`Added content from ${node.filepath} to parent page`);
+
+        if (lockPage) {
+          await this.destinationRepository.setPageLockedStatus({
+            pageId: parentPageId,
+            lockStatus: 'locked',
+          });
+          this.logger.info(`Locked parent page ${parentPageId}`);
+        }
       } catch (error) {
         if (error instanceof Error) {
           this.logger.error(
@@ -212,7 +226,16 @@ export class SynchronizeMarkdownToNotion<T, U extends Page> {
           await this.synchronizeTreeNode({
             node: childNode,
             parentPageId: newPage.pageId,
+            lockPage,
           });
+        }
+
+        if (lockPage && newPage.pageId) {
+          await this.destinationRepository.setPageLockedStatus({
+            pageId: newPage.pageId,
+            lockStatus: 'locked',
+          });
+          this.logger.info(`Locked page ${newPage.pageId}`);
         }
       } catch (error) {
         if (error instanceof Error) {

@@ -216,5 +216,242 @@ describe('SynchronizeMarkdownToNotion', () => {
         filePath: '01_Section/01_Subsection.md',
       });
     });
+
+    it('should lock the parent page when lockPage is true and root index.md exists', async () => {
+      // Setup file structure with root index.md
+      jest
+        .spyOn(sourceRepository, 'getFilePathList')
+        .mockResolvedValue(['index.md']);
+
+      const rootContent = new PageElement({
+        title: 'Project Documentation',
+        content: [new TextElement({ text: 'Welcome to the documentation' })],
+      });
+
+      jest
+        .spyOn(sourceRepository, 'getFile')
+        .mockResolvedValue(new FakeFile({ content: 'Welcome to the documentation' }));
+
+      jest
+        .spyOn(elementConverter, 'convertToElement')
+        .mockReturnValue(rootContent);
+
+      const setPageLockedStatusSpy = jest.spyOn(destinationRepository, 'setPageLockedStatus');
+
+      await synchronizer.execute({
+        ...defaultArgs,
+        lockPage: true,
+      });
+
+      // Verify that setPageLockedStatus is called with locked status
+      expect(setPageLockedStatusSpy).toHaveBeenCalledWith({
+        pageId: 'Test-Page-12345678901234567890123456789012',
+        lockStatus: 'locked',
+      });
+    });
+
+    it('should not lock the parent page when lockPage is false', async () => {
+      // Setup file structure with root index.md
+      jest
+        .spyOn(sourceRepository, 'getFilePathList')
+        .mockResolvedValue(['index.md']);
+
+      const rootContent = new PageElement({
+        title: 'Project Documentation',
+        content: [new TextElement({ text: 'Welcome to the documentation' })],
+      });
+
+      jest
+        .spyOn(sourceRepository, 'getFile')
+        .mockResolvedValue(new FakeFile({ content: 'Welcome to the documentation' }));
+
+      jest
+        .spyOn(elementConverter, 'convertToElement')
+        .mockReturnValue(rootContent);
+
+      const setPageLockedStatusSpy = jest.spyOn(destinationRepository, 'setPageLockedStatus');
+
+      await synchronizer.execute({
+        ...defaultArgs,
+        lockPage: false,
+      });
+
+      // Verify that setPageLockedStatus is not called
+      expect(setPageLockedStatusSpy).not.toHaveBeenCalled();
+    });
+
+    it('should lock child pages when lockPage is true', async () => {
+      // Setup file structure with child pages
+      jest
+        .spyOn(sourceRepository, 'getFilePathList')
+        .mockResolvedValue(['01_Section/00_Root.md', '01_Section/01_Subsection.md']);
+
+      const sectionContent = new PageElement({
+        title: 'Section Overview',
+        content: [new TextElement({ text: 'This is the main section' })],
+      });
+
+      const subsectionContent = new PageElement({
+        title: 'Subsection',
+        content: [new TextElement({ text: 'Subsection content' })],
+      });
+
+      // Mock getFile to return different content based on filepath
+      jest
+        .spyOn(sourceRepository, 'getFile')
+        .mockImplementation(async (args: any) => {
+          const path = args.path;
+          if (path === '01_Section/00_Root.md') {
+            return new FakeFile({ content: 'This is the main section' });
+          } else if (path === '01_Section/01_Subsection.md') {
+            return new FakeFile({ content: 'Subsection content' });
+          }
+          return new FakeFile({ content: 'Default content' });
+        });
+
+      // Mock convertToElement to return appropriate content
+      jest
+        .spyOn(elementConverter, 'convertToElement')
+        .mockImplementation((file: any) => {
+          const content = file.content;
+          if (content.includes('This is the main section')) {
+            return sectionContent;
+          } else if (content.includes('Subsection content')) {
+            return subsectionContent;
+          }
+          return new PageElement({ title: 'Default', content: [] });
+        });
+
+      const setPageLockedStatusSpy = jest.spyOn(destinationRepository, 'setPageLockedStatus');
+
+      await synchronizer.execute({
+        ...defaultArgs,
+        lockPage: true,
+      });
+
+      // Verify that setPageLockedStatus is called for each created page
+      expect(setPageLockedStatusSpy).toHaveBeenCalledTimes(2);
+      
+      // Verify Section page is locked
+      expect(setPageLockedStatusSpy).toHaveBeenCalledWith({
+        pageId: 'new-page-id',
+        lockStatus: 'locked',
+      });
+      
+      // Verify Subsection page is locked
+      expect(setPageLockedStatusSpy).toHaveBeenCalledWith({
+        pageId: 'new-page-id',
+        lockStatus: 'locked',
+      });
+    });
+
+    it('should lock both root page and child pages when lockPage is true and root index.md exists with children', async () => {
+      // Setup file structure with root index.md and child pages
+      jest
+        .spyOn(sourceRepository, 'getFilePathList')
+        .mockResolvedValue([
+          'index.md',
+          '01_Section/00_Root.md',
+          '01_Section/01_Subsection.md'
+        ]);
+
+      const rootContent = new PageElement({
+        title: 'Project Documentation',
+        content: [new TextElement({ text: 'Welcome to the documentation' })],
+      });
+
+      const sectionContent = new PageElement({
+        title: 'Section Overview',
+        content: [new TextElement({ text: 'This is the main section' })],
+      });
+
+      const subsectionContent = new PageElement({
+        title: 'Subsection',
+        content: [new TextElement({ text: 'Subsection content' })],
+      });
+
+      // Mock getFile to return different content based on filepath
+      jest
+        .spyOn(sourceRepository, 'getFile')
+        .mockImplementation(async (args: any) => {
+          const path = args.path;
+          if (path === 'index.md') {
+            return new FakeFile({ content: 'Welcome to the documentation' });
+          } else if (path === '01_Section/00_Root.md') {
+            return new FakeFile({ content: 'This is the main section' });
+          } else if (path === '01_Section/01_Subsection.md') {
+            return new FakeFile({ content: 'Subsection content' });
+          }
+          return new FakeFile({ content: 'Default content' });
+        });
+
+      // Mock convertToElement to return appropriate content
+      jest
+        .spyOn(elementConverter, 'convertToElement')
+        .mockImplementation((file: any) => {
+          const content = file.content;
+          if (content.includes('Welcome to the documentation')) {
+            return rootContent;
+          } else if (content.includes('This is the main section')) {
+            return sectionContent;
+          } else if (content.includes('Subsection content')) {
+            return subsectionContent;
+          }
+          return new PageElement({ title: 'Default', content: [] });
+        });
+
+      const setPageLockedStatusSpy = jest.spyOn(destinationRepository, 'setPageLockedStatus');
+
+      await synchronizer.execute({
+        ...defaultArgs,
+        lockPage: true,
+      });
+
+      // Verify that setPageLockedStatus is called for root page and child pages
+      expect(setPageLockedStatusSpy).toHaveBeenCalledTimes(3);
+      
+      // Verify root page is locked
+      expect(setPageLockedStatusSpy).toHaveBeenCalledWith({
+        pageId: 'Test-Page-12345678901234567890123456789012',
+        lockStatus: 'locked',
+      });
+      
+      // Verify child pages are locked (both should use 'new-page-id' as they're created sequentially)
+      expect(setPageLockedStatusSpy).toHaveBeenCalledWith({
+        pageId: 'new-page-id',
+        lockStatus: 'locked',
+      });
+    });
+
+    it('should throw an error when lockPage operation fails', async () => {
+      // Setup file structure with root index.md
+      jest
+        .spyOn(sourceRepository, 'getFilePathList')
+        .mockResolvedValue(['index.md']);
+
+      const rootContent = new PageElement({
+        title: 'Project Documentation',
+        content: [new TextElement({ text: 'Welcome to the documentation' })],
+      });
+
+      jest
+        .spyOn(sourceRepository, 'getFile')
+        .mockResolvedValue(new FakeFile({ content: 'Welcome to the documentation' }));
+
+      jest
+        .spyOn(elementConverter, 'convertToElement')
+        .mockReturnValue(rootContent);
+
+      // Mock setPageLockedStatus to throw an error
+      jest
+        .spyOn(destinationRepository, 'setPageLockedStatus')
+        .mockRejectedValue(new Error('Failed to lock page'));
+
+      // The operation should throw an error when lock operation fails
+      await expect(synchronizer.execute({
+        ...defaultArgs,
+        lockPage: true,
+      })).rejects.toThrow('Failed to lock page');
+    });
   });
 });

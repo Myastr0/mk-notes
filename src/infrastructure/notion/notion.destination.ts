@@ -9,7 +9,10 @@ import {
 
 import { PageElement } from '@/domains/elements/Element';
 import { NotionPage } from '@/domains/notion/NotionPage';
-import { DestinationRepository } from '@/domains/synchronization/destination.repository';
+import {
+  DestinationRepository,
+  PageLockedStatus,
+} from '@/domains/synchronization/destination.repository';
 
 import {
   BlockObjectRequest,
@@ -135,6 +138,7 @@ export class NotionDestinationRepository
       children: blocks,
       createdAt: new Date(pageObjectResponse.created_time),
       updatedAt: new Date(pageObjectResponse.last_edited_time),
+      isLocked: pageObjectResponse.is_locked ?? false,
     });
   }
   async createPage({
@@ -301,7 +305,8 @@ export class NotionDestinationRepository
     pageId: string;
     pageElement: PageElement;
   }): Promise<void> {
-    const notionPage = await this.notionConverter.convertFromElement(pageElement);
+    const notionPage =
+      await this.notionConverter.convertFromElement(pageElement);
 
     // Update page properties (title/icon) if specified in metadata
     await this.updatePageProperties({ pageId, pageElement });
@@ -322,7 +327,8 @@ export class NotionDestinationRepository
     pageId: string;
     pageElement: PageElement;
   }): Promise<void> {
-    const notionPage = await this.notionConverter.convertFromElement(pageElement);
+    const notionPage =
+      await this.notionConverter.convertFromElement(pageElement);
 
     // Only update if there are properties to update
     if (notionPage.properties || notionPage.icon) {
@@ -352,10 +358,41 @@ export class NotionDestinationRepository
   async search({
     filter,
   }: {
-    filter: { property: 'object'; value: 'page' | 'database' };
+    filter: { property: 'object'; value: 'page' | 'data_source' };
   }) {
     return this.client.search({
       filter,
     });
+  }
+
+  async setPageLockedStatus({
+    pageId,
+    lockStatus,
+  }: {
+    pageId: string;
+    lockStatus: PageLockedStatus;
+  }): Promise<void> {
+    const isLocked = lockStatus === 'locked';
+
+    await this.client.pages.update({
+      page_id: pageId,
+      is_locked: isLocked,
+    });
+  }
+
+  async getPageLockedStatus({
+    pageId,
+  }: {
+    pageId: string;
+  }): Promise<PageLockedStatus> {
+    const page = await this.client.pages.retrieve({ page_id: pageId });
+
+    const isLocked = (page as PageObjectResponse).properties?.is_locked;
+
+    if (isLocked === undefined) {
+      return 'unlocked';
+    }
+
+    return isLocked ? 'locked' : 'unlocked';
   }
 }
