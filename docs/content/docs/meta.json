@@ -1,0 +1,5 @@
+{
+    "title": "Mk Notes",
+    "pages": ["index", "getting-started", "guides", "advanced-guides", "contributing"],
+    "defaultOpen": true
+  }

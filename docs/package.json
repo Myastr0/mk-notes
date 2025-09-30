@@ -1,47 +1,37 @@
 {
-  "name": "docs",
+  "name": "mk-notes",
   "version": "0.0.0",
-  "private": false,
+  "private": true,
   "scripts": {
-    "build": "docusaurus build",
-    "clear": "docusaurus clear",
-    "deploy": "docusaurus deploy",
-    "docusaurus": "docusaurus",
-    "serve": "docusaurus serve",
-    "start": "docusaurus start",
-    "swizzle": "docusaurus swizzle",
-    "typecheck": "tsc",
-    "write-heading-ids": "docusaurus write-heading-ids",
-    "write-translations": "docusaurus write-translations"
-  },
-  "browserslist": {
-    "production": [
-      ">0.5%",
-      "not dead",
-      "not op_mini all"
-    ],
-    "development": [
-      "last 3 chrome version",
-      "last 3 firefox version",
-      "last 5 safari version"
-    ]
+    "build": "next build",
+    "dev": "next dev --turbo",
+    "start": "next start",
+    "lint": "eslint"
   },
   "dependencies": {
-    "@docusaurus/core": "3.7.0",
-    "@docusaurus/preset-classic": "3.7.0",
-    "@mdx-js/react": "^3.0.0",
-    "clsx": "^2.0.0",
-    "prism-react-renderer": "^2.3.0",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "@content-collections/core": "^0.11.1",
+    "@content-collections/mdx": "^0.2.2",
+    "@content-collections/next": "^0.2.7",
+    "@fumadocs/content-collections": "1.2.2",
+    "fumadocs-core": "15.8.1",
+    "fumadocs-ui": "15.8.1",
+    "next": "15.5.4",
+    "next-validate-link": "^1.6.3",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1"
   },
   "devDependencies": {
-    "@docusaurus/module-type-aliases": "3.7.0",
-    "@docusaurus/tsconfig": "3.7.0",
-    "@docusaurus/types": "3.7.0",
-    "typescript": "~5.6.2"
-  },
-  "engines": {
-    "node": ">=18.0"
+    "@eslint/eslintrc": "^3",
+    "@tailwindcss/postcss": "^4.1.13",
+    "@types/mdx": "^2.0.13",
+    "@types/node": "24.5.2",
+    "@types/react": "^19.1.14",
+    "@types/react-dom": "^19.1.9",
+    "eslint": "^9",
+    "eslint-config-next": "15.5.4",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^4.1.13",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.2"
   }
 }
