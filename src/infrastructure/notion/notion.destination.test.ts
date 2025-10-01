@@ -30,6 +30,8 @@ describe('NotionDestinationRepository', () => {
       search: jest.fn(),
     } as unknown as jest.Mocked<Client>;
 
+    // Mock the Client constructor to return our mock client
+    jest.mocked(Client).mockImplementation(() => mockClient);
 
     mockNotionConverter = {
       convertFromElement: jest.fn(),
@@ -292,6 +294,132 @@ describe('NotionDestinationRepository', () => {
       const pageUrl = 'https://www.notion.so/16d4754ea1e980d1a2fdc2ab5fa4dfaf?pvs=4';
       const result = repository.getPageIdFromPageUrl({ pageUrl });
       expect(result).toBe('16d4754ea1e980d1a2fdc2ab5fa4dfaf');
+    });
+  });
+
+  describe('setPageLockedStatus', () => {
+    it('should lock a page when lockStatus is "locked"', async () => {
+      const pageId = 'test-page-id';
+      const lockStatus = 'locked';
+
+      jest.spyOn(mockClient.pages, 'update').mockResolvedValue({} as any);
+
+      await repository.setPageLockedStatus({ pageId, lockStatus });
+
+      expect(mockClient.pages.update).toHaveBeenCalledWith({
+        page_id: pageId,
+        is_locked: true,
+      });
+    });
+
+    it('should unlock a page when lockStatus is "unlocked"', async () => {
+      const pageId = 'test-page-id';
+      const lockStatus = 'unlocked';
+
+      jest.spyOn(mockClient.pages, 'update').mockResolvedValue({} as any);
+
+      await repository.setPageLockedStatus({ pageId, lockStatus });
+
+      expect(mockClient.pages.update).toHaveBeenCalledWith({
+        page_id: pageId,
+        is_locked: false,
+      });
+    });
+
+    it('should throw an error when the Notion API call fails', async () => {
+      const pageId = 'test-page-id';
+      const lockStatus = 'locked';
+      const error = new Error('Notion API error');
+
+      jest.spyOn(mockClient.pages, 'update').mockRejectedValue(error);
+
+      await expect(repository.setPageLockedStatus({ pageId, lockStatus })).rejects.toThrow('Notion API error');
+    });
+  });
+
+  describe('getPageLockedStatus', () => {
+    it('should return "locked" when page is locked', async () => {
+      const pageId = 'test-page-id';
+      const mockPage = {
+        id: pageId,
+        object: 'page',
+        properties: {
+          is_locked: true,
+        },
+      } as unknown as PageObjectResponse;
+
+      jest.spyOn(mockClient.pages, 'retrieve').mockResolvedValue(mockPage);
+
+      const result = await repository.getPageLockedStatus({ pageId });
+
+      expect(result).toBe('locked');
+      expect(mockClient.pages.retrieve).toHaveBeenCalledWith({
+        page_id: pageId,
+      });
+    });
+
+    it('should return "unlocked" when page is unlocked', async () => {
+      const pageId = 'test-page-id';
+      const mockPage = {
+        id: pageId,
+        object: 'page',
+        properties: {
+          is_locked: false,
+        },
+      } as unknown as PageObjectResponse;
+
+      jest.spyOn(mockClient.pages, 'retrieve').mockResolvedValue(mockPage);
+
+      const result = await repository.getPageLockedStatus({ pageId });
+
+      expect(result).toBe('unlocked');
+      expect(mockClient.pages.retrieve).toHaveBeenCalledWith({
+        page_id: pageId,
+      });
+    });
+
+    it('should return "unlocked" when is_locked property is undefined', async () => {
+      const pageId = 'test-page-id';
+      const mockPage = {
+        id: pageId,
+        object: 'page',
+        properties: {},
+      } as unknown as PageObjectResponse;
+
+      jest.spyOn(mockClient.pages, 'retrieve').mockResolvedValue(mockPage);
+
+      const result = await repository.getPageLockedStatus({ pageId });
+
+      expect(result).toBe('unlocked');
+      expect(mockClient.pages.retrieve).toHaveBeenCalledWith({
+        page_id: pageId,
+      });
+    });
+
+    it('should return "unlocked" when properties is undefined', async () => {
+      const pageId = 'test-page-id';
+      const mockPage = {
+        id: pageId,
+        object: 'page',
+      } as unknown as PageObjectResponse;
+
+      jest.spyOn(mockClient.pages, 'retrieve').mockResolvedValue(mockPage);
+
+      const result = await repository.getPageLockedStatus({ pageId });
+
+      expect(result).toBe('unlocked');
+      expect(mockClient.pages.retrieve).toHaveBeenCalledWith({
+        page_id: pageId,
+      });
+    });
+
+    it('should throw an error when the Notion API call fails', async () => {
+      const pageId = 'test-page-id';
+      const error = new Error('Notion API error');
+
+      jest.spyOn(mockClient.pages, 'retrieve').mockRejectedValue(error);
+
+      await expect(repository.getPageLockedStatus({ pageId })).rejects.toThrow('Notion API error');
     });
   });
 

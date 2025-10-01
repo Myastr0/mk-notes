@@ -80,10 +80,12 @@ export class MkNotes {
     inputPath,
     parentNotionPageId,
     cleanSync = false,
+    lockPage = false,
   }: {
     inputPath: string;
     parentNotionPageId: string;
     cleanSync?: boolean;
+    lockPage?: boolean;
   }): Promise<void> {
     const synchronizeMarkdownToNotion = new SynchronizeMarkdownToNotion({
       logger: this.logger,
@@ -96,6 +98,7 @@ export class MkNotes {
       path: inputPath,
       notionParentPageUrl: parentNotionPageId,
       cleanSync,
+      lockPage,
     });
   }
 }

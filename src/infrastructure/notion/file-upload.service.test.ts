@@ -425,6 +425,7 @@ describe('NotionFileUploadService', () => {
     });
 
     it('should handle missing response from createFileUpload', async () => {
+      // @ts-ignore
       mockClient.request.mockResolvedValue(null);
 
       await expect(
