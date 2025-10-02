@@ -22,3 +22,11 @@ jobs:
 
       - name: Build
         run: yarn build
+
+      - name: Compare the expected and actual dist directories
+        run: |
+          if [ "$(git diff --ignore-space-at-eol dist | wc -l)" -gt "0" ]; then
+            echo "Detected uncommitted changes after the build. See the status below:"
+            git diff
+            exit 1
+          fi
