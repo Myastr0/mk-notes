@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const commander_1 = require("commander");
-const MkNotes_1 = require("../../../MkNotes");
+const MkNotes_1 = require("@/MkNotes");
 const COMMAND_NAME = 'preview-sync';
 const COMMAND_DESCRIPTION = 'Preview the synchronization result by displaying the whole notion page architecture that will be created';
 /**

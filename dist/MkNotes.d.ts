@@ -1,5 +1,5 @@
 import winston from 'winston';
-import { PreviewFormat } from './domains';
+import { PreviewFormat } from '@/domains';
 /**
  * MkNotes client
  */
@@ -22,9 +22,10 @@ export declare class MkNotes {
     /**
      * Synchronize a markdown file to Notion
      */
-    synchronizeMarkdownToNotionFromFileSystem({ inputPath, parentNotionPageId, cleanSync, }: {
+    synchronizeMarkdownToNotionFromFileSystem({ inputPath, parentNotionPageId, cleanSync, lockPage, }: {
         inputPath: string;
         parentNotionPageId: string;
         cleanSync?: boolean;
+        lockPage?: boolean;
     }): Promise<void>;
 }

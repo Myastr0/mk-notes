@@ -39,8 +39,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.MkNotes = void 0;
 const fs = __importStar(require("fs"));
 const winston_1 = __importDefault(require("winston"));
-const domains_1 = require("./domains");
-const infrastructure_1 = require("./infrastructure");
+const domains_1 = require("@/domains");
+const infrastructure_1 = require("@/infrastructure");
 /**
  * MkNotes client
  */
@@ -80,7 +80,7 @@ class MkNotes {
     /**
      * Synchronize a markdown file to Notion
      */
-    async synchronizeMarkdownToNotionFromFileSystem({ inputPath, parentNotionPageId, cleanSync = false, }) {
+    async synchronizeMarkdownToNotionFromFileSystem({ inputPath, parentNotionPageId, cleanSync = false, lockPage = false, }) {
         const synchronizeMarkdownToNotion = new domains_1.SynchronizeMarkdownToNotion({
             logger: this.logger,
             destinationRepository: this.infrastructureInstances.notionDestination,
@@ -91,6 +91,7 @@ class MkNotes {
             path: inputPath,
             notionParentPageUrl: parentNotionPageId,
             cleanSync,
+            lockPage,
         });
     }
 }

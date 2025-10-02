@@ -1,7 +1,7 @@
 import { BlockObjectResponse, PageObjectResponse, PartialBlockObjectResponse } from '@notionhq/client/build/src/api-endpoints';
-import { PageElement } from '../../domains/elements/Element';
-import { NotionPage } from '../../domains/notion/NotionPage';
-import { DestinationRepository } from '../../domains/synchronization/destination.repository';
+import { PageElement } from '@/domains/elements/Element';
+import { NotionPage } from '@/domains/notion/NotionPage';
+import { DestinationRepository, PageLockedStatus } from '@/domains/synchronization/destination.repository';
 import { BlockObjectRequest, BlockObjectRequestWithoutChildren, Icon } from '../../domains/notion/types';
 import { NotionConverterRepository } from './notion.converter';
 export interface UpdatePageInput {
@@ -40,7 +40,7 @@ export declare class NotionDestinationRepository implements DestinationRepositor
     updateBlock({ blockId, block, }: {
         blockId: string;
         block: BlockObjectRequest;
-    }): Promise<import("@notionhq/client/build/src/api-endpoints").UpdateBlockResponse>;
+    }): Promise<import("@notionhq/client").UpdateBlockResponse>;
     getPage({ pageId }: {
         pageId: string;
     }): Promise<PageObjectResponse>;
@@ -66,7 +66,14 @@ export declare class NotionDestinationRepository implements DestinationRepositor
     search({ filter, }: {
         filter: {
             property: 'object';
-            value: 'page' | 'database';
+            value: 'page' | 'data_source';
         };
-    }): Promise<import("@notionhq/client/build/src/api-endpoints").SearchResponse>;
+    }): Promise<import("@notionhq/client").SearchResponse>;
+    setPageLockedStatus({ pageId, lockStatus, }: {
+        pageId: string;
+        lockStatus: PageLockedStatus;
+    }): Promise<void>;
+    getPageLockedStatus({ pageId, }: {
+        pageId: string;
+    }): Promise<PageLockedStatus>;
 }
