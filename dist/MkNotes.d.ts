@@ -1,5 +1,5 @@
 import winston from 'winston';
-import { PreviewFormat } from '@/domains';
+import { PreviewFormat } from './domains';
 /**
  * MkNotes client
  */

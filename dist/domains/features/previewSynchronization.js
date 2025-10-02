@@ -1,8 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.PreviewSynchronization = exports.isValidFormat = void 0;
-const sitemap_1 = require("@/domains/sitemap");
-const serializers_1 = require("@/domains/sitemap/serializers");
+const sitemap_1 = require("../../domains/sitemap");
+const serializers_1 = require("../../domains/sitemap/serializers");
 const isValidFormat = (format) => {
     return (typeof format === 'string' && (format === 'plainText' || format === 'json'));
 };

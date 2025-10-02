@@ -39,8 +39,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.MkNotes = void 0;
 const fs = __importStar(require("fs"));
 const winston_1 = __importDefault(require("winston"));
-const domains_1 = require("@/domains");
-const infrastructure_1 = require("@/infrastructure");
+const domains_1 = require("./domains");
+const infrastructure_1 = require("./infrastructure");
 /**
  * MkNotes client
  */

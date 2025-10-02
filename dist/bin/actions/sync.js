@@ -2,7 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.sync = void 0;
 const core_1 = require("@actions/core");
-const MkNotes_1 = require("@/MkNotes");
+const MkNotes_1 = require("../../MkNotes");
 const actionUtils_1 = require("./utils/actionUtils");
 var Inputs;
 (function (Inputs) {

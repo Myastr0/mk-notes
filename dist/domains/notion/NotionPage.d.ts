@@ -1,6 +1,6 @@
 import { BlockObjectResponse, PartialBlockObjectResponse } from '@notionhq/client/build/src/api-endpoints';
-import { Page } from '@/domains';
-import { BlockObjectRequest, Icon, PageProperties, PartialCreatePageBodyParameters } from '@/domains/notion/types';
+import { Page } from '../../domains';
+import { BlockObjectRequest, Icon, PageProperties, PartialCreatePageBodyParameters } from '../../domains/notion/types';
 export declare class NotionPage implements Page {
     readonly pageId?: string;
     readonly icon?: Icon;

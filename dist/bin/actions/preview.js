@@ -2,8 +2,8 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.preview = void 0;
 const core_1 = require("@actions/core");
-const previewSynchronization_1 = require("@/domains/features/previewSynchronization");
-const MkNotes_1 = require("@/MkNotes");
+const previewSynchronization_1 = require("../../domains/features/previewSynchronization");
+const MkNotes_1 = require("../../MkNotes");
 var Inputs;
 (function (Inputs) {
     Inputs["Input"] = "input";

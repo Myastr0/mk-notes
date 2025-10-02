@@ -1,7 +1,7 @@
 import { BlockObjectResponse, PageObjectResponse, PartialBlockObjectResponse } from '@notionhq/client/build/src/api-endpoints';
-import { PageElement } from '@/domains/elements/Element';
-import { NotionPage } from '@/domains/notion/NotionPage';
-import { DestinationRepository, PageLockedStatus } from '@/domains/synchronization/destination.repository';
+import { PageElement } from '../../domains/elements/Element';
+import { NotionPage } from '../../domains/notion/NotionPage';
+import { DestinationRepository, PageLockedStatus } from '../../domains/synchronization/destination.repository';
 import { BlockObjectRequest, BlockObjectRequestWithoutChildren, Icon } from '../../domains/notion/types';
 import { NotionConverterRepository } from './notion.converter';
 export interface UpdatePageInput {
