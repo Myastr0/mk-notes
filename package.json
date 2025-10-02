@@ -31,9 +31,9 @@
   "scripts": {
     "build": "tsc -p tsconfig.production.json && tsc-alias -p tsconfig.production.json",
     "cli": "ts-node src/bin",
-    "doc:gen": "nodemon --watch src/**/* -x \"typedoc --options typedoc.json\"",
-    "doc:serve": "cd ./docs && yarn start",
-    "doc:watch": "yarn doc:gen & yarn doc:serve",
+    "docs:gen": "nodemon --watch src/**/* -x \"typedoc --options typedoc.json\"",
+    "docs:serve": "cd ./docs && yarn dev",
+    "docs:watch": "yarn docs:gen & yarn docs:serve",
     "eslint": "eslint --fix",
     "lint": "lint-staged",
     "prepare": "husky",
@@ -86,6 +86,7 @@
     "typescript": "^5.7.3",
     "typescript-eslint": "^8.23.0"
   },
+  "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e",
   "engines": {
     "node": ">=20"
   }

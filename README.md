@@ -47,7 +47,7 @@ Sync your <b>Markdown files</b> to <b>Notion</b> in a single command
 
 ## Documentation 📚
 
-Visit the [official documentation](https://docs.mk-notes.io) to learn more about Mk Notes.
+Visit the [official documentation](https://www.mk-notes.io) to learn more about Mk Notes.
 
 ## Community 📣
 
