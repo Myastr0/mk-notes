@@ -1,9 +1,9 @@
 import { Logger } from 'winston';
-import { DestinationRepository, ElementConverterRepository, PageElement, SourceRepository } from '@/domains';
-import { FileConverter } from '@/infrastructure/filesystem';
-import { HtmlParser } from '@/infrastructure/html';
-import { MarkdownParser } from '@/infrastructure/markdown';
-import { NotionPage } from '@/infrastructure/notion';
+import { DestinationRepository, ElementConverterRepository, PageElement, SourceRepository } from '../domains';
+import { FileConverter } from '../infrastructure/filesystem';
+import { HtmlParser } from '../infrastructure/html';
+import { MarkdownParser } from '../infrastructure/markdown';
+import { NotionPage } from '../infrastructure/notion';
 interface getInfrastructureInstanceProps {
     logger: Logger;
     notionApiKey: string;

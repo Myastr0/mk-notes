@@ -1,4 +1,4 @@
-import { type SourceRepository } from '@/domains/synchronization';
+import { type SourceRepository } from '../../domains/synchronization';
 interface PreviewSynchronizationParams<T> {
     sourceRepository: SourceRepository<T>;
 }

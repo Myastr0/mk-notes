@@ -1,8 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.SynchronizeMarkdownToNotion = void 0;
-const elements_1 = require("@/domains/elements");
-const sitemap_1 = require("@/domains/sitemap");
+const elements_1 = require("../../domains/elements");
+const sitemap_1 = require("../../domains/sitemap");
 class SynchronizeMarkdownToNotion {
     sourceRepository;
     destinationRepository;

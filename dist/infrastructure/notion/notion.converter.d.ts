@@ -1,6 +1,6 @@
 import { Logger } from 'winston';
-import { type ElementConverterRepository, PageElement } from '@/domains/elements';
-import { NotionPage } from '@/domains/notion/NotionPage';
+import { type ElementConverterRepository, PageElement } from '../../domains/elements';
+import { NotionPage } from '../../domains/notion/NotionPage';
 import { NotionFileUploadService } from './file-upload.service';
 export declare class NotionConverterRepository implements ElementConverterRepository<PageElement, NotionPage> {
     private logger;

@@ -1,6 +1,6 @@
 import { Logger } from 'winston';
-import { Element, ElementConverterRepository } from '@/domains/elements';
-import { type DestinationRepository, type File, type Page, type SourceRepository } from '@/domains/synchronization';
+import { Element, ElementConverterRepository } from '../../domains/elements';
+import { type DestinationRepository, type File, type Page, type SourceRepository } from '../../domains/synchronization';
 interface SynchronizationServiceParams<T, U extends Page> {
     sourceRepository: SourceRepository<T>;
     destinationRepository: DestinationRepository<U>;

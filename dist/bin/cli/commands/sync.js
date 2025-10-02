@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const commander_1 = require("commander");
-const MkNotes_1 = require("@/MkNotes");
+const MkNotes_1 = require("../../../MkNotes");
 const COMMAND_NAME = 'sync';
 const COMMAND_DESCRIPTION = 'Synchronize a markdown file or directory to a dedicated notion page';
 const command = new commander_1.Command();

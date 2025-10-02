@@ -2,7 +2,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const commander_1 = require("commander");
-const commands_1 = require("@/bin/cli/commands");
+const commands_1 = require("../../bin/cli/commands");
 const package_json_1 = require("../../../package.json");
 const CLI_NAME = 'mk-notes';
 const CLI_DESCRIPTION = 'Markdown to Notion synchronization CLI 🔄';
