@@ -1,8 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.SynchronizeMarkdownToNotion = void 0;
-const elements_1 = require("../../domains/elements");
-const sitemap_1 = require("../../domains/sitemap");
+const elements_1 = require("@/domains/elements");
+const sitemap_1 = require("@/domains/sitemap");
 class SynchronizeMarkdownToNotion {
     sourceRepository;
     destinationRepository;
@@ -15,7 +15,7 @@ class SynchronizeMarkdownToNotion {
         this.logger = params.logger;
     }
     async execute(args) {
-        const { notionParentPageUrl, cleanSync = false, ...others } = args;
+        const { notionParentPageUrl, cleanSync, lockPage, ...others } = args;
         const notionPageId = this.destinationRepository.getPageIdFromPageUrl({
             pageUrl: notionParentPageUrl,
         });
@@ -56,6 +56,7 @@ class SynchronizeMarkdownToNotion {
             await this.synchronizeTreeNode({
                 node: siteMap.root,
                 parentPageId: notionPageId,
+                lockPage,
             });
             this.logger.info('Synchronization process completed successfully');
         }
@@ -68,9 +69,9 @@ class SynchronizeMarkdownToNotion {
             throw error;
         }
     }
-    async synchronizeTreeNode({ node, parentPageId, }) {
-        // If the current node has content (e.g., root node with index.md), add it to the parent page
-        if (node.filepath) {
+    async synchronizeTreeNode({ node, parentPageId, lockPage, }) {
+        // If the current node has content AND is the root node, add it to the parent page
+        if (node.filepath && node.parent === null) {
             try {
                 this.logger.info(`Adding content from ${node.filepath} to parent page`);
                 // Retrieve the file content
@@ -92,6 +93,13 @@ class SynchronizeMarkdownToNotion {
                     pageElement,
                 });
                 this.logger.info(`Added content from ${node.filepath} to parent page`);
+                if (lockPage) {
+                    await this.destinationRepository.setPageLockedStatus({
+                        pageId: parentPageId,
+                        lockStatus: 'locked',
+                    });
+                    this.logger.info(`Locked parent page ${parentPageId}`);
+                }
             }
             catch (error) {
                 if (error instanceof Error) {
@@ -141,7 +149,15 @@ class SynchronizeMarkdownToNotion {
                     await this.synchronizeTreeNode({
                         node: childNode,
                         parentPageId: newPage.pageId,
+                        lockPage,
                     });
+                }
+                if (lockPage && newPage.pageId) {
+                    await this.destinationRepository.setPageLockedStatus({
+                        pageId: newPage.pageId,
+                        lockStatus: 'locked',
+                    });
+                    this.logger.info(`Locked page ${newPage.pageId}`);
                 }
             }
             catch (error) {

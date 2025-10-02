@@ -1,2 +1,2 @@
-import { SiteMap } from '../../../domains';
+import { SiteMap } from '@/domains';
 export type SitemapSerializer = (siteMap: SiteMap) => string;

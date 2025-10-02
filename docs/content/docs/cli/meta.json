@@ -1,0 +1,8 @@
+{
+    "title": "CLI",
+    "icon": "terminal",
+    "pages": [
+        "...getting-started",
+        "guides"
+    ]
+}
