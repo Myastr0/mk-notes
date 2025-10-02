@@ -1,8 +1,15 @@
 {
+  "ts-node": {
+    "files": true
+  },
   "compilerOptions": {
     "baseUrl": ".",
     "target": "ESNext",
-    "lib": ["dom", "dom.iterable", "esnext"],
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
@@ -15,8 +22,12 @@
     "jsx": "preserve",
     "incremental": true,
     "paths": {
-      "@/*": ["./*"],
-      "content-collections": ["./.content-collections/generated"]
+      "@/*": [
+        "./*"
+      ],
+      "content-collections": [
+        "./.content-collections/generated"
+      ]
     },
     "plugins": [
       {
@@ -25,11 +36,16 @@
     ]
   },
   "include": [
-    "next-env.d.ts",
     "**/*.ts",
     "**/*.tsx",
+    ".content-collections/generated",
     ".next/types/**/*.ts",
-    ".content-collections/generated"
+    "dist/types/**/*.ts",
+    "next-env.d.ts",
+    "types/svg.d.ts",
+    "build/types/**/*.ts"
   ],
-  "exclude": ["node_modules"]
+  "exclude": [
+    "node_modules"
+  ]
 }

@@ -27,6 +27,7 @@ mk-notes sync -i <path> -d <notionPageUrl> -k <notionApiKey>
 ### Optional Options
 
 - `-c, --clean`: Clean sync mode - **WARNING: removes ALL existing content** from the destination page before syncing, including any manually added content or blocks not created by mk-notes. This prevents duplicate content when repeatedly syncing to the same destination, but will delete any custom content you've added to the page.
+- `-l, --lock`: Lock the Notion page after syncing to prevent further editing. This is useful when you want to preserve the synchronized content and prevent accidental modifications.
 
 ### Examples
 
@@ -79,6 +80,44 @@ This command will:
 2. Create a single Notion page with the file content
 3. Convert and sync the content to your specified Notion page
 4. Display a success message with the Notion page URL when complete
+
+#### Syncing with Page Locking
+
+```bash
+mk-notes sync \
+  --input ./my-docs \
+  --destination https://notion.so/myworkspace/doc-123456 \
+  --notion-api-key secret_abc123... \
+  --lock
+```
+
+This command will:
+
+1. Read all markdown files in the `./my-docs` directory
+2. Create a matching page hierarchy in Notion
+3. Convert and sync the content to your specified Notion page
+4. **Lock the Notion page** to prevent further editing
+5. Display a success message with the Notion page URL when complete
+
+#### Syncing with Both Clean and Lock Options
+
+```bash
+mk-notes sync \
+  --input ./my-docs \
+  --destination https://notion.so/myworkspace/doc-123456 \
+  --notion-api-key secret_abc123... \
+  --clean \
+  --lock
+```
+
+This command will:
+
+1. Remove ALL existing content from the destination Notion page (including pages that arelocked)
+2. Read all markdown files in the `./my-docs` directory
+3. Create a matching page hierarchy in Notion
+4. Convert and sync the content to your specified Notion page
+5. **Lock the Notion page** to prevent further editing
+6. Display a success message with the Notion page URL when complete
 
 ## `preview-sync`
 
@@ -146,6 +185,8 @@ mk-notes preview-sync --input ./my-docs --output preview.txt
 ```bash
 mk-notes preview-sync --input ./my-docs/README.md
 ```
+
+---
 
 ## Single File vs Directory Synchronization
 

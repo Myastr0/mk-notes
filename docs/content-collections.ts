@@ -4,13 +4,17 @@ import {
   metaSchema,
   transformMDX,
 } from '@fumadocs/content-collections/configuration';
+import {remarkNpm} from 'fumadocs-core/mdx-plugins';
 
 const docs = defineCollection({
   name: 'docs',
   directory: 'content/docs',
   include: '**/*.mdx',
   schema: frontmatterSchema,
-  transform: transformMDX,
+  transform: (document, context) =>
+    transformMDX(document, context, {
+      remarkPlugins: [remarkNpm],
+    }),
 });
 
 const metas = defineCollection({

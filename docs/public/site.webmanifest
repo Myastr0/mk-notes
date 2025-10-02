@@ -1,0 +1,27 @@
+{
+  "name": "Mk Notes",
+  "short_name": "Mk Notes",
+  "description": "Seamlessly sync Markdown files to Notion. Keep writing in Markdown, version control with Git, and let Mk Notes handle the Notion integration.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#000000",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/favicon.ico",
+      "sizes": "16x16 32x32",
+      "type": "image/x-icon"
+    }
+  ],
+  "categories": ["developer", "productivity", "documentation"],
+  "lang": "en",
+  "scope": "/",
+  "id": "mk-notes"
+}
