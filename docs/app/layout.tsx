@@ -77,16 +77,6 @@ export default function Layout({ children }: LayoutProps<'/'>) {
   return (
     <html lang="en" className={inter.className} suppressHydrationWarning>
       <head>
-        {/* Redirect script for docs.mk-notes.io -> www.mk-notes.io */}
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              if (window.location.hostname === 'docs.mk-notes.io') {
-                window.location.replace('https://www.mk-notes.io' + window.location.pathname + window.location.search + window.location.hash);
-              }
-            `,
-          }}
-        />
         {/* Additional favicon links for better browser support */}
         <link rel="icon" href="/favicon.ico" sizes="any" />
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
