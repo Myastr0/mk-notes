@@ -211,6 +211,7 @@ export enum ElementCodeLanguage {
   Kotlin = 'kotlin',
   Rust = 'rust',
   Shell = 'shell',
+  Scala = 'scala',
   SQL = 'sql',
   HTML = 'html',
   CSS = 'css',
