@@ -400,6 +400,7 @@ export class NotionConverterRepository
       [ElementCodeLanguage.Swift]: 'swift',
       [ElementCodeLanguage.Kotlin]: 'kotlin',
       [ElementCodeLanguage.Rust]: 'rust',
+      [ElementCodeLanguage.Scala]: 'scala',
       [ElementCodeLanguage.Shell]: 'bash', // Mapping to 'bash' as Notion supports bash/shell
       [ElementCodeLanguage.SQL]: 'sql',
       [ElementCodeLanguage.HTML]: 'html',
