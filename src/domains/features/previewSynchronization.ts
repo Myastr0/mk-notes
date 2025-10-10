@@ -11,6 +11,13 @@ interface PreviewSynchronizationParams<T> {
 }
 
 export type PreviewFormat = 'plainText' | 'json';
+
+export const isValidFormat = (format: unknown): format is PreviewFormat => {
+  return (
+    typeof format === 'string' && (format === 'plainText' || format === 'json')
+  );
+};
+
 export class PreviewSynchronization<T> {
   private sourceRepository: SourceRepository<T>;
 
