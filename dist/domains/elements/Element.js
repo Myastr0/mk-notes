@@ -148,6 +148,7 @@ var ElementCodeLanguage;
     ElementCodeLanguage["Kotlin"] = "kotlin";
     ElementCodeLanguage["Rust"] = "rust";
     ElementCodeLanguage["Shell"] = "shell";
+    ElementCodeLanguage["Scala"] = "scala";
     ElementCodeLanguage["SQL"] = "sql";
     ElementCodeLanguage["HTML"] = "html";
     ElementCodeLanguage["CSS"] = "css";

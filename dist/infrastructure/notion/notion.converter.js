@@ -331,6 +331,7 @@ class NotionConverterRepository {
             [elements_1.ElementCodeLanguage.Swift]: 'swift',
             [elements_1.ElementCodeLanguage.Kotlin]: 'kotlin',
             [elements_1.ElementCodeLanguage.Rust]: 'rust',
+            [elements_1.ElementCodeLanguage.Scala]: 'scala',
             [elements_1.ElementCodeLanguage.Shell]: 'bash', // Mapping to 'bash' as Notion supports bash/shell
             [elements_1.ElementCodeLanguage.SQL]: 'sql',
             [elements_1.ElementCodeLanguage.HTML]: 'html',
