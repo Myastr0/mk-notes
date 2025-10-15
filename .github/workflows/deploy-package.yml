@@ -5,6 +5,7 @@ on:
     types: [published]
 
 jobs:
+
   tests:
     uses: ./.github/workflows/tests.yaml
 
@@ -19,8 +20,6 @@ jobs:
   publish-package:
     permissions:
       contents: write
-      id-token: write
-      packages: write
     needs:
       - tests
     runs-on: ubuntu-latest
@@ -47,19 +46,15 @@ jobs:
         env:
           PACKAGE_VERSION: ${{ github.event.release.tag_name }}
 
-      - run: yarn install --frozen-lockfile
-
-      - run: yarn build
-
       - name: Push to master branch
         uses: ad-m/github-push-action@master
         with:
           branch: master
           force_with_lease: true
 
-      - name: Publish
-        id: publish
-        uses: actions/publish-immutable-action@0.0.3
+      - run: yarn install --frozen-lockfile
+
+      - run: yarn build
 
       - name: Publish to npm
         run: npm publish --access public
@@ -76,6 +71,5 @@ jobs:
           DISCORD_WEBHOOK: ${{ secrets.RELEASE_NOTES_DISCORD_WEBHOOK }}
         uses: Ilshidur/action-discord@master
         with:
-          args:
-            'A new release of `@mk-notes/cli` has been published (_{{EVENT_PAYLOAD.release.tag_name}}_) !! 🎉
-            _Check out the [release notes](https://github.com/Myastr0/mk-notes/releases/tag/{{EVENT_PAYLOAD.release.tag_name}}) for more details._'
+          args: 'A new release of `@mk-notes/cli` has been published (_{{EVENT_PAYLOAD.release.tag_name}}_) !! 🎉
+           _Check out the [release notes](https://github.com/Myastr0/mk-notes/releases/tag/{{EVENT_PAYLOAD.release.tag_name}}) for more details._'

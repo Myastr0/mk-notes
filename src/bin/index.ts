@@ -2,9 +2,9 @@
 
 import { Command } from 'commander';
 
-import { hookCommands } from '@/bin/cli/commands';
+import { hookCommands } from '@/bin/commands';
 
-import { version } from '../../../package.json';
+import { version } from '../../package.json';
 
 const CLI_NAME = 'mk-notes';
 const CLI_DESCRIPTION = 'Markdown to Notion synchronization CLI 🔄';
