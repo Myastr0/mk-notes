@@ -3,7 +3,9 @@ export interface Page {
     pageId?: string;
     createdAt?: Date;
     updatedAt?: Date;
+    isLocked?: boolean;
 }
+export type PageLockedStatus = 'locked' | 'unlocked';
 export interface DestinationRepository<T extends Page> {
     createPage: ({ pageElement, parentPageId, filePath, }: {
         pageElement: PageElement;
@@ -32,4 +34,11 @@ export interface DestinationRepository<T extends Page> {
         pageId: string;
         pageElement: PageElement;
     }) => Promise<void>;
+    setPageLockedStatus: ({ pageId, lockStatus, }: {
+        pageId: string;
+        lockStatus: PageLockedStatus;
+    }) => Promise<void>;
+    getPageLockedStatus: ({ pageId, }: {
+        pageId: string;
+    }) => Promise<PageLockedStatus>;
 }

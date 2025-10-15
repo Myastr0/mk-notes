@@ -76,6 +76,7 @@ class NotionDestinationRepository {
             children: blocks,
             createdAt: new Date(pageObjectResponse.created_time),
             updatedAt: new Date(pageObjectResponse.last_edited_time),
+            isLocked: pageObjectResponse.is_locked ?? false,
         });
     }
     async createPage({ parentPageId, pageElement, filePath, }) {
@@ -210,6 +211,21 @@ class NotionDestinationRepository {
         return this.client.search({
             filter,
         });
+    }
+    async setPageLockedStatus({ pageId, lockStatus, }) {
+        const isLocked = lockStatus === 'locked';
+        await this.client.pages.update({
+            page_id: pageId,
+            is_locked: isLocked,
+        });
+    }
+    async getPageLockedStatus({ pageId, }) {
+        const page = await this.client.pages.retrieve({ page_id: pageId });
+        const isLocked = page.properties?.is_locked;
+        if (isLocked === undefined) {
+            return 'unlocked';
+        }
+        return isLocked ? 'locked' : 'unlocked';
     }
 }
 exports.NotionDestinationRepository = NotionDestinationRepository;

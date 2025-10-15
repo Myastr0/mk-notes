@@ -9,19 +9,23 @@ class NotionPage {
     children;
     createdAt;
     updatedAt;
-    constructor({ pageId, children, createdAt, icon, updatedAt, properties, }) {
+    isLocked;
+    constructor({ pageId, children, createdAt, icon, updatedAt, properties, isLocked, }) {
         this.pageId = pageId;
         this.children = children;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt || createdAt;
         this.icon = icon;
         this.properties = properties;
+        this.isLocked = isLocked;
     }
     static fromPartialCreatePageBodyParameters(args) {
         return new NotionPage({
             children: args.children ?? [],
             properties: args.properties,
             icon: args.icon !== undefined && args.icon !== null ? args.icon : undefined,
+            // Notion page is not locked on creation
+            isLocked: false,
         });
     }
     toCreatePageBodyParameters() {

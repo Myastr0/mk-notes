@@ -117,7 +117,9 @@ class SiteMap {
         }
         // Handle root-level index.md separately
         if (node === this._root && !node.filepath) {
-            const rootIndexChild = node.children.find((child) => child.filepath === 'index.md');
+            // Look for ANY index.md file that should be treated as root content
+            // This includes both relative paths (index.md) and full paths (*/index.md)
+            const rootIndexChild = node.children.find((child) => path.basename(child.filepath) === 'index.md');
             if (rootIndexChild) {
                 node.filepath = rootIndexChild.filepath;
                 // Remove index.md from children and merge its children
