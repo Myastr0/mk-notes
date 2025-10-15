@@ -1,5 +1,16 @@
 {
     "title": "Mk Notes",
-    "pages": ["index", "getting-started", "guides", "advanced-guides", "contributing"],
+    "pages": [
+        "---Introduction---",
+        "index",
+        "---CLI---",
+        "...cli",
+        "---Writing---",
+        "...writing",
+        "---GitHub Actions---",
+        "...github-actions",
+        "---Contributing---",
+        "...contributing"
+    ],
     "defaultOpen": true
   }

@@ -44,4 +44,4 @@ jobs:
     uses: ./.github/workflows/tests.yaml
 
   build:
-    uses: ./.github/workflows/build.yaml
+    uses: ./.github/workflows/check-build.yaml
