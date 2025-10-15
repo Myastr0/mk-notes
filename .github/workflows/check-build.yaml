@@ -1,4 +1,4 @@
-name: Build
+name: Check build
 
 on: workflow_call
 
