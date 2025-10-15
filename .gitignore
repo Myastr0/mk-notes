@@ -11,6 +11,7 @@
 
 # Node.js
 node_modules/
+dist/
 
 # Extras
 coverage/
