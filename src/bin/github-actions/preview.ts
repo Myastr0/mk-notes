@@ -29,7 +29,7 @@ export const preview = async (earlyExit: boolean = false) => {
       notionApiKey: '',
     });
 
-    await mkNotes.previewSynchronization({
+    const result = await mkNotes.previewSynchronization({
       inputPath: input,
       format,
       output,
@@ -37,6 +37,10 @@ export const preview = async (earlyExit: boolean = false) => {
 
     if (output) {
       setOutput(Outputs.FilePath, output);
+      info(`Preview saved to ${output}`);
+    } else {
+      // eslint-disable-next-line no-console
+      console.log(result);
     }
 
     // node will stay alive if any promises are not resolved,
@@ -45,7 +49,6 @@ export const preview = async (earlyExit: boolean = false) => {
     // that all promises that we care about have successfully
     // resolved, so simply exit with success.
 
-    info(`Preview saved to ${output}`);
     if (earlyExit) {
       process.exit(0);
     }
