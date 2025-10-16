@@ -21,15 +21,16 @@
   "repository": "git@github.com:Myastr0/mk-notes.git",
   "license": "MIT",
   "author": "Myastr0",
-  "main": "dist/index.js",
+  "main": "dist/bin/cli/index.js",
   "bin": {
-    "mk-notes": "./dist/bin/index.js"
+    "mk-notes": "./dist/bin/cli/index.js"
   },
   "files": [
     "dist"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.production.json && tsc-alias -p tsconfig.production.json",
+    "build:actions": "",
     "cli": "ts-node src/bin",
     "docs:gen": "nodemon --watch src/**/* -x \"typedoc --options typedoc.json\"",
     "docs:serve": "cd ./docs && yarn dev",
