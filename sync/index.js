@@ -73891,6 +73891,7 @@ var Inputs;
     Inputs["Input"] = "input";
     Inputs["NotionApiKey"] = "notion-api-key";
     Inputs["Destination"] = "destination";
+    Inputs["Lock"] = "lock";
 })(Inputs || (Inputs = {}));
 const sync = async (earlyExit = false) => {
     try {
@@ -73898,6 +73899,7 @@ const sync = async (earlyExit = false) => {
         const destination = (0, core_1.getInput)(Inputs.Destination, { required: true });
         const notionApiKey = (0, core_1.getInput)(Inputs.NotionApiKey, { required: true });
         const clean = (0, utils_1.getInputAsBool)(Inputs.Clean);
+        const lock = (0, utils_1.getInputAsBool)(Inputs.Lock) ?? false;
         const mkNotes = new MkNotes_1.MkNotes({
             notionApiKey,
         });
@@ -73905,6 +73907,7 @@ const sync = async (earlyExit = false) => {
             inputPath: input,
             parentNotionPageId: destination,
             cleanSync: clean,
+            lockPage: lock,
         });
         // node will stay alive if any promises are not resolved,
         // which is a possibility if HTTP requests are dangling
