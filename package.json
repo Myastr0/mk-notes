@@ -21,9 +21,9 @@
   "repository": "git@github.com:Myastr0/mk-notes.git",
   "license": "MIT",
   "author": "Myastr0",
-  "main": "dist/bin/cli/index.js",
+  "main": "dist/bin/index.js",
   "bin": {
-    "mk-notes": "./dist/bin/cli/index.js"
+    "mk-notes": "./dist/bin/index.js"
   },
   "files": [
     "dist"
