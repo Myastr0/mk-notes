@@ -51,7 +51,7 @@
     "marked": "15.0.12",
     "marked-katex-extension": "5.1.4",
     "node-fetch": "2.7.0",
-    "ora": "5.4.1",
+    "ora": "9.0.0",
     "winston": "3.17.0"
   },
   "devDependencies": {
