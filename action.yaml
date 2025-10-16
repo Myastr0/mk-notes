@@ -1,0 +1,45 @@
+name: 'mk-notes'
+description: 'A comprehensive tool for synchronizing markdown files to Notion pages with preview capabilities'
+author: 'GitHub'
+inputs:
+  input:
+    description: 'The path to the markdown file or directory to synchronize'
+    required: true
+  destination:
+    description: 'The Notion page URL where you want to synchronize your markdown files (required for sync action)'
+    required: false
+  notion-api-key:
+    description: 'Your Notion secret token (required for sync action)'
+    required: false
+  format:
+    description: 'The format of the preview ("plainText" or "json") (for preview action)'
+    required: false
+    default: 'plainText'
+  output:
+    description: 'The path to the output file (for preview action)'
+    required: false
+  clean:
+    description: 'Clean sync mode - WARNING: removes ALL existing content from the destination page before syncing, including any custom content not created by mk-notes (for sync action)'
+    required: false
+    default: 'false'
+runs:
+  using: 'composite'
+  steps:
+    - name: Preview Action
+      uses: ./
+      with:
+        input: ${{ inputs.input }}
+        format: ${{ inputs.format }}
+        output: ${{ inputs.output }}
+
+    - name: Sync Action
+      uses: ./
+      with:
+        input: ${{ inputs.input }}
+        destination: ${{ inputs.destination }}
+        notion-api-key: ${{ inputs.notion-api-key }}
+        clean: ${{ inputs.clean }}
+
+branding:
+  icon: 'file-text'
+  color: 'blue'

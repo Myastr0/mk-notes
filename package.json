@@ -23,14 +23,17 @@
   "author": "Myastr0",
   "main": "dist/index.js",
   "bin": {
-    "mk-notes": "./dist/bin/index.js"
+    "mk-notes": "./dist/bin/cli/index.js"
   },
   "files": [
     "dist"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.production.json && tsc-alias -p tsconfig.production.json",
-    "cli": "ts-node src/bin",
+    "build:actions": "yarn build:actions:sync && yarn build:actions:preview",
+    "build:actions:preview": "ncc build -o preview src/bin/github-actions/preview.ts",
+    "build:actions:sync": "ncc build -o sync src/bin/github-actions/sync.ts",
+    "cli": "ts-node src/bin/cli",
     "docs:gen": "nodemon --watch src/**/* -x \"typedoc --options typedoc.json\"",
     "docs:serve": "cd ./docs && yarn dev",
     "docs:watch": "yarn docs:gen & yarn docs:serve",
@@ -40,6 +43,7 @@
     "test": "jest --passWithNoTests"
   },
   "dependencies": {
+    "@actions/core": "1.11.1",
     "@notionhq/client": "5.1.0",
     "commander": "13.1.0",
     "dom-serializer": "2.0.0",
@@ -63,6 +67,7 @@
     "@types/node-fetch": "2.6.0",
     "@typescript-eslint/eslint-plugin": "8.34.1",
     "@typescript-eslint/parser": "8.34.1",
+    "@vercel/ncc": "0.38.4",
     "concurrently": "9.1.2",
     "eslint": "9.19.0",
     "eslint-config-prettier": "9.1.0",

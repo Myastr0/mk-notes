@@ -67,7 +67,6 @@ command.action(async (opts: SyncOptions) => {
   );
 });
 
-// eslint-disable-next-line import/no-default-export
 export default command;
 
 if (require.main === module) {
