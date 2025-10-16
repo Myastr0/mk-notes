@@ -24,6 +24,15 @@ Always use the preview action before syncing to verify the structure:
     notion-api-key: ${{ secrets.NOTION_API_KEY }}
 ```
 
+## 2. Secret Management
+
+Proper secret management is crucial for secure GitHub Actions workflows:
+
+- **Never commit secrets**: Use GitHub repository secrets for sensitive information
+
+- **`NOTION_API_KEY`** - Your Notion integration secret token
+- **`NOTION_DOCS_PAGE_URL`** - The URL of the Notion page where you want to sync your documentation
+
 ## 2. Use Clean Sync Carefully
 
 The `clean: 'true'` option removes ALL existing content from the destination page. Use it only when:
@@ -119,9 +128,12 @@ Organize your workflows logically:
 - Add proper descriptions and documentation
 - Use consistent naming conventions
 
-## 10. Monitoring and Logging
+## 10. Secret Management
 
-- Monitor workflow runs regularly
-- Check logs for any issues
-- Set up notifications for failed workflows
-- Use workflow status badges in your README
+Proper secret management is crucial for secure GitHub Actions workflows:
+
+- **Never commit secrets**: Use GitHub repository secrets for sensitive information
+- **Use descriptive secret names**: Make secret names clear and consistent
+- **Rotate keys regularly**: Regularly update your Notion API keys
+- **Environment separation**: Use different integrations for different environments when possible
+- **Monitor usage**: Keep track of your Notion integration usage

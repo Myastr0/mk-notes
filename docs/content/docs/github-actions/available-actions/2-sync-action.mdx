@@ -18,10 +18,16 @@ steps:
     with:
       input: './docs' # The path to the markdown file or directory to synchronize
       destination: 'https://notion.so/your-page-id'
-      clean: 'true'
       notion-api-key: ${{ secrets.NOTION_API_KEY }}
 ```
 
+{' '}
+
+<Callout type="warning" title="Secret management">
+  Please note that you should not commit your Notion API key to your repository.
+  You should use a GitHub Secret to store your Notion API key. You can find more
+  information in the [Setting Up Secrets](../setup.mdx) guide.
+</Callout>
 ## Inputs
 
 | Input            | Description                                                                                                                                            | Required | Default |
@@ -30,6 +36,7 @@ steps:
 | `destination`    | The Notion page URL where you want to synchronize your markdown files                                                                                  | `true`   | -       |
 | `notion-api-key` | Your Notion secret token                                                                                                                               | `true`   | -       |
 | `clean`          | Clean sync mode - WARNING: removes ALL existing content from the destination page before syncing, including any custom content not created by mk-notes | `false`  | `false` |
+| `lock`           | Lock the Notion page after syncing                                                                                                                     | `false`  | `false` |
 
 ## Outputs
 
@@ -114,5 +121,5 @@ jobs:
 
 - The `clean` option removes ALL existing content from the destination page
 - Use clean sync only when you're sure you want to replace all content
-- Always test with the [preview action](./preview-action.md) first
+- Always test with the [preview action](./1-preview-action.mdx) first
 - Make sure your Notion integration has access to the target page

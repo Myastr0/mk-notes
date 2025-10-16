@@ -17,9 +17,13 @@ inputs:
     default: 'plainText'
   output:
     description: 'The path to the output file (for preview action)'
-    required: true
+    required: false
   clean:
     description: 'Clean sync mode - WARNING: removes ALL existing content from the destination page before syncing, including any custom content not created by mk-notes (for sync action)'
+    required: false
+    default: 'false'
+  lock:
+    description: 'Lock the Notion page after syncing (for sync action)'
     required: false
     default: 'false'
 runs:
@@ -39,7 +43,7 @@ runs:
         destination: ${{ inputs.destination }}
         notion-api-key: ${{ inputs.notion-api-key }}
         clean: ${{ inputs.clean }}
-
+        lock: ${{ inputs.lock }}
 branding:
   icon: 'file-text'
   color: 'blue'

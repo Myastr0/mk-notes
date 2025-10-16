@@ -2,7 +2,7 @@
     "title": "GitHub Actions",
     "pages": [
         "index",
-        "setup",
+        "first-synchronization",
         "available-actions",
         "best-practices",
         "troubleshooting"

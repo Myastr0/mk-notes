@@ -9,6 +9,7 @@ enum Inputs {
   Input = 'input', // Input file or directory path
   NotionApiKey = 'notion-api-key', // Notion API key
   Destination = 'destination', // Notion page URL
+  Lock = 'lock', // Lock page
 }
 
 export const sync = async (earlyExit: boolean = false) => {
@@ -17,6 +18,7 @@ export const sync = async (earlyExit: boolean = false) => {
     const destination = getInput(Inputs.Destination, { required: true });
     const notionApiKey = getInput(Inputs.NotionApiKey, { required: true });
     const clean = getInputAsBool(Inputs.Clean);
+    const lock = getInputAsBool(Inputs.Lock) ?? false;
 
     const mkNotes = new MkNotes({
       notionApiKey,
@@ -26,6 +28,7 @@ export const sync = async (earlyExit: boolean = false) => {
       inputPath: input,
       parentNotionPageId: destination,
       cleanSync: clean,
+      lockPage: lock,
     });
 
     // node will stay alive if any promises are not resolved,
