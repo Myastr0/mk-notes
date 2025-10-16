@@ -73906,20 +73906,24 @@ const preview = async (earlyExit = false) => {
         const mkNotes = new MkNotes_1.MkNotes({
             notionApiKey: '',
         });
-        await mkNotes.previewSynchronization({
+        const result = await mkNotes.previewSynchronization({
             inputPath: input,
             format,
             output,
         });
         if (output) {
             (0, core_1.setOutput)(Outputs.FilePath, output);
+            (0, core_1.info)(`Preview saved to ${output}`);
+        }
+        else {
+            // eslint-disable-next-line no-console
+            console.log(result);
         }
         // node will stay alive if any promises are not resolved,
         // which is a possibility if HTTP requests are dangling
         // due to retries or timeouts. We know that if we got here
         // that all promises that we care about have successfully
         // resolved, so simply exit with success.
-        (0, core_1.info)(`Preview saved to ${output}`);
         if (earlyExit) {
             process.exit(0);
         }
