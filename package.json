@@ -30,7 +30,6 @@
   ],
   "scripts": {
     "build": "tsc -p tsconfig.production.json && tsc-alias -p tsconfig.production.json",
-    "build:actions": "",
     "cli": "ts-node src/bin",
     "docs:gen": "nodemon --watch src/**/* -x \"typedoc --options typedoc.json\"",
     "docs:serve": "cd ./docs && yarn dev",
