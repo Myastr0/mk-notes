@@ -1,0 +1,10 @@
+{
+    "title": "GitHub Actions",
+    "pages": [
+        "index",
+        "first-synchronization",
+        "available-actions",
+        "best-practices",
+        "troubleshooting"
+    ]
+}

@@ -24,6 +24,8 @@ export default tseslint.config(
         'dist/',
         'coverage/',
         'docs/',
+        'sync/index.js',
+        'preview/index.js',
         'jest.config.js',
         '__generated__/',
         '__tests__/_setup.ts',

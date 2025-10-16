@@ -1,0 +1,8 @@
+{
+    "title": "Guides",
+    "pages": [
+        "cli-commands",
+        "architecture",
+        "programmatic-usage"
+    ]
+}

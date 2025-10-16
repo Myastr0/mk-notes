@@ -1,0 +1,105 @@
+---
+id: first-synchronization
+title: Your first synchronization
+description: Tutorial to make your first synchronization with Mk Notes using GitHub Actions
+---
+
+In this tutorial, you will learn how to set up automated synchronization of your markdown files to a Notion page using Mk Notes GitHub Actions.
+
+---
+
+## Requirements
+
+- A **Notion Integration** with read-write access on your Notion page
+  <Callout>
+    Read the official [Notion
+    guide](https://developers.notion.com/docs/authorization) to create and setup
+    a Notion Integration on your workspace
+  </Callout>
+- A **GitHub repository** with your markdown files
+
+## Step-by-step guide 👇
+
+<div className="fd-steps">
+<div className="fd-step">
+
+### Step 1: Preview the synchronization result
+
+Before setting up the automated synchronization, you can preview the result by using the preview action in a GitHub workflow:
+
+```yaml
+name: Preview Sync
+
+on:
+  workflow_dispatch:
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Preview synchronization
+        uses: Myastr0/mk-notes/preview
+        with:
+          input: './docs' # Path to your markdown files
+          format: 'plainText'
+```
+
+This will show you the Notion page architecture that will be generated based on your markdown files.
+
+</div>
+<div className="fd-step">
+
+### Step 2: Set up automated synchronization
+
+Create a GitHub workflow file (`.github/workflows/sync-to-notion.yml`) to automate the synchronization:
+
+```yaml
+name: Sync to Notion
+
+on:
+  push:
+    branches: [main]
+    paths: ['docs/**'] # Only trigger when docs change
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Sync to Notion
+        uses: Myastr0/mk-notes/sync
+        with:
+          input: './docs' # Path to your markdown files
+          destination: <your-notion-page-url>
+          notion-api-key: ${{ secrets.NOTION_API_KEY }}
+```
+
+---
+
+This workflow will automatically synchronize your markdown files to Notion whenever you push changes to the `docs/` directory on the main branch.
+
+<Callout type="info">
+  `NOTION_API_KEY` can be found in your Notion Integration settings.
+</Callout>
+
+<Callout type="warning">
+  Please note that you can only synchronize markdown files to **Notion Pages**.
+  Notion Databases are not supported for now.
+</Callout>
+
+</div>
+</div>
+---
+
+## Going further
+
+Mk Notes allows you to style the created Notion pages directly from your markdown. You can find more information in the [Styling Notion Page](/docs/writing/styling-notion-page/) guide.
+
+You can also explore more advanced workflows in the [Best Practices](../best-practices.mdx) guide.
+
+---
