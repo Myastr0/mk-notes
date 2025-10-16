@@ -1,6 +1,6 @@
-name: 'mk-notes'
-description: 'A comprehensive tool for synchronizing markdown files to Notion pages with preview capabilities'
-author: 'GitHub'
+name: 'Mk Notes'
+description: 'Markdown to Notion synchronization tool 🔄'
+author: 'Myastr0'
 inputs:
   input:
     description: 'The path to the markdown file or directory to synchronize'
@@ -45,5 +45,5 @@ runs:
         clean: ${{ inputs.clean }}
         lock: ${{ inputs.lock }}
 branding:
-  icon: 'file-text'
-  color: 'blue'
+  icon: 'refresh-cw'
+  color: 'purple'
