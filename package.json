@@ -30,7 +30,6 @@
   ],
   "scripts": {
     "build": "tsc -p tsconfig.production.json && tsc-alias -p tsconfig.production.json",
-    "build:actions": "",
     "cli": "ts-node src/bin",
     "docs:gen": "nodemon --watch src/**/* -x \"typedoc --options typedoc.json\"",
     "docs:serve": "cd ./docs && yarn dev",
@@ -64,7 +63,6 @@
     "@types/node-fetch": "2.6.0",
     "@typescript-eslint/eslint-plugin": "8.34.1",
     "@typescript-eslint/parser": "8.34.1",
-    "@vercel/ncc": "0.38.4",
     "concurrently": "9.1.2",
     "eslint": "9.19.0",
     "eslint-config-prettier": "9.1.0",
