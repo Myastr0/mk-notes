@@ -1,6 +1,6 @@
 name: 'Preview the synchronization result by displaying the whole notion page architecture that will be created'
 description: 'Preview the synchronization result by displaying the whole notion page architecture that will be created'
-author: 'GitHub'
+author: 'Myastr0'
 inputs:
   input:
     description: 'The path to the markdown file or directory to synchronize'
@@ -15,5 +15,5 @@ runs:
   using: 'node20'
   main: './index.js'
 branding:
-  icon: 'eye'
-  color: 'blue'
+  icon: 'refresh-cw'
+  color: 'purple'
