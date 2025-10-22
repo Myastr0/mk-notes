@@ -75130,10 +75130,12 @@ exports.FileElement = FileElement;
 class ListItemElement extends Element {
     listType;
     text;
-    constructor({ listType, text, }) {
+    children;
+    constructor({ listType, text, children, }) {
         super(ElementType.ListItem);
         this.listType = listType;
         this.text = text;
+        this.children = children;
     }
 }
 exports.ListItemElement = ListItemElement;
@@ -75344,11 +75346,11 @@ class HtmlElement extends Element {
 exports.HtmlElement = HtmlElement;
 class ToggleElement extends Element {
     title;
-    content;
-    constructor({ title, content }) {
+    children;
+    constructor({ title, children }) {
         super(ElementType.Toggle);
         this.title = title;
-        this.content = content;
+        this.children = children;
     }
 }
 exports.ToggleElement = ToggleElement;
@@ -75791,6 +75793,37 @@ class NotionPage {
     }
 }
 exports.NotionPage = NotionPage;
+
+
+/***/ }),
+
+/***/ 8109:
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.isNotionNestingValidationError = exports.NotionNestingValidationError = void 0;
+class NotionNestingValidationError extends Error {
+    name = 'NotionNestingValidationError';
+    documentationUrl = 'https://mk-notes.io/docs/writing/notion-limitations#list-nesting-limitations';
+    constructor({ message }) {
+        super(message);
+    }
+}
+exports.NotionNestingValidationError = NotionNestingValidationError;
+const isNotionNestingValidationError = (error) => {
+    return (typeof error === 'object' &&
+        error !== null &&
+        'status' in error &&
+        typeof error.status === 'number' &&
+        error.status === 400 &&
+        'body' in error &&
+        typeof error.body === 'string' &&
+        error.body.includes('body failed validation:') &&
+        error.body.includes('.children should be not present, instead was'));
+};
+exports.isNotionNestingValidationError = isNotionNestingValidationError;
 
 
 /***/ }),
@@ -76598,7 +76631,7 @@ class HtmlParser extends elements_1.ParserRepository {
                         const detailsContent = DomSerializer.render(node);
                         elements.push(new elements_1.ToggleElement({
                             title: summaryNode ? htmlparser2_1.DomUtils.textContent(summaryNode) : '',
-                            content: [new elements_1.TextElement({ text: detailsContent })],
+                            children: [new elements_1.TextElement({ text: detailsContent })],
                         }));
                         break;
                     }
@@ -76718,6 +76751,7 @@ const buildInstances = ({ logger, notionApiKey, }) => {
             logger,
         }),
         notionDestination: new notion_1.NotionDestinationRepository({
+            logger,
             notionConverter,
             apiKey: notionApiKey,
         }),
@@ -76822,10 +76856,26 @@ class MarkdownParser extends elements_1.ParserRepository {
         });
     }
     parseListToken(token) {
-        return token.items.map((item) => new elements_1.ListItemElement({
-            listType: token.ordered ? 'ordered' : 'unordered',
-            text: this.parseRawText(item.text),
-        }));
+        return token.items.map((item) => {
+            let text = [];
+            const children = [];
+            const paragraph = item.tokens.shift();
+            if (paragraph && paragraph.type === 'text') {
+                text = this.parseParagraphToken(paragraph);
+            }
+            // Check if the list item has nested tokens (like nested lists)
+            if (item.tokens) {
+                for (const nestedToken of item.tokens) {
+                    const contentItem = this.parseToken(nestedToken);
+                    children.push(...contentItem);
+                }
+            }
+            return new elements_1.ListItemElement({
+                listType: token.ordered ? 'ordered' : 'unordered',
+                text,
+                children: children.length > 0 ? children : undefined,
+            });
+        });
     }
     parseBlockQuoteToken(token) {
         const text = token.text.trim();
@@ -77717,30 +77767,42 @@ class NotionConverterRepository {
             callout: calloutParams,
         };
     }
-    convertListItem(element) {
+    async convertListItem(element) {
+        let item;
         if (element.listType === 'unordered') {
-            return this.convertBulletedListItem(element);
+            item = await this.convertBulletedListItem(element);
         }
         else {
-            return this.convertNumberedListItem(element);
+            item = await this.convertNumberedListItem(element);
         }
+        return item;
     }
-    convertBulletedListItem(element) {
+    async convertBulletedListItem(element) {
         return {
             type: 'bulleted_list_item',
+            object: 'block',
             bulleted_list_item: {
                 rich_text: this.convertRichText(element.text),
+                children: await this.convertListItemChildren(element.children),
             },
         };
     }
-    convertNumberedListItem(element) {
+    async convertNumberedListItem(element) {
         return {
             type: 'numbered_list_item',
             object: 'block',
             numbered_list_item: {
                 rich_text: this.convertRichText(element.text),
+                children: await this.convertListItemChildren(element.children),
             },
         };
+    }
+    async convertListItemChildren(children) {
+        const convertedChildren = (await Promise.all(children?.map(async (child) => this.convertElement(child)) ?? [])).filter((child) => child !== null);
+        if (convertedChildren.length === 0) {
+            return undefined;
+        }
+        return convertedChildren;
     }
     convertTable(element) {
         return {
@@ -77765,7 +77827,7 @@ class NotionConverterRepository {
     }
     async convertToggle(element) {
         const children = [];
-        for (const contentElement of element.content) {
+        for (const contentElement of element.children) {
             const convertedElement = await this.convertElement(contentElement);
             if (convertedElement) {
                 children.push(convertedElement);
@@ -78061,13 +78123,19 @@ exports.NotionConverterRepository = NotionConverterRepository;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.NotionDestinationRepository = void 0;
 const client_1 = __nccwpck_require__(8342);
+const error_1 = __nccwpck_require__(8109);
 const NotionPage_1 = __nccwpck_require__(3913);
 const utils_1 = __nccwpck_require__(7100);
 class NotionDestinationRepository {
     client;
+    logger;
     notionConverter;
-    constructor({ apiKey, notionConverter, }) {
-        this.client = new client_1.Client({ auth: apiKey });
+    constructor({ apiKey, logger, notionConverter, }) {
+        this.client = new client_1.Client({
+            auth: apiKey,
+            logLevel: client_1.LogLevel.ERROR,
+        });
+        this.logger = logger;
         this.notionConverter = notionConverter;
     }
     /**
@@ -78243,10 +78311,22 @@ class NotionDestinationRepository {
         await this.updatePageProperties({ pageId, pageElement });
         if (notionPage.children && notionPage.children.length > 0) {
             // Append blocks to the existing page
-            await this.client.blocks.children.append({
-                block_id: pageId,
-                children: notionPage.children,
-            });
+            try {
+                await this.client.blocks.children.append({
+                    block_id: pageId,
+                    children: notionPage.children,
+                });
+            }
+            catch (error) {
+                if ((0, error_1.isNotionNestingValidationError)(error)) {
+                    throw new error_1.NotionNestingValidationError({ message: 'Nesting error' });
+                }
+                this.logger.debug(`Failed to append block to page ${pageId}:`, {
+                    error,
+                    block: notionPage.children,
+                });
+                throw error;
+            }
         }
     }
     async updatePageProperties({ pageId, pageElement, }) {
