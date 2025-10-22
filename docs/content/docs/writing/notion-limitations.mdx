@@ -13,11 +13,11 @@ This document outlines the known and undocumented limitations and constraints wh
 
 ### Bulleted and Numbered Lists
 
-Notion API has a **maximum nesting depth of 2 levels** for bulleted and numbered lists. Attempting to create lists with more than 2 levels of nesting will result in a validation error.
+Notion API has a **maximum nesting depth of 3 levels** for bulleted and numbered lists. Attempting to create lists with more than 2 levels of nesting will result in a validation error.
 
 #### What happens when you exceed the limit?
 
-When you try to sync markdown content with more than 2 levels of list nesting, you'll encounter an error like this:
+When you try to sync markdown content with more than 3 levels of list nesting, you'll encounter a validation error like this:
 
 ```
 APIResponseError: body failed validation: body.children[0].bulleted_list_item.children[0].bulleted_list_item.children[0].bulleted_list_item.children should be not present
@@ -52,6 +52,8 @@ If you need to represent deeper hierarchical content, consider these alternative
    ### Level 2
 
    #### Level 3
+
+   ##### Level 4 (❌ This will cause an error)
    ```
 
 2. **Convert deep nesting to paragraphs**
@@ -59,8 +61,9 @@ If you need to represent deeper hierarchical content, consider these alternative
    ```markdown
    - Level 1
      - Level 2
+       - Level 3
 
-   Additional content as paragraph text instead of Level 3 list item.
+   Additional content as paragraph text instead of Level 4 list item.
    ```
 
 3. **Use callouts or toggles for complex hierarchies**
