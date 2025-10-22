@@ -192,6 +192,116 @@ Another line with \`code\` and **bold \`code in bold\`** text.
 
     });
 
+    it('should parse nested lists', () => {
+      const markdown = `
+- **Scope:** This applies to all deployment environments.
+- **Code Repositories:**
+  - **System A:** [Module Link](https://github.com/example/module-a) **|** [Configuration File](https://github.com/example/repo-a/config.tf)
+  - **System B:** [Network Modules](https://github.com/example/system-b/modules) **|** [Settings File](https://github.com/example/system-b/settings.tf)
+- **Documentation:**
+  - **System A:** [README Documentation](https://github.com/example/repo-a/README.md)
+  - **System B:**
+    - [Review Process](https://github.com/example/system-b/docs/review-process.md)
+    - [Technical Deep Dive](https://github.com/example/system-b/docs/technical-guide.md)
+`;
+
+      const result = parser.parse({ content: markdown });
+
+      expect(result.content).toHaveLength(3);
+      
+      // First item - simple item without nested content
+      assert(result.content[0] instanceof ListItemElement);
+      const firstItem = result.content[0] as ListItemElement;
+      expect(firstItem.listType).toBe('unordered');
+      expect(firstItem.children).toBeUndefined();
+      
+      // Second item - has nested list
+      assert(result.content[1] instanceof ListItemElement);
+      const secondItem = result.content[1] as ListItemElement;
+      expect(secondItem.listType).toBe('unordered');
+      expect(secondItem.children).toBeDefined();
+      expect(secondItem.children).toHaveLength(2);
+      
+      // Check nested items in second item
+      assert(secondItem.children![0] instanceof ListItemElement);
+      const nestedItem1 = secondItem.children![0] as ListItemElement;
+      expect(nestedItem1.listType).toBe('unordered');
+      
+      assert(secondItem.children![1] instanceof ListItemElement);
+      const nestedItem2 = secondItem.children![1] as ListItemElement;
+      expect(nestedItem2.listType).toBe('unordered');
+      
+      // Third item - has nested list with deeper nesting
+      assert(result.content[2] instanceof ListItemElement);
+      const thirdItem = result.content[2] as ListItemElement;
+      expect(thirdItem.listType).toBe('unordered');
+      expect(thirdItem.children).toBeDefined();
+      expect(thirdItem.children).toHaveLength(2);
+      
+      // Check nested items in third item
+      assert(thirdItem.children![0] instanceof ListItemElement);
+      const thirdNestedItem1 = thirdItem.children![0] as ListItemElement;
+      expect(thirdNestedItem1.listType).toBe('unordered');
+      expect(thirdNestedItem1.children).toBeUndefined();
+      
+      assert(thirdItem.children![1] instanceof ListItemElement);
+      const thirdNestedItem2 = thirdItem.children![1] as ListItemElement;
+      expect(thirdNestedItem2.listType).toBe('unordered');
+      expect(thirdNestedItem2.children).toBeDefined();
+      expect(thirdNestedItem2.children).toHaveLength(2);
+      
+      // Check deeply nested items
+      assert(thirdNestedItem2.children![0] instanceof ListItemElement);
+      const deepNestedItem1 = thirdNestedItem2.children![0] as ListItemElement;
+      expect(deepNestedItem1.listType).toBe('unordered');
+      
+      assert(thirdNestedItem2.children![1] instanceof ListItemElement);
+      const deepNestedItem2 = thirdNestedItem2.children![1] as ListItemElement;
+      expect(deepNestedItem2.listType).toBe('unordered');
+    });
+
+    it('should parse mixed ordered and unordered nested lists', () => {
+      const markdown = `
+1. First ordered item
+2. Second ordered item with nested unordered list:
+   - Unordered nested item 1
+   - Unordered nested item 2
+3. Third ordered item
+`;
+
+      const result = parser.parse({ content: markdown });
+
+      expect(result.content).toHaveLength(3);
+      
+      // First item - simple ordered item
+      assert(result.content[0] instanceof ListItemElement);
+      const firstItem = result.content[0] as ListItemElement;
+      expect(firstItem.listType).toBe('ordered');
+      expect(firstItem.children).toBeUndefined();
+      
+      // Second item - ordered item with nested unordered list
+      assert(result.content[1] instanceof ListItemElement);
+      const secondItem = result.content[1] as ListItemElement;
+      expect(secondItem.listType).toBe('ordered');
+      expect(secondItem.children).toBeDefined();
+      expect(secondItem.children).toHaveLength(2);
+      
+      // Check nested unordered items
+      assert(secondItem.children![0] instanceof ListItemElement);
+      const nestedItem1 = secondItem.children![0] as ListItemElement;
+      expect(nestedItem1.listType).toBe('unordered');
+      
+      assert(secondItem.children![1] instanceof ListItemElement);
+      const nestedItem2 = secondItem.children![1] as ListItemElement;
+      expect(nestedItem2.listType).toBe('unordered');
+      
+      // Third item - simple ordered item
+      assert(result.content[2] instanceof ListItemElement);
+      const thirdItem = result.content[2] as ListItemElement;
+      expect(thirdItem.listType).toBe('ordered');
+      expect(thirdItem.children).toBeUndefined();
+    });
+
     it('should parse code blocks with language', () => {
       const markdown = '```typescript\nconst x = 1;\n```';
 

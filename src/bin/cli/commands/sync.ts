@@ -1,5 +1,6 @@
 import { Command } from 'commander';
 
+import { isValidVerbosity } from '@/domains/logger/types';
 import { MkNotes } from '@/MkNotes';
 
 const COMMAND_NAME = 'sync';
@@ -33,12 +34,14 @@ command.option(
 
 command.option('-l, --lock', 'Lock the Notion page after syncing');
 
+command.option('-v, --verbosity <verbosity>', 'Verbosity level', 'error');
 interface SyncOptions {
   input: string;
   destination: string;
   notionApiKey: string;
   clean?: boolean;
   lock?: boolean;
+  verbosity?: string;
 }
 
 command.action(async (opts: SyncOptions) => {
@@ -48,10 +51,16 @@ command.action(async (opts: SyncOptions) => {
     notionApiKey,
     clean = false,
     lock = false,
+    verbosity = 'error',
   } = opts;
+
+  if (!isValidVerbosity(verbosity)) {
+    throw new Error(`Invalid verbosity: ${verbosity}`);
+  }
 
   const mkNotes = new MkNotes({
     notionApiKey,
+    LOG_LEVEL: verbosity,
   });
 
   await mkNotes.synchronizeMarkdownToNotionFromFileSystem({

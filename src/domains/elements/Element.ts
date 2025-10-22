@@ -97,17 +97,20 @@ export class FileElement extends Element {
 export class ListItemElement extends Element {
   public listType: 'ordered' | 'unordered';
   public text: RichTextElement;
-
+  public children?: Element[];
   constructor({
     listType,
     text,
+    children,
   }: {
     listType: 'ordered' | 'unordered';
     text: RichTextElement;
+    children?: Element[];
   }) {
     super(ElementType.ListItem);
     this.listType = listType;
     this.text = text;
+    this.children = children;
   }
 }
 
@@ -142,6 +145,7 @@ export type RichTextElement = (
   | LinkElement
   | ImageElement
   | EquationElement
+  | ListItemElement
 )[];
 
 export type TextElementStyles = {
@@ -406,12 +410,12 @@ export class HtmlElement extends Element {
 
 export class ToggleElement extends Element {
   public title: string;
-  public content: Element[];
+  public children: Element[];
 
-  constructor({ title, content }: { title: string; content: Element[] }) {
+  constructor({ title, children }: { title: string; children: Element[] }) {
     super(ElementType.Toggle);
     this.title = title;
-    this.content = content;
+    this.children = children;
   }
 }
 

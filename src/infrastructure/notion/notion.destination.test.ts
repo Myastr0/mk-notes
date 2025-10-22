@@ -1,11 +1,11 @@
-import { Client } from '@notionhq/client';
+import { Client, Logger } from '@notionhq/client';
 import { NotionDestinationRepository } from './notion.destination';
 import { NotionConverterRepository } from './notion.converter';
 import { PageElement } from '@/domains/elements';
 import { NotionPage } from '@/domains/notion/NotionPage';
-import { RichTextElement, TextElement } from '@/domains/elements';
-import { BlockObjectRequest, BlockObjectResponse, CreatePageResponse, GetPageResponse, ListBlockChildrenResponse, SearchResponse } from '@notionhq/client/build/src/api-endpoints';
+import { CreatePageResponse, GetPageResponse, ListBlockChildrenResponse, SearchResponse } from '@notionhq/client/build/src/api-endpoints';
 import { PageObjectResponse } from '@notionhq/client/build/src/api-endpoints';
+import winston from 'winston';
 
 jest.mock('@notionhq/client');
 
@@ -13,8 +13,13 @@ describe('NotionDestinationRepository', () => {
   let repository: NotionDestinationRepository;
   let mockClient: jest.Mocked<Client>;
   let mockNotionConverter: jest.Mocked<NotionConverterRepository>;
+  let mockLogger: jest.Mocked<Logger>;
 
   beforeEach(() => {
+    mockLogger = {
+      warn: jest.fn(),
+    } as unknown as jest.Mocked<Logger>;
+
     mockClient = {
       pages: {
         create: jest.fn(),
@@ -40,6 +45,7 @@ describe('NotionDestinationRepository', () => {
     repository = new NotionDestinationRepository({
       apiKey: 'fake-api-key',
       notionConverter: mockNotionConverter,
+      logger: mockLogger as unknown as winston.Logger,
     });
   });
 

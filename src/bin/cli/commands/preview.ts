@@ -1,6 +1,7 @@
 import { Command, Option } from 'commander';
 
 import { PreviewFormat } from '@/domains';
+import { isValidVerbosity } from '@/domains/logger/types';
 import { MkNotes } from '@/MkNotes';
 
 const COMMAND_NAME = 'preview-sync';
@@ -52,24 +53,35 @@ command.addOption(
 
 command.option('-o, --output <output>', 'Output file path');
 
-command.action(
-  async (opts: { input: string; format: PreviewFormat; output?: string }) => {
-    const { input: directoryPath, format, output } = opts;
+command.option('-v, --verbosity <verbosity>', 'Verbosity level', 'error');
 
-    const mkNotes = new MkNotes({
-      notionApiKey: '',
-    });
+interface PreviewOptions {
+  input: string;
+  format: PreviewFormat;
+  output?: string;
+  verbosity?: string;
+}
+command.action(async (opts: PreviewOptions) => {
+  const { input: directoryPath, format, output, verbosity = 'error' } = opts;
 
-    const result = await mkNotes.previewSynchronization({
-      inputPath: directoryPath,
-      format,
-      output,
-    });
-
-    // eslint-disable-next-line no-console
-    console.log(result);
+  if (!isValidVerbosity(verbosity)) {
+    throw new Error(`Invalid verbosity: ${verbosity}`);
   }
-);
+
+  const mkNotes = new MkNotes({
+    notionApiKey: '',
+    LOG_LEVEL: verbosity,
+  });
+
+  const result = await mkNotes.previewSynchronization({
+    inputPath: directoryPath,
+    format,
+    output,
+  });
+
+  // eslint-disable-next-line no-console
+  console.log(result);
+});
 
 export default command;
 

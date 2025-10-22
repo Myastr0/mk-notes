@@ -283,35 +283,59 @@ export class NotionConverterRepository
     };
   }
 
-  private convertListItem(element: ListItemElement): BlockObjectRequest {
+  private async convertListItem(
+    element: ListItemElement
+  ): Promise<BulletedListItemBlock | NumberedListItemBlock> {
+    let item: BulletedListItemBlock | NumberedListItemBlock;
     if (element.listType === 'unordered') {
-      return this.convertBulletedListItem(element);
+      item = await this.convertBulletedListItem(element);
     } else {
-      return this.convertNumberedListItem(element);
+      item = await this.convertNumberedListItem(element);
     }
+
+    return item;
   }
 
-  private convertBulletedListItem(
+  private async convertBulletedListItem(
     element: ListItemElement
-  ): BulletedListItemBlock {
+  ): Promise<BulletedListItemBlock> {
     return {
       type: 'bulleted_list_item',
+      object: 'block',
       bulleted_list_item: {
         rich_text: this.convertRichText(element.text),
+        children: await this.convertListItemChildren(element.children),
       },
     };
   }
 
-  private convertNumberedListItem(
+  private async convertNumberedListItem(
     element: ListItemElement
-  ): NumberedListItemBlock {
+  ): Promise<NumberedListItemBlock> {
     return {
       type: 'numbered_list_item',
       object: 'block',
       numbered_list_item: {
         rich_text: this.convertRichText(element.text),
+        children: await this.convertListItemChildren(element.children),
       },
     };
+  }
+
+  private async convertListItemChildren(
+    children: ListItemElement['children']
+  ): Promise<BlockObjectRequestWithoutChildren[] | undefined> {
+    const convertedChildren = (
+      await Promise.all(
+        children?.map(async (child) => this.convertElement(child)) ?? []
+      )
+    ).filter((child) => child !== null) as BlockObjectRequestWithoutChildren[];
+
+    if (convertedChildren.length === 0) {
+      return undefined;
+    }
+
+    return convertedChildren;
   }
 
   private convertTable(element: TableElement): TableBlock {
@@ -340,7 +364,7 @@ export class NotionConverterRepository
   private async convertToggle(element: ToggleElement): Promise<ToggleBlock> {
     const children: BlockObjectRequestWithoutChildren[] = [];
 
-    for (const contentElement of element.content) {
+    for (const contentElement of element.children) {
       const convertedElement = await this.convertElement(contentElement);
       if (convertedElement) {
         children.push(convertedElement as BlockObjectRequestWithoutChildren);

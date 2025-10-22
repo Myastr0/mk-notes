@@ -1,0 +1,123 @@
+---
+id: notion-limitations
+title: Notion API Limitations
+description: Known limitations and constraints when using Notion API with mk-notes
+icon: TriangleAlert
+---
+
+This document outlines the known and undocumented limitations and constraints when using Notion API with `mk-notes`. Understanding these limitations will help you structure your markdown content appropriately.
+
+---
+
+## List Nesting Limitations
+
+### Bulleted and Numbered Lists
+
+Notion API has a **maximum nesting depth of 3 levels** for bulleted and numbered lists. Attempting to create lists with more than 2 levels of nesting will result in a validation error.
+
+#### What happens when you exceed the limit?
+
+When you try to sync markdown content with more than 3 levels of list nesting, you'll encounter a validation error like this:
+
+```
+APIResponseError: body failed validation: body.children[0].bulleted_list_item.children[0].bulleted_list_item.children[0].bulleted_list_item.children should be not present
+```
+
+#### Example of problematic structure
+
+```markdown
+- Level 1
+  - Level 2
+    - Level 3
+      - Level 4 (❌ This will cause an error)
+```
+
+#### Supported structure
+
+```markdown
+- Level 1
+  - Level 2
+    - Level 3 (✅ Maximum supported depth)
+```
+
+### Workarounds
+
+If you need to represent deeper hierarchical content, consider these alternatives:
+
+1. **Use headings instead of nested lists**
+
+   ```markdown
+   ## Level 1
+
+   ### Level 2
+
+   #### Level 3
+
+   ##### Level 4 (❌ This will cause an error)
+   ```
+
+2. **Convert deep nesting to paragraphs**
+
+   ```markdown
+   - Level 1
+     - Level 2
+       - Level 3
+
+   Additional content as paragraph text instead of Level 4 list item.
+   ```
+
+3. **Use callouts or toggles for complex hierarchies**
+
+   ```markdown
+   - Level 1
+     - Level 2
+
+   > **Note**: Additional details can be placed in callouts
+   ```
+
+---
+
+## Icon Limitations
+
+### Custom Images Not Supported
+
+The Notion API currently does not support custom image uploads for page icons. Only general emojis are available.
+
+```markdown
+---
+icon: 💡  ✅ Supported
+icon: 🚀  ✅ Supported
+icon: custom-image.png  ❌ Not supported
+---
+```
+
+---
+
+## Other Known Limitations
+
+### File Upload Constraints
+
+- Maximum file size limits apply for image uploads
+- Only specific image formats are supported (`.bmp`, `.gif`, `.heic`, `.jpeg`, `.jpg`, `.png`, `.svg`, `.tif`, `.tiff`)
+
+### Rich Text Limitations
+
+- Text content is limited to 2000 characters per rich text block
+- Complex formatting combinations may not be fully supported
+
+---
+
+## Best Practices
+
+1. **Keep list nesting to 2 levels maximum**
+2. **Use headings for deeper hierarchies**
+3. **Test your content structure before bulk synchronization**
+4. **Use callouts and toggles for complex content organization**
+
+<Callout type="info" title="Staying Updated">
+
+These limitations are based on the current Notion API capabilities. As Notion updates their API, some of these constraints may be lifted. Check the official [Notion API documentation](https://developers.notion.com/) for the latest updates.
+
+</Callout>
+
+---

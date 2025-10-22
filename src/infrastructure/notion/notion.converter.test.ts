@@ -211,7 +211,7 @@ describe.skip('NotionConverterRepository', () => {
         content: [
           new ToggleElement({
             title: 'Toggle title',
-            content: [
+            children: [
               new TextElement({ text: 'Toggle content', level: TextElementLevel.Paragraph })
             ]
           })
