@@ -11,6 +11,8 @@ import {
   InfrastructureInstances,
 } from '@/infrastructure';
 
+import { LogLevel } from './domains/logger/types';
+
 /**
  * MkNotes client
  */
@@ -24,7 +26,7 @@ export class MkNotes {
     notionApiKey,
   }: {
     logger?: winston.Logger;
-    LOG_LEVEL?: string;
+    LOG_LEVEL?: LogLevel;
     notionApiKey: string;
   }) {
     this.logger =
