@@ -28,7 +28,7 @@ describe('HtmlParser', () => {
       expect(result.content).toHaveLength(1);
       expect(result.content[0]).toMatchObject({
         title: 'Toggle Title',
-        content: [{ text: expect.stringContaining('Toggle Content') }]
+        children: [{ text: expect.stringContaining('Toggle Content') }]
       });
     });
 

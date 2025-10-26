@@ -97,13 +97,30 @@ export class MarkdownParser extends ParserRepository {
   }
 
   private parseListToken(token: Tokens.List): ListItemElement[] {
-    return token.items.map(
-      (item) =>
-        new ListItemElement({
-          listType: token.ordered ? 'ordered' : 'unordered',
-          text: this.parseRawText(item.text),
-        })
-    );
+    return token.items.map((item) => {
+      let text: RichTextElement = [];
+      const children: Element[] = [];
+
+      const paragraph = item.tokens.shift();
+
+      if (paragraph && paragraph.type === 'text') {
+        text = this.parseParagraphToken(paragraph as Tokens.Paragraph);
+      }
+
+      // Check if the list item has nested tokens (like nested lists)
+      if (item.tokens) {
+        for (const nestedToken of item.tokens) {
+          const contentItem = this.parseToken(nestedToken);
+          children.push(...contentItem);
+        }
+      }
+
+      return new ListItemElement({
+        listType: token.ordered ? 'ordered' : 'unordered',
+        text,
+        children: children.length > 0 ? children : undefined,
+      });
+    });
   }
 
   private parseBlockQuoteToken(

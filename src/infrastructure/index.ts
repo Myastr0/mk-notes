@@ -63,6 +63,7 @@ const buildInstances = ({
       logger,
     }),
     notionDestination: new NotionDestinationRepository({
+      logger,
       notionConverter,
       apiKey: notionApiKey,
     }),

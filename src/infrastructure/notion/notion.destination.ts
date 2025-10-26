@@ -1,4 +1,4 @@
-import { Client, isFullPage } from '@notionhq/client';
+import { Client, isFullPage, LogLevel } from '@notionhq/client';
 import {
   BlockObjectResponse,
   CreatePageParameters,
@@ -6,8 +6,13 @@ import {
   PartialBlockObjectResponse,
   UpdatePageParameters,
 } from '@notionhq/client/build/src/api-endpoints';
+import winston from 'winston';
 
 import { PageElement } from '@/domains/elements/Element';
+import {
+  isNotionNestingValidationError,
+  NotionNestingValidationError,
+} from '@/domains/notion/error';
 import { NotionPage } from '@/domains/notion/NotionPage';
 import {
   DestinationRepository,
@@ -34,16 +39,23 @@ export class NotionDestinationRepository
   implements DestinationRepository<NotionPage>
 {
   private client: Client;
+  private logger: winston.Logger;
   private notionConverter: NotionConverterRepository;
 
   constructor({
     apiKey,
+    logger,
     notionConverter,
   }: {
     apiKey: string;
+    logger: winston.Logger;
     notionConverter: NotionConverterRepository;
   }) {
-    this.client = new Client({ auth: apiKey });
+    this.client = new Client({
+      auth: apiKey,
+      logLevel: LogLevel.ERROR,
+    });
+    this.logger = logger;
     this.notionConverter = notionConverter;
   }
 
@@ -313,10 +325,22 @@ export class NotionDestinationRepository
 
     if (notionPage.children && notionPage.children.length > 0) {
       // Append blocks to the existing page
-      await this.client.blocks.children.append({
-        block_id: pageId,
-        children: notionPage.children as BlockObjectRequest[],
-      });
+      try {
+        await this.client.blocks.children.append({
+          block_id: pageId,
+          children: notionPage.children as BlockObjectRequest[],
+        });
+      } catch (error) {
+        if (isNotionNestingValidationError(error)) {
+          throw new NotionNestingValidationError({ message: 'Nesting error' });
+        }
+
+        this.logger.debug(`Failed to append block to page ${pageId}:`, {
+          error,
+          block: notionPage.children,
+        });
+        throw error;
+      }
     }
   }
 
