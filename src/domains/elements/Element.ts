@@ -222,6 +222,7 @@ export enum ElementCodeLanguage {
   JSON = 'json',
   YAML = 'yaml',
   Markdown = 'markdown',
+  Mermaid = 'mermaid',
   PlainText = 'plaintext',
 }
 

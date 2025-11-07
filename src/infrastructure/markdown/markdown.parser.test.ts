@@ -314,6 +314,18 @@ Another line with \`code\` and **bold \`code in bold\`** text.
       });
     });
 
+    it('should parse mermaid code blocks', () => {
+      const markdown = '```mermaid\ngraph TD;\n  A-->B;\n```';
+
+      const result = parser.parse({ content: markdown });
+
+      expect(result.content).toHaveLength(1);
+      expect(result.content[0]).toMatchObject({
+        text: 'graph TD;\n  A-->B;',
+        language: ElementCodeLanguage.Mermaid,
+      });
+    });
+
     it('should parse simple blockquotes', () => {
       const markdown = `
 > Regular quote

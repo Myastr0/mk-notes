@@ -140,6 +140,28 @@ describe.skip('NotionConverterRepository', () => {
       });
     });
 
+    it('should convert mermaid code blocks to notion mermaid', async () => {
+      const pageElement = new PageElement({
+        title: 'Test Page',
+        content: [
+          new CodeElement({
+            text: 'graph TD;\n  A-->B;',
+            language: ElementCodeLanguage.Mermaid
+          })
+        ]
+      });
+
+      const result = await converter.convertFromElement(pageElement);
+      const children = result.children;
+      expect(children[0]).toMatchObject({
+        type: 'code',
+        code: {
+          rich_text: [{ text: { content: 'graph TD;\n  A-->B;' } }],
+          language: 'mermaid'
+        }
+      });
+    });
+
     it('should convert tables', async () => {
       const pageElement = new PageElement({
         title: 'Test Page',

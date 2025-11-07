@@ -432,6 +432,7 @@ export class NotionConverterRepository
       [ElementCodeLanguage.JSON]: 'json',
       [ElementCodeLanguage.YAML]: 'yaml',
       [ElementCodeLanguage.Markdown]: 'markdown',
+      [ElementCodeLanguage.Mermaid]: 'mermaid',
       [ElementCodeLanguage.PlainText]: 'plain text', // Mapping to 'plain text' as Notion supports this
     };
 
