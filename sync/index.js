@@ -75215,6 +75215,7 @@ var ElementCodeLanguage;
     ElementCodeLanguage["JSON"] = "json";
     ElementCodeLanguage["YAML"] = "yaml";
     ElementCodeLanguage["Markdown"] = "markdown";
+    ElementCodeLanguage["Mermaid"] = "mermaid";
     ElementCodeLanguage["PlainText"] = "plaintext";
 })(ElementCodeLanguage || (exports.ElementCodeLanguage = ElementCodeLanguage = {}));
 const isElementCodeLanguage = (value) => {
@@ -77889,6 +77890,7 @@ class NotionConverterRepository {
             [elements_1.ElementCodeLanguage.JSON]: 'json',
             [elements_1.ElementCodeLanguage.YAML]: 'yaml',
             [elements_1.ElementCodeLanguage.Markdown]: 'markdown',
+            [elements_1.ElementCodeLanguage.Mermaid]: 'mermaid',
             [elements_1.ElementCodeLanguage.PlainText]: 'plain text', // Mapping to 'plain text' as Notion supports this
         };
         // Return the mapped Notion language, or 'plain text' as a fallback
