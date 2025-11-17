@@ -10,14 +10,14 @@ Always use the preview action before syncing to verify the structure:
 
 ```yaml
 - name: Preview changes
-  uses: Myastr0/mk-notes/preview@v1
+  uses: Myastr0/mk-notes/preview
   with:
     input: './docs'
     format: 'plainText'
 
 - name: Sync to Notion
   if: github.ref == 'refs/heads/main'
-  uses: Myastr0/mk-notes/sync@v1
+  uses: Myastr0/mk-notes/sync
   with:
     input: './docs'
     destination: ${{ secrets.NOTION_DOCS_PAGE_URL }}
@@ -58,7 +58,7 @@ Consider using different Notion pages for different branches:
 
 ```yaml
 - name: Sync to Notion
-  uses: Myastr0/mk-notes/sync@v1
+  uses: Myastr0/mk-notes/sync
   with:
     input: './docs'
     destination: ${{ github.ref == 'refs/heads/main' && secrets.NOTION_MAIN_DOCS_PAGE_URL || secrets.NOTION_DEV_DOCS_PAGE_URL }}
@@ -89,7 +89,7 @@ Add proper error handling to your workflows:
 
 ```yaml
 - name: Sync to Notion
-  uses: Myastr0/mk-notes/sync@v1
+  uses: Myastr0/mk-notes/sync
   with:
     input: './docs'
     destination: ${{ secrets.NOTION_DOCS_PAGE_URL }}

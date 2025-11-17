@@ -14,7 +14,7 @@ steps:
     uses: actions/checkout@v4
 
   - name: Sync markdown to Notion
-    uses: Myastr0/mk-notes/sync@v1
+    uses: Myastr0/mk-notes/sync
     with:
       input: './docs' # The path to the markdown file or directory to synchronize
       destination: 'https://notion.so/your-page-id'
@@ -61,7 +61,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Sync documentation to Notion
-        uses: Myastr0/mk-notes/sync@v1
+        uses: Myastr0/mk-notes/sync
         with:
           input: './docs'
           destination: ${{ secrets.NOTION_DOCS_PAGE_URL }}
@@ -86,7 +86,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Sync to Notion
-        uses: Myastr0/mk-notes/sync@v1
+        uses: Myastr0/mk-notes/sync
         with:
           input: './docs'
           destination: ${{ secrets.NOTION_DOCS_PAGE_URL }}
@@ -109,7 +109,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Clean sync to Notion
-        uses: Myastr0/mk-notes/sync@v1
+        uses: Myastr0/mk-notes/sync
         with:
           input: './content'
           destination: ${{ secrets.NOTION_DOCS_PAGE_URL }}

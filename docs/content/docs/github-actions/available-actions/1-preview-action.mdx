@@ -14,7 +14,7 @@ steps:
     uses: actions/checkout@v4
 
   - name: Preview markdown synchronization
-    uses: Myastr0/mk-notes/preview@v1
+    uses: Myastr0/mk-notes/preview
     with:
       input: './docs' # The path to the markdown file or directory to preview
       format: 'plainText' # The format of the preview ("plainText" or "json")
@@ -54,7 +54,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Preview synchronization
-        uses: Myastr0/mk-notes/preview@v1
+        uses: Myastr0/mk-notes/preview
         with:
           input: './docs'
           format: 'plainText'
@@ -68,7 +68,7 @@ jobs:
 
       - name: Sync to Notion
         if: github.event_name == 'push'
-        uses: Myastr0/mk-notes/sync@v1
+        uses: Myastr0/mk-notes/sync
         with:
           input: './docs'
           destination: ${{ secrets.NOTION_DOCS_PAGE_URL }}
@@ -92,7 +92,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Generate JSON preview
-        uses: Myastr0/mk-notes/preview@v1
+        uses: Myastr0/mk-notes/preview
         with:
           input: './docs'
           format: 'json'
