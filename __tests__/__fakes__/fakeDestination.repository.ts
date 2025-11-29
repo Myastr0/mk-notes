@@ -16,7 +16,19 @@ export class FakeDestinationRepository<T extends Page>
   }
 
   getObjectIdFromObjectUrl({ objectUrl }: { objectUrl: string }): string {
-    return objectUrl.split('/').pop() ?? '';
+    const urlObj = new URL(objectUrl);
+
+    // Notion IDs are 32-character hexadecimal strings (UUID without dashes)
+    // They can be embedded in path segments like "MK-Notes-4dd0bd3dc73648a9a55dcf05dd03080f"
+    const notionIdRegex = /[a-f0-9]{32}/gi;
+    const matches = urlObj.pathname.match(notionIdRegex);
+
+    if (!matches || matches.length === 0) {
+      throw new Error('Invalid Notion URL: No valid Notion ID found');
+    }
+
+    // Return the last match (closest to the end of the URL path)
+    return matches[matches.length - 1];
   }
 
   // Simulate creating a new page
@@ -24,9 +36,11 @@ export class FakeDestinationRepository<T extends Page>
   async createPage({
     pageElement,
     parentObjectId,
+    parentObjectType,
   }: {
     pageElement: PageElement;
     parentObjectId: string;
+    parentObjectType: ObjectType;
   }): Promise<T> {
     // Here you would implement the logic to create a new page in the fake destination
     const fakePage = new FakePage({

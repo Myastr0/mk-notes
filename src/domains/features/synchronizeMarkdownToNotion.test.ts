@@ -36,6 +36,8 @@ describe('SynchronizeMarkdownToNotion', () => {
     const defaultArgs = {
       notionParentPageUrl: validNotionUrl,
       path: 'test/path',
+      cleanSync: false,
+      lockPage: false,
     };
 
     beforeEach(() => {
@@ -54,6 +56,9 @@ describe('SynchronizeMarkdownToNotion', () => {
       jest
         .spyOn(destinationRepository, 'createPage')
         .mockResolvedValue(new FakeNotionPage({ pageId: 'new-page-id' }));
+      jest
+        .spyOn(destinationRepository, 'getObjectType')
+        .mockResolvedValue('page');
     });
 
     it("should check the accessibility of the destination", async () => {
@@ -61,7 +66,7 @@ describe('SynchronizeMarkdownToNotion', () => {
       expect(
         destinationRepository.destinationIsAccessible
       ).toHaveBeenCalledWith({
-        parentPageId: 'Test-Page-12345678901234567890123456789012',
+        parentObjectId: '12345678901234567890123456789012',
       });
     });
 
@@ -104,7 +109,8 @@ describe('SynchronizeMarkdownToNotion', () => {
       expect(elementConverter.convertToElement).toHaveBeenCalled();
       expect(destinationRepository.createPage).toHaveBeenCalledWith({
         pageElement: expect.any(PageElement),
-        parentPageId: 'Test-Page-12345678901234567890123456789012',
+        parentObjectId: '12345678901234567890123456789012',
+        parentObjectType: 'page',
         filePath: 'file1.md',
       });
     });
@@ -191,7 +197,7 @@ describe('SynchronizeMarkdownToNotion', () => {
       // Verify that appendToPage is called exactly once (only for root index.md)
       expect(appendToPageSpy).toHaveBeenCalledTimes(1);
       expect(appendToPageSpy).toHaveBeenCalledWith({
-        pageId: 'Test-Page-12345678901234567890123456789012',
+        pageId: '12345678901234567890123456789012',
         pageElement: rootContent,
       });
 
@@ -203,7 +209,8 @@ describe('SynchronizeMarkdownToNotion', () => {
         pageElement: expect.objectContaining({
           title: 'Section Overview'
         }),
-        parentPageId: 'Test-Page-12345678901234567890123456789012',
+        parentObjectId: '12345678901234567890123456789012',
+        parentObjectType: 'page',
         filePath: '01_Section/00_Root.md',
       });
 
@@ -212,7 +219,8 @@ describe('SynchronizeMarkdownToNotion', () => {
         pageElement: expect.objectContaining({
           title: 'Subsection'
         }),
-        parentPageId: 'new-page-id', // This should be the Section page ID
+        parentObjectId: 'new-page-id', // This should be the Section page ID
+        parentObjectType: 'page',
         filePath: '01_Section/01_Subsection.md',
       });
     });
@@ -245,7 +253,7 @@ describe('SynchronizeMarkdownToNotion', () => {
 
       // Verify that setPageLockedStatus is called with locked status
       expect(setPageLockedStatusSpy).toHaveBeenCalledWith({
-        pageId: 'Test-Page-12345678901234567890123456789012',
+        pageId: '12345678901234567890123456789012',
         lockStatus: 'locked',
       });
     });
@@ -271,10 +279,7 @@ describe('SynchronizeMarkdownToNotion', () => {
 
       const setPageLockedStatusSpy = jest.spyOn(destinationRepository, 'setPageLockedStatus');
 
-      await synchronizer.execute({
-        ...defaultArgs,
-        lockPage: false,
-      });
+      await synchronizer.execute(defaultArgs);
 
       // Verify that setPageLockedStatus is not called
       expect(setPageLockedStatusSpy).not.toHaveBeenCalled();
@@ -412,7 +417,7 @@ describe('SynchronizeMarkdownToNotion', () => {
       
       // Verify root page is locked
       expect(setPageLockedStatusSpy).toHaveBeenCalledWith({
-        pageId: 'Test-Page-12345678901234567890123456789012',
+        pageId: '12345678901234567890123456789012',
         lockStatus: 'locked',
       });
       
