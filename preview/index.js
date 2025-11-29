@@ -75895,19 +75895,6 @@ class SynchronizeMarkdownToNotion {
         if (parentObjectType === 'unknown') {
             throw new Error('Parent object type is unknown');
         }
-        // If clean sync is enabled, delete all existing content first
-        if (cleanSync) {
-            this.logger.info('Clean sync enabled - removing existing content');
-            try {
-                await this.destinationRepository.deleteChildBlocks({
-                    parentPageId: notionObjectId,
-                });
-                this.logger.info('Successfully removed existing content');
-            }
-            catch (error) {
-                this.logger.warn('Failed to remove existing content, continuing with sync', { error });
-            }
-        }
         try {
             this.logger.info('Starting synchronization process');
             const filePaths = await this.sourceRepository.getFilePathList(others);
@@ -75918,6 +75905,7 @@ class SynchronizeMarkdownToNotion {
                 parentObjectId: notionObjectId,
                 parentObjectType,
                 lockPage,
+                cleanSync,
             });
             this.logger.info('Synchronization process completed successfully');
         }
@@ -75960,10 +75948,26 @@ class SynchronizeMarkdownToNotion {
      * Synchronizes the root node to the parent object (page or database)
      * Returns the page ID to use as parent for child nodes
      */
-    async synchronizeRootNode({ node, parentObjectId, parentObjectType, lockPage, }) {
+    async synchronizeRootNode({ node, parentObjectId, parentObjectType, lockPage, cleanSync, }) {
         this.logger.info(`Adding content from ${node.filepath} to parent ${parentObjectType}`);
         const pageElement = await this.fetchAndConvertToPageElement(node.filepath);
+        if (parentObjectType === 'unknown') {
+            throw new Error('Parent object type is unknown');
+        }
         if (parentObjectType === 'page') {
+            // If clean sync is enabled, delete all existing content first
+            if (cleanSync) {
+                this.logger.info('Clean sync enabled - removing existing content');
+                try {
+                    await this.destinationRepository.deleteChildBlocks({
+                        parentPageId: parentObjectId,
+                    });
+                    this.logger.info('Successfully removed existing content');
+                }
+                catch (error) {
+                    this.logger.warn('Failed to remove existing content, continuing with sync', { error });
+                }
+            }
             await this.destinationRepository.appendToPage({
                 pageId: parentObjectId,
                 pageElement,
@@ -75971,6 +75975,12 @@ class SynchronizeMarkdownToNotion {
             this.logger.info(`Added content from ${node.filepath} to parent page`);
             await this.lockPageIfNeeded(parentObjectId, lockPage);
             return parentObjectId;
+        }
+        if (cleanSync) {
+            await this.cleanSyncDatabase({
+                databaseId: parentObjectId,
+                pageElement,
+            });
         }
         // parentObjectType === 'database'
         const newPage = await this.destinationRepository.createPage({
@@ -75983,6 +75993,29 @@ class SynchronizeMarkdownToNotion {
             throw new Error('New page ID is undefined');
         }
         return newPage.pageId;
+    }
+    async cleanSyncDatabase({ databaseId, pageElement, }) {
+        const dataSourceId = await this.destinationRepository.getDataSourceIdFromDatabaseId({
+            databaseId,
+        });
+        if (pageElement.mkNotesInternalId === undefined) {
+            this.logger.warn('mk-notes-internal-id is undefined, skipping clean sync');
+            return;
+        }
+        const objectIds = await this.destinationRepository.getObjectIdInDatabaseByMkNotesInternalId({
+            dataSourceId,
+            mkNotesInternalId: pageElement.mkNotesInternalId,
+        });
+        if (objectIds.length === 0) {
+            this.logger.warn('No object IDs found, skipping clean sync');
+            return;
+        }
+        if (objectIds.length > 1) {
+            this.logger.info(`Multiple object IDs found with ${pageElement.mkNotesInternalId}, deleting all objects`);
+        }
+        await Promise.all(objectIds.map(async (objectId) => this.destinationRepository.deleteObjectById({
+            objectId,
+        })));
     }
     /**
      * Synchronizes a child node and its descendants recursively
@@ -76020,7 +76053,7 @@ class SynchronizeMarkdownToNotion {
     /**
      * Main orchestrator for synchronizing a tree node and its children
      */
-    async synchronizeTreeNode({ node, parentObjectId, parentObjectType, lockPage, }) {
+    async synchronizeTreeNode({ node, parentObjectId, parentObjectType, lockPage, cleanSync, }) {
         let parentPageId = parentObjectId;
         switch (parentObjectType) {
             case 'unknown':
@@ -76032,6 +76065,7 @@ class SynchronizeMarkdownToNotion {
                         parentObjectId,
                         parentObjectType,
                         lockPage,
+                        cleanSync,
                     });
                 }
                 else {
@@ -76040,6 +76074,7 @@ class SynchronizeMarkdownToNotion {
                         parentObjectId,
                         parentObjectType,
                         lockPage,
+                        cleanSync,
                     });
                 }
                 break;
@@ -76050,6 +76085,7 @@ class SynchronizeMarkdownToNotion {
                         parentObjectId,
                         parentObjectType,
                         lockPage,
+                        cleanSync,
                     });
                 }
                 break;
@@ -78828,6 +78864,7 @@ exports.NotionConverterRepository = NotionConverterRepository;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.NotionDestinationRepository = void 0;
 const client_1 = __nccwpck_require__(8342);
+const constants_1 = __nccwpck_require__(8642);
 const error_1 = __nccwpck_require__(8109);
 const NotionPage_1 = __nccwpck_require__(3913);
 const utils_1 = __nccwpck_require__(7100);
@@ -79112,10 +79149,32 @@ class NotionDestinationRepository {
             }
         }
     }
+    async getDataSourceIdFromDatabaseId({ databaseId, }) {
+        const database = await this.getDatabaseById({ databaseId });
+        if (!('data_sources' in database)) {
+            throw new Error('Database does not have any datasources');
+        }
+        return database.data_sources[0].id;
+    }
     async getDatasourceByDatasourceId({ datasourceId, }) {
         return this.client.dataSources.retrieve({
             data_source_id: datasourceId,
         });
+    }
+    async getObjectIdInDatabaseByMkNotesInternalId({ dataSourceId, mkNotesInternalId, }) {
+        const items = await this.client.dataSources.query({
+            data_source_id: dataSourceId,
+            filter: {
+                property: constants_1.MK_NOTES_INTERNAL_ID_PROPERTY_NAME,
+                rich_text: {
+                    equals: mkNotesInternalId,
+                },
+            },
+        });
+        return items.results.map((item) => item.id);
+    }
+    async deleteObjectById({ objectId }) {
+        await this.client.blocks.delete({ block_id: objectId });
     }
 }
 exports.NotionDestinationRepository = NotionDestinationRepository;
