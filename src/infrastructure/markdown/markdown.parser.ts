@@ -28,8 +28,10 @@ import { HtmlParser } from '@/infrastructure/html';
 import { EquationToken, ExtendedToken } from './types';
 
 export interface MarkdownMetadata {
+  id?: string;
   title?: string;
   icon?: string;
+  properties?: Record<string, string>;
 }
 
 export class MarkdownParser extends ParserRepository {
@@ -423,12 +425,20 @@ export class MarkdownParser extends ParserRepository {
 
     const fileMetadata = this.getMetadata(content);
 
+    if (fileMetadata.id) {
+      result.mkNotesInternalId = fileMetadata.id;
+    }
+
     if (fileMetadata.title) {
       result.title = fileMetadata.title;
     }
 
     if (fileMetadata.icon) {
       result.icon = fileMetadata.icon as SupportedEmoji;
+    }
+
+    if (fileMetadata.properties && Array.isArray(fileMetadata.properties)) {
+      result.properties = fileMetadata.properties;
     }
 
     return result;

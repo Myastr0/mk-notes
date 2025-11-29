@@ -3,7 +3,7 @@ import { BlockObjectResponse } from '@notionhq/client/build/src/api-endpoints';
 import {
   BlockObjectRequest,
   BlockObjectRequestWithoutChildren,
-} from '../../domains/notion/types';
+} from '../../domains/notion/types/types';
 
 export const normalizeBlock = (
   block:

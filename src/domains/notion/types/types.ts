@@ -1,5 +1,7 @@
 import {
   BlockObjectRequestWithoutChildren as _BlockObjectRequestWithoutChildren,
+  CreatePageParameters,
+  DataSourceObjectResponse,
   PageObjectResponse,
   PartialUserObjectResponse,
 } from '@notionhq/client/build/src/api-endpoints';
@@ -72,23 +74,12 @@ type EquationItemRequest = {
 
 export type RichTextItemRequest = TextItemRequest | EquationItemRequest;
 
-// Parent Interfaces
-export interface ParentPage {
-  page_id: IdRequest;
-  type?: 'page_id';
-}
-
-export interface ParentDatabase {
-  database_id: IdRequest;
-  type?: 'database_id';
-}
-
-export type Parent = ParentPage | ParentDatabase;
+export type Parent = CreatePageParameters['parent'];
 
 // Property Interfaces
 export interface TitleProperty {
   title: Array<RichTextItemRequest>;
-  id: string;
+  id: 'title';
   type?: 'title';
 }
 
@@ -790,4 +781,17 @@ function isCreatedBy(created_by: unknown): boolean {
 // Helper function to check last_edited_by field
 function isLastEditedBy(last_edited_by: unknown): boolean {
   return typeof last_edited_by === 'object'; // Assuming PartialUserObjectResponse is an object, refine this if needed
+}
+
+// Database Property Definition Types
+// These represent the schema/definition of properties in a Notion database
+
+export type DatabasePropertyDefinition =
+  DataSourceObjectResponse['properties'][string];
+export type DatabasePropertyType = DatabasePropertyDefinition['type'];
+
+export interface DatabaseProperty {
+  name: string;
+  definition: DatabasePropertyDefinition;
+  type: DatabasePropertyType;
 }

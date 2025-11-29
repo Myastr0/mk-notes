@@ -9,7 +9,7 @@ import {
   Icon,
   PageProperties,
   PartialCreatePageBodyParameters,
-} from '@/domains/notion/types';
+} from '@/domains/notion/types/types';
 
 export class NotionPage implements Page {
   public readonly pageId?: string;

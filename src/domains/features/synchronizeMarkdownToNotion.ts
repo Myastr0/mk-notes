@@ -11,6 +11,7 @@ import { SiteMap, type TreeNode } from '@/domains/sitemap';
 import {
   type DestinationRepository,
   type File,
+  ObjectType,
   type Page,
   type SourceRepository,
 } from '@/domains/synchronization';
@@ -50,16 +51,43 @@ export class SynchronizeMarkdownToNotion<T, U extends Page> {
   ): Promise<void> {
     const { notionParentPageUrl, cleanSync, lockPage, ...others } = args;
 
-    const notionPageId = this.destinationRepository.getPageIdFromPageUrl({
-      pageUrl: notionParentPageUrl,
+    const notionObjectId = this.destinationRepository.getObjectIdFromObjectUrl({
+      objectUrl: notionParentPageUrl,
     });
+
+    // Check if the Notion page is accessible
+    const destinationIsAccessible =
+      await this.destinationRepository.destinationIsAccessible({
+        parentObjectId: notionObjectId,
+      });
+
+    if (!destinationIsAccessible) {
+      throw new Error('Destination is not accessible');
+    }
+
+    // Check if the source is accessible
+    try {
+      await this.sourceRepository.sourceIsAccessible(others as T);
+    } catch (err) {
+      throw new Error(`Source is not accessible:`, {
+        cause: err,
+      });
+    }
+
+    const parentObjectType = await this.destinationRepository.getObjectType({
+      id: notionObjectId,
+    });
+
+    if (parentObjectType === 'unknown') {
+      throw new Error('Parent object type is unknown');
+    }
 
     // If clean sync is enabled, delete all existing content first
     if (cleanSync) {
       this.logger.info('Clean sync enabled - removing existing content');
       try {
         await this.destinationRepository.deleteChildBlocks({
-          parentPageId: notionPageId,
+          parentPageId: notionObjectId,
         });
         this.logger.info('Successfully removed existing content');
       } catch (error) {
@@ -71,25 +99,6 @@ export class SynchronizeMarkdownToNotion<T, U extends Page> {
     }
 
     try {
-      // Check if the Notion page is accessible
-      const destinationIsAccessible =
-        await this.destinationRepository.destinationIsAccessible({
-          parentPageId: notionPageId,
-        });
-
-      if (!destinationIsAccessible) {
-        throw new Error('Destination is not accessible');
-      }
-
-      // Check if the GitHub repository is accessible
-      try {
-        await this.sourceRepository.sourceIsAccessible(others as T);
-      } catch (err) {
-        throw new Error(`Source is not accessible:`, {
-          cause: err,
-        });
-      }
-
       this.logger.info('Starting synchronization process');
 
       const filePaths = await this.sourceRepository.getFilePathList(
@@ -101,7 +110,8 @@ export class SynchronizeMarkdownToNotion<T, U extends Page> {
       // Traverse the SiteMap and synchronize files
       await this.synchronizeTreeNode({
         node: siteMap.root,
-        parentPageId: notionPageId,
+        parentObjectId: notionObjectId,
+        parentObjectType,
         lockPage,
       });
 
@@ -116,136 +126,208 @@ export class SynchronizeMarkdownToNotion<T, U extends Page> {
     }
   }
 
-  private async synchronizeTreeNode({
+  /**
+   * Fetches a file and converts it to a PageElement
+   */
+  private async fetchAndConvertToPageElement(
+    filePath: string
+  ): Promise<PageElement> {
+    const file = await this.sourceRepository.getFile({ path: filePath } as T);
+
+    if (this.elementConverter.setCurrentFilePath) {
+      this.elementConverter.setCurrentFilePath(filePath);
+    }
+
+    const element = this.elementConverter.convertToElement(file);
+
+    if (!(element instanceof PageElement)) {
+      throw new Error('Element is not a PageElement');
+    }
+
+    return element;
+  }
+
+  /**
+   * Locks a page if locking is enabled
+   */
+  private async lockPageIfNeeded(
+    pageId: string,
+    shouldLock: boolean
+  ): Promise<void> {
+    if (shouldLock) {
+      await this.destinationRepository.setPageLockedStatus({
+        pageId,
+        lockStatus: 'locked',
+      });
+      this.logger.info(`Locked page ${pageId}`);
+    }
+  }
+
+  /**
+   * Synchronizes the root node to the parent object (page or database)
+   * Returns the page ID to use as parent for child nodes
+   */
+  private async synchronizeRootNode({
     node,
-    parentPageId,
+    parentObjectId,
+    parentObjectType,
     lockPage,
   }: {
     node: TreeNode;
+    parentObjectId: string;
+    parentObjectType: ObjectType;
+    lockPage: boolean;
+  }): Promise<string> {
+    this.logger.info(
+      `Adding content from ${node.filepath} to parent ${parentObjectType}`
+    );
+
+    const pageElement = await this.fetchAndConvertToPageElement(node.filepath);
+
+    if (parentObjectType === 'page') {
+      await this.destinationRepository.appendToPage({
+        pageId: parentObjectId,
+        pageElement,
+      });
+      this.logger.info(`Added content from ${node.filepath} to parent page`);
+
+      await this.lockPageIfNeeded(parentObjectId, lockPage);
+
+      return parentObjectId;
+    }
+
+    // parentObjectType === 'database'
+    const newPage = await this.destinationRepository.createPage({
+      pageElement,
+      parentObjectId,
+      parentObjectType,
+      filePath: node.filepath,
+    });
+
+    if (!newPage.pageId) {
+      throw new Error('New page ID is undefined');
+    }
+
+    return newPage.pageId;
+  }
+
+  /**
+   * Synchronizes a child node and its descendants recursively
+   */
+  private async synchronizeChildNode({
+    childNode,
+    parentPageId,
+    lockPage,
+  }: {
+    childNode: TreeNode;
     parentPageId: string;
     lockPage: boolean;
   }): Promise<void> {
-    // If the current node has content AND is the root node, add it to the parent page
-    if (node.filepath && node.parent === null) {
-      try {
-        this.logger.info(`Adding content from ${node.filepath} to parent page`);
+    const filePath = childNode.filepath;
+    this.logger.info(`Processing file: ${filePath}`);
 
-        // Retrieve the file content
-        const file = await this.sourceRepository.getFile({
-          path: node.filepath,
-        } as T);
+    const pageElement = await this.fetchAndConvertToPageElement(filePath);
 
-        // Set the current file path for image resolution
-        if (this.elementConverter.setCurrentFilePath) {
-          this.elementConverter.setCurrentFilePath(node.filepath);
-        }
+    // Add standard elements at the beginning (in reverse order)
+    pageElement.addElementToBeginning(new TableOfContentsElement());
+    pageElement.addElementToBeginning(new DividerElement());
 
-        // Convert the file content to elements
-        const pageElement = this.elementConverter.convertToElement(file);
-
-        if (!(pageElement instanceof PageElement)) {
-          throw new Error('Element is not a PageElement');
-        }
-
-        // Add the content to the existing parent page by appending it
-        await this.destinationRepository.appendToPage({
-          pageId: parentPageId,
-          pageElement,
-        });
-
-        this.logger.info(`Added content from ${node.filepath} to parent page`);
-
-        if (lockPage) {
-          await this.destinationRepository.setPageLockedStatus({
-            pageId: parentPageId,
-            lockStatus: 'locked',
-          });
-          this.logger.info(`Locked parent page ${parentPageId}`);
-        }
-      } catch (error) {
-        if (error instanceof Error) {
-          this.logger.error(
-            `Failed to add content from ${node.filepath} to parent page`,
-            {
-              error,
-            }
-          );
-        }
-        throw error;
-      }
+    if (childNode.children.length > 0) {
+      pageElement.addElementToEnd(new DividerElement());
     }
 
-    for (const childNode of node.children) {
-      const filePath = childNode.filepath;
-      this.logger.info(`Processing file: ${filePath}`);
+    const newPage = await this.destinationRepository.createPage({
+      pageElement,
+      parentObjectId: parentPageId,
+      parentObjectType: 'page',
+      filePath,
+    });
 
-      try {
-        // Retrieve the file from the source repository
-        const file = await this.sourceRepository.getFile({
-          path: filePath,
-        } as T);
+    this.logger.info(`Created Notion page for file: ${filePath}`);
 
-        // Set the current file path for image resolution
-        if (this.elementConverter.setCurrentFilePath) {
-          this.elementConverter.setCurrentFilePath(filePath);
-        }
+    if (!newPage.pageId) {
+      throw new Error('Page ID is undefined');
+    }
 
-        // Convert the file content to a Notion page element
-        const pageElement = this.elementConverter.convertToElement(file);
+    // Recursively process children
+    for (const grandChild of childNode.children) {
+      await this.synchronizeChildNode({
+        childNode: grandChild,
+        parentPageId: newPage.pageId,
+        lockPage,
+      });
+    }
 
-        if (!(pageElement instanceof PageElement)) {
-          throw new Error('Element is not a PageElement');
-        }
+    await this.lockPageIfNeeded(newPage.pageId, lockPage);
+  }
 
-        [new DividerElement(), new TableOfContentsElement()].forEach(
-          (element) => {
-            pageElement.addElementToBeginning(element);
-          }
-        );
+  /**
+   * Main orchestrator for synchronizing a tree node and its children
+   */
+  private async synchronizeTreeNode({
+    node,
+    parentObjectId,
+    parentObjectType,
+    lockPage,
+  }: {
+    node: TreeNode;
+    parentObjectId: string;
+    parentObjectType: ObjectType;
+    lockPage: boolean;
+  }): Promise<void> {
+    let parentPageId: string = parentObjectId;
 
-        if (childNode.children.length > 0) {
-          // Add divider to the end of the page
-          pageElement.addElementToEnd(new DividerElement());
-        }
-
-        // Create the Notion page and get the new page ID
-        const newPage = await this.destinationRepository.createPage({
-          pageElement,
-          parentPageId,
-          filePath,
-        });
-
-        this.logger.info(`Created Notion page for file: ${filePath}`);
-
-        // Recursively process the children of the current node
-        if (childNode.children.length > 0) {
-          if (newPage.pageId === undefined) {
-            throw new Error('Page ID is undefined');
-          }
-
-          await this.synchronizeTreeNode({
-            node: childNode,
-            parentPageId: newPage.pageId,
+    switch (parentObjectType) {
+      case 'unknown':
+        throw new Error('Parent object type is unknown');
+      case 'database':
+        if (this.getIsRootNode(node)) {
+          parentPageId = await this.synchronizeRootNode({
+            node,
+            parentObjectId,
+            parentObjectType,
+            lockPage,
+          });
+        } else {
+          parentPageId = await this.synchronizeRootNode({
+            node: node.children[0],
+            parentObjectId,
+            parentObjectType,
             lockPage,
           });
         }
-
-        if (lockPage && newPage.pageId) {
-          await this.destinationRepository.setPageLockedStatus({
-            pageId: newPage.pageId,
-            lockStatus: 'locked',
+        break;
+      case 'page':
+        if (this.getIsRootNode(node)) {
+          parentPageId = await this.synchronizeRootNode({
+            node,
+            parentObjectId,
+            parentObjectType,
+            lockPage,
           });
-          this.logger.info(`Locked page ${newPage.pageId}`);
         }
+        break;
+      default:
+        throw new Error('Invalid parent object type');
+    }
+
+    for (const childNode of node.children) {
+      try {
+        await this.synchronizeChildNode({
+          childNode,
+          parentPageId,
+          lockPage,
+        });
       } catch (error) {
-        if (error instanceof Error) {
-          this.logger.error(`Failed to synchronize file: ${filePath}`, {
-            error,
-          });
-        }
-
+        this.logger.error(`Failed to synchronize file: ${childNode.filepath}`, {
+          error,
+        });
         throw error;
       }
     }
+  }
+
+  private getIsRootNode(node: TreeNode): boolean {
+    return node.parent === null && !['', undefined].includes(node.filepath);
   }
 }

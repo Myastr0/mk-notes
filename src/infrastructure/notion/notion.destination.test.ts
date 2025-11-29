@@ -54,7 +54,7 @@ describe('NotionDestinationRepository', () => {
       jest.spyOn(mockClient.pages,'retrieve').mockResolvedValue({ id: 'page-id', object: 'page' });
 
       const result = await repository.destinationIsAccessible({
-        parentPageId: 'page-id',
+        parentObjectId: 'page-id',
       });
 
       expect(result).toBe(true);
@@ -67,7 +67,7 @@ describe('NotionDestinationRepository', () => {
       jest.spyOn(mockClient.pages,'retrieve').mockRejectedValue(new Error('Not found'));
 
       const result = await repository.destinationIsAccessible({
-        parentPageId: 'invalid-id',
+        parentObjectId: 'invalid-id',
       });
 
       expect(result).toBe(false);
@@ -135,7 +135,8 @@ describe('NotionDestinationRepository', () => {
       jest.spyOn(mockClient.blocks.children,'list').mockResolvedValue({ results: [] } as unknown as ListBlockChildrenResponse);
 
       const result = await repository.createPage({
-        parentPageId: 'parent-id',
+        parentObjectId: 'parent-id',
+        parentObjectType: 'page',
         pageElement,
       });
 
@@ -260,45 +261,45 @@ describe('NotionDestinationRepository', () => {
   describe('getPageIdFromPageUrl', () => {
     it('should extract the page ID from a standard Notion URL', () => {
       const pageUrl = 'https://www.notion.so/workspace/Test-Page-12345678901234567890123456789012';
-      const result = repository.getPageIdFromPageUrl({ pageUrl });
+      const result = repository.getObjectIdFromObjectUrl({ objectUrl: pageUrl });
       expect(result).toBe('12345678901234567890123456789012');
     });
 
     it('should extract the page ID from a URL with multiple hyphens', () => {
       const pageUrl = 'https://www.notion.so/workspace/My-Test-Page-With-Many-Hyphens-12345678901234567890123456789012';
-      const result = repository.getPageIdFromPageUrl({ pageUrl });
+      const result = repository.getObjectIdFromObjectUrl({ objectUrl: pageUrl });
       expect(result).toBe('12345678901234567890123456789012');
     });
 
     it('should extract the page ID from a URL without a workspace name', () => {
       const pageUrl = 'https://www.notion.so/Test-Page-12345678901234567890123456789012';
-      const result = repository.getPageIdFromPageUrl({ pageUrl });
+      const result = repository.getObjectIdFromObjectUrl({ objectUrl: pageUrl });
       expect(result).toBe('12345678901234567890123456789012');
     });
 
     it('should throw an error for a URL without a page ID', () => {
       const pageUrl = 'https://www.notion.so/workspace/Test-Page';
-      expect(() => repository.getPageIdFromPageUrl({ pageUrl })).toThrow('Invalid Notion URL');
+      expect(() => repository.getObjectIdFromObjectUrl({ objectUrl: pageUrl })).toThrow('Invalid Notion URL');
     });
 
     it('should throw an error for a URL with an invalid page ID length', () => {
       const pageUrl = 'https://www.notion.so/workspace/Test-Page-123456';
-      expect(() => repository.getPageIdFromPageUrl({ pageUrl })).toThrow('Invalid Notion URL');
+      expect(() => repository.getObjectIdFromObjectUrl({ objectUrl: pageUrl })).toThrow('Invalid Notion URL');
     });
 
     it('should throw an error for a non-Notion URL', () => {
       const pageUrl = 'https://example.com/some-page';
-      expect(() => repository.getPageIdFromPageUrl({ pageUrl })).toThrow('Invalid Notion URL');
+      expect(() => repository.getObjectIdFromObjectUrl({ objectUrl: pageUrl })).toThrow('Invalid Notion URL');
     });
 
     it('should throw an error when the URL is a Notion Database', () => {
       const pageUrl = 'https://www.notion.so/16d4754ea1e980d1a2fdc2ab5fa4dfaf?v=7d43042815524daa9c5c3a7a4f8e1fe4&pvs=4';
-      expect(() => repository.getPageIdFromPageUrl({ pageUrl })).toThrow('Notion Databases are not supported yet. Please use a Notion Page URL');
+      expect(() => repository.getObjectIdFromObjectUrl({ objectUrl: pageUrl })).toThrow('Notion Databases are not supported yet. Please use a Notion Page URL');
     });
 
     it('should extract the page ID from a URL with direct ID and query parameters', () => {
       const pageUrl = 'https://www.notion.so/16d4754ea1e980d1a2fdc2ab5fa4dfaf?pvs=4';
-      const result = repository.getPageIdFromPageUrl({ pageUrl });
+      const result = repository.getObjectIdFromObjectUrl({ objectUrl: pageUrl });
       expect(result).toBe('16d4754ea1e980d1a2fdc2ab5fa4dfaf');
     });
   });

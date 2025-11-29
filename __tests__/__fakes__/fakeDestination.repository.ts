@@ -1,6 +1,7 @@
 import { type PageElement } from '@/domains/elements';
 import {
   DestinationRepository,
+  ObjectType,
   Page,
   PageLockedStatus,
 } from '@/domains/synchronization/destination.repository';
@@ -10,18 +11,22 @@ import { FakePage } from './fakePage';
 export class FakeDestinationRepository<T extends Page>
   implements DestinationRepository<T>
 {
-  getPageIdFromPageUrl({ pageUrl }: { pageUrl: string }): string {
-    return pageUrl.split('/').pop() ?? '';
+  async getObjectType({ id }: { id: string }): Promise<ObjectType> {
+    return Promise.resolve('page');
+  }
+
+  getObjectIdFromObjectUrl({ objectUrl }: { objectUrl: string }): string {
+    return objectUrl.split('/').pop() ?? '';
   }
 
   // Simulate creating a new page
   // eslint-disable-next-line @typescript-eslint/require-await
   async createPage({
     pageElement,
-    parentPageId,
+    parentObjectId,
   }: {
     pageElement: PageElement;
-    parentPageId: string;
+    parentObjectId: string;
   }): Promise<T> {
     // Here you would implement the logic to create a new page in the fake destination
     const fakePage = new FakePage({
@@ -55,9 +60,9 @@ export class FakeDestinationRepository<T extends Page>
   // Simulate checking if the destination is accessible
   // eslint-disable-next-line @typescript-eslint/require-await
   async destinationIsAccessible({
-    parentPageId,
+    parentObjectId,
   }: {
-    parentPageId: string;
+    parentObjectId: string;
   }): Promise<boolean> {
     // Here you would implement the logic to check if the destination is accessible
     // For demonstration purposes, let's return a boolean value

@@ -14,6 +14,8 @@ import {
   LinkElement,
   ListItemElement,
   PageElement,
+  PageElementProperties,
+  PageElementPropertyValue,
   QuoteElement,
   RichTextElement,
   TableElement,
@@ -21,6 +23,7 @@ import {
   TextElementLevel,
   ToggleElement,
 } from '@/domains/elements';
+import { MK_NOTES_INTERNAL_ID_PROPERTY_NAME } from '@/domains/notion/constants';
 import { NotionPage } from '@/domains/notion/NotionPage';
 
 import {
@@ -28,22 +31,35 @@ import {
   BlockObjectRequestWithoutChildren,
   BulletedListItemBlock,
   CalloutBlock,
+  CheckboxProperty,
   CreatePageBodyParameters,
+  DatabaseProperty,
+  DatabasePropertyDefinition,
+  DateProperty,
+  EmailProperty,
   EquationBlock,
   Heading1Block,
   Heading2Block,
   Heading3Block,
   LanguageRequest,
+  MultiSelectProperty,
   NumberedListItemBlock,
+  NumberProperty,
+  PageProperties,
   ParagraphBlock,
+  PhoneNumberProperty,
   QuoteBlock,
   RichTextItemRequest,
+  RichTextProperty,
+  SelectProperty,
+  StatusProperty,
   TableBlock,
   TableOfContentsBlock,
   TableRowBlock,
   TitleProperty,
   ToggleBlock,
-} from '../../domains/notion/types';
+  UrlProperty,
+} from '../../domains/notion/types/types';
 import { NotionFileUploadService } from './file-upload.service';
 
 type PartialCreatePageBodyParameters = Pick<
@@ -109,8 +125,418 @@ export class NotionConverterRepository
     return true;
   }
 
+  // ============================================
+  // Property Conversion Functions
+  // ============================================
+
+  /**
+   * Converts a string value to a Notion TitleProperty
+   */
+  private convertToTitleProperty(
+    value: PageElementPropertyValue
+  ): TitleProperty {
+    if (typeof value !== 'string') {
+      throw new Error(`Invalid value type: ${typeof value}`);
+    }
+
+    return {
+      id: 'title',
+      type: 'title',
+      title: [
+        {
+          type: 'text',
+          text: {
+            content: value,
+            link: null,
+          },
+        },
+      ],
+    };
+  }
+
+  /**
+   * Converts a string value to a Notion RichTextProperty
+   */
+  private convertToRichTextProperty(
+    value: PageElementPropertyValue
+  ): RichTextProperty {
+    if (typeof value !== 'string') {
+      throw new Error(`Invalid value type: ${typeof value}`);
+    }
+
+    return {
+      type: 'rich_text',
+      rich_text: [
+        {
+          type: 'text',
+          text: {
+            content: value,
+            link: null,
+          },
+        },
+      ],
+    };
+  }
+
+  /**
+   * Converts a string value to a Notion NumberProperty
+   * Returns null if the value cannot be parsed as a number
+   */
+  private convertToNumberProperty(
+    value: PageElementPropertyValue
+  ): NumberProperty | null {
+    if (typeof value !== 'number') {
+      throw new Error(`Invalid value type: ${typeof value}`);
+    }
+
+    const parsed = value;
+
+    if (isNaN(parsed)) {
+      this.logger.warn(
+        `Cannot convert "${value}" to number property, skipping`
+      );
+      return null;
+    }
+    return {
+      type: 'number',
+      number: parsed,
+    };
+  }
+
+  /**
+   * Converts a string value to a Notion UrlProperty
+   */
+  private convertToUrlProperty(value: PageElementPropertyValue): UrlProperty {
+    if (typeof value !== 'string') {
+      throw new Error(`Invalid value type: ${typeof value}`);
+    }
+
+    return {
+      type: 'url',
+      url: value || null,
+    };
+  }
+
+  /**
+   * Converts a string value to a Notion SelectProperty
+   * The value should match one of the available options in the database property definition
+   */
+  private convertToSelectProperty(
+    value: PageElementPropertyValue,
+    propertyDefinition: DatabasePropertyDefinition
+  ): SelectProperty {
+    if (typeof value !== 'string') {
+      throw new Error(`Invalid value type: ${typeof value}`);
+    }
+
+    // Type-narrow to access select options
+    if (propertyDefinition.type === 'select') {
+      const { options } = propertyDefinition.select;
+      const matchingOption = options.find(
+        (opt) => opt.name.toLowerCase() === value.toLowerCase()
+      );
+
+      if (matchingOption) {
+        return {
+          type: 'select',
+          select: {
+            id: matchingOption.id,
+            name: matchingOption.name,
+            color: matchingOption.color,
+          },
+        };
+      }
+    }
+
+    // If no matching option found, create a new one with the provided value
+    // Notion will create the option if it doesn't exist
+    return {
+      type: 'select',
+      select: {
+        id: '',
+        name: value,
+      },
+    };
+  }
+
+  /**
+   * Converts a string value to a Notion MultiSelectProperty
+   * The value should be a comma-separated list of option names
+   */
+  private convertToMultiSelectProperty(
+    value: PageElementPropertyValue,
+    propertyDefinition: DatabasePropertyDefinition
+  ): MultiSelectProperty {
+    if (typeof value !== 'string' && !Array.isArray(value)) {
+      throw new Error(`Invalid value type: ${typeof value}`);
+    }
+
+    const values = value instanceof Array ? value : [value];
+
+    // Type-narrow to access multi_select options
+    const options =
+      propertyDefinition.type === 'multi_select'
+        ? propertyDefinition.multi_select.options
+        : [];
+
+    const multiSelectOptions = values.map((val) => {
+      const matchingOption = options.find(
+        (opt) => opt.name.toLowerCase() === String(val).toLowerCase()
+      );
+
+      if (matchingOption) {
+        return {
+          id: matchingOption.id,
+          name: matchingOption.name,
+          color: matchingOption.color,
+        };
+      }
+
+      // Create new option if not found
+      return {
+        id: '',
+        name: String(val),
+      };
+    });
+
+    return {
+      type: 'multi_select',
+      multi_select: multiSelectOptions,
+    };
+  }
+
+  /**
+   * Converts a string value to a Notion DateProperty
+   * Supports ISO 8601 date strings (YYYY-MM-DD or YYYY-MM-DDTHH:mm:ss)
+   */
+  private convertToDateProperty(
+    value: PageElementPropertyValue
+  ): DateProperty | null {
+    if (typeof value !== 'string') {
+      throw new Error(`Invalid value type: ${typeof value}`);
+    }
+
+    // Try to parse the date
+    const date = new Date(value);
+    if (isNaN(date.getTime())) {
+      this.logger.warn(`Cannot convert "${value}" to date property, skipping`);
+      return null;
+    }
+
+    // Format as ISO string (Notion expects ISO 8601 format)
+    return {
+      type: 'date',
+      date: value, // Pass the original value if it's already in ISO format
+    };
+  }
+
+  /**
+   * Converts a string value to a Notion CheckboxProperty
+   * Accepts: "true", "false", "yes", "no", "1", "0"
+   */
+  private convertToCheckboxProperty(
+    value: PageElementPropertyValue
+  ): CheckboxProperty {
+    if (typeof value !== 'string' && typeof value !== 'boolean') {
+      throw new Error(`Invalid value type: ${typeof value}`);
+    }
+
+    if (typeof value === 'boolean') {
+      return {
+        type: 'checkbox',
+        checkbox: value,
+      };
+    }
+
+    const normalizedValue = value.toLowerCase().trim();
+    const trueValues = ['true', 'yes', '1', 'on', 'checked'];
+    const isChecked = trueValues.includes(normalizedValue);
+
+    return {
+      type: 'checkbox',
+      checkbox: isChecked,
+    };
+  }
+
+  /**
+   * Converts a string value to a Notion EmailProperty
+   */
+  private convertToEmailProperty(
+    value: PageElementPropertyValue
+  ): EmailProperty {
+    if (typeof value !== 'string') {
+      throw new Error(`Invalid value type: ${typeof value}`);
+    }
+
+    return {
+      type: 'email',
+      email: value || null,
+    };
+  }
+
+  /**
+   * Converts a string value to a Notion PhoneNumberProperty
+   */
+  private convertToPhoneNumberProperty(
+    value: PageElementPropertyValue
+  ): PhoneNumberProperty {
+    if (typeof value !== 'string') {
+      throw new Error(`Invalid value type: ${typeof value}`);
+    }
+
+    return {
+      type: 'phone_number',
+      phone_number: value || null,
+    };
+  }
+
+  /**
+   * Converts a string value to a Notion StatusProperty
+   * The value should match one of the available status options in the database property definition
+   */
+  private convertToStatusProperty(
+    value: PageElementPropertyValue,
+    propertyDefinition: DatabasePropertyDefinition
+  ): StatusProperty {
+    if (typeof value !== 'string') {
+      throw new Error(`Invalid value type: ${typeof value}`);
+    }
+
+    // Type-narrow to access status options
+    if (propertyDefinition.type === 'status') {
+      const { options } = propertyDefinition.status;
+      const matchingOption = options.find(
+        (opt) => opt.name.toLowerCase() === value.toLowerCase()
+      );
+
+      if (matchingOption) {
+        return {
+          type: 'status',
+          status: {
+            id: matchingOption.id,
+            name: matchingOption.name,
+            color: matchingOption.color,
+          },
+        };
+      }
+    }
+
+    // If no matching option found, use the value as-is
+    // Note: Notion may reject this if the status doesn't exist
+    return {
+      type: 'status',
+      status: {
+        id: '',
+        name: value,
+      },
+    };
+  }
+
+  /**
+   * Converts a PageElementProperty to the appropriate Notion property based on the database property definition
+   */
+  private convertPropertyValue(
+    value: PageElementPropertyValue,
+    propertyDefinition: DatabasePropertyDefinition
+  ): PageProperties[string] | null {
+    if (value instanceof Array) {
+      if (propertyDefinition.type === 'multi_select') {
+        return this.convertToMultiSelectProperty(value, propertyDefinition);
+      }
+      this.logger.warn(
+        `Unsupported array value for property type "${propertyDefinition.type}"`
+      );
+
+      return null;
+    }
+
+    switch (propertyDefinition.type) {
+      case 'title':
+        return this.convertToTitleProperty(value);
+      case 'rich_text':
+        return this.convertToRichTextProperty(value);
+      case 'number':
+        return this.convertToNumberProperty(value);
+      case 'url':
+        return this.convertToUrlProperty(value);
+      case 'select':
+        return this.convertToSelectProperty(value, propertyDefinition);
+      case 'multi_select':
+        return this.convertToMultiSelectProperty(value, propertyDefinition);
+      case 'date':
+        return this.convertToDateProperty(value);
+      case 'checkbox':
+        return this.convertToCheckboxProperty(value);
+      case 'email':
+        return this.convertToEmailProperty(value);
+      case 'phone_number':
+        return this.convertToPhoneNumberProperty(value);
+      case 'status':
+        return this.convertToStatusProperty(value, propertyDefinition);
+      case 'people':
+      case 'files':
+      case 'relation':
+      case 'formula':
+      case 'rollup':
+      case 'created_time':
+      case 'created_by':
+      case 'last_edited_time':
+      case 'last_edited_by':
+      case 'unique_id':
+        this.logger.warn(
+          `Property type "${propertyDefinition.type}" cannot be converted from string, skipping property "${propertyDefinition.name}"`
+        );
+        return null;
+    }
+  }
+
+  /**
+   * Converts page element properties to Notion PageProperties based on database property definitions
+   *
+   * @param properties - Array of PageElementProperties from the markdown frontmatter
+   * @param notionPropertyDefinitions - Array of database property definitions from Notion
+   * @returns PageProperties object ready to be used in Notion API calls
+   */
+  private convertPageElementProperties(
+    properties?: PageElementProperties[],
+    notionProperties: DatabaseProperty[] = []
+  ): PageProperties {
+    const result: PageProperties = {};
+
+    // Create a map of property definitions by name for quick lookup
+    const definitionMap = new Map<string, DatabasePropertyDefinition>();
+    for (const property of notionProperties) {
+      definitionMap.set(property.name, property.definition);
+    }
+
+    // Convert each page element property
+    for (const property of properties ?? []) {
+      const definition = definitionMap.get(property.name);
+
+      if (!definition) {
+        this.logger.warn(
+          `No matching Notion property definition found for "${property.name}", skipping`
+        );
+        continue;
+      }
+
+      const convertedValue = this.convertPropertyValue(
+        property.value,
+        definition
+      );
+
+      if (convertedValue !== null) {
+        // Use the original definition name to preserve casing
+        result[definition.name] = convertedValue;
+      }
+    }
+
+    return result;
+  }
+
   private async convertPageElement(
-    element: PageElement
+    element: PageElement,
+    notionPropertyDefinitions: DatabaseProperty[] = []
   ): Promise<PartialCreatePageBodyParameters> {
     const title: TitleProperty = {
       id: 'title',
@@ -126,10 +552,26 @@ export class NotionConverterRepository
       ],
     };
 
+    const elementProperties = element.properties ?? [];
+
+    if (element.mkNotesInternalId) {
+      elementProperties.push({
+        name: MK_NOTES_INTERNAL_ID_PROPERTY_NAME,
+        value: element.mkNotesInternalId,
+      });
+    }
+
+    // Convert page element properties to Notion properties
+    const convertedProperties = this.convertPageElementProperties(
+      elementProperties,
+      notionPropertyDefinitions
+    );
+
     const result: PartialCreatePageBodyParameters = {
       children: [],
       properties: {
         title,
+        ...convertedProperties,
       },
     };
 
@@ -187,8 +629,14 @@ export class NotionConverterRepository
         return null;
     }
   }
-  async convertFromElement(element: PageElement): Promise<NotionPage> {
-    const notionPageInput = await this.convertPageElement(element);
+  async convertFromElement(
+    element: PageElement,
+    availableProperties: DatabaseProperty[] = []
+  ): Promise<NotionPage> {
+    const notionPageInput = await this.convertPageElement(
+      element,
+      availableProperties
+    );
     return NotionPage.fromPartialCreatePageBodyParameters(notionPageInput);
   }
 

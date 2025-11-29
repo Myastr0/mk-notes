@@ -44,7 +44,7 @@
   },
   "dependencies": {
     "@actions/core": "1.11.1",
-    "@notionhq/client": "5.1.0",
+    "@notionhq/client": "5.4.0",
     "commander": "13.1.0",
     "dom-serializer": "2.0.0",
     "form-data": "4.0.4",
