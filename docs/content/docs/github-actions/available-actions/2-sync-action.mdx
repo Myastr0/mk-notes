@@ -1,10 +1,10 @@
 ---
 id: sync-action
 title: Sync Action
-description: Synchronize markdown files to Notion pages using the sync GitHub Action
+description: Synchronize markdown files to Notion pages or databases using the sync GitHub Action
 ---
 
-The sync action synchronizes your markdown files to a dedicated Notion page, maintaining the structure and formatting of your content.
+The sync action synchronizes your markdown files to a dedicated Notion page or database, maintaining the structure and formatting of your content.
 
 ## Usage
 
@@ -17,7 +17,7 @@ steps:
     uses: Myastr0/mk-notes/sync
     with:
       input: './docs' # The path to the markdown file or directory to synchronize
-      destination: 'https://notion.so/your-page-id'
+      destination: 'https://notion.so/your-page-or-database-id'
       notion-api-key: ${{ secrets.NOTION_API_KEY }}
 ```
 
@@ -28,15 +28,26 @@ steps:
   You should use a GitHub Secret to store your Notion API key. You can find more
   information in the [Setting Up Secrets](../setup.mdx) guide.
 </Callout>
+
 ## Inputs
 
-| Input            | Description                                                                                                                                            | Required | Default |
-| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | -------- | ------- |
-| `input`          | The path to the markdown file or directory to synchronize                                                                                              | `true`   | -       |
-| `destination`    | The Notion page URL where you want to synchronize your markdown files                                                                                  | `true`   | -       |
-| `notion-api-key` | Your Notion secret token                                                                                                                               | `true`   | -       |
-| `clean`          | Clean sync mode - WARNING: removes ALL existing content from the destination page before syncing, including any custom content not created by mk-notes | `false`  | `false` |
-| `lock`           | Lock the Notion page after syncing                                                                                                                     | `false`  | `false` |
+| Input            | Description                                                                                                                        | Required | Default |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------- | -------- | ------- |
+| `input`          | The path to the markdown file or directory to synchronize                                                                          | `true`   | -       |
+| `destination`    | The Notion page or database URL where you want to synchronize your markdown files                                                  | `true`   | -       |
+| `notion-api-key` | Your Notion secret token                                                                                                           | `true`   | -       |
+| `clean`          | Clean sync mode - For pages: removes ALL existing content. For databases: deletes pages with matching `mk-notes-id` before syncing | `false`  | `false` |
+| `lock`           | Lock the Notion page after syncing                                                                                                 | `false`  | `false` |
+
+## Destination Types
+
+### Notion Page
+
+When the destination is a Notion page, content is appended directly to the page. Child pages are created as sub-pages.
+
+### Notion Database
+
+When the destination is a Notion database, pages are created as database items. This is useful for managing collections of documents where you want to leverage Notion's database features.
 
 ## Outputs
 
@@ -117,9 +128,70 @@ jobs:
           clean: 'true'
 ```
 
+### Sync to a Notion Database
+
+```yaml
+name: Sync to Notion Database
+
+on:
+  push:
+    branches: [main]
+    paths: ['docs/**']
+
+jobs:
+  sync-to-database:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Sync to Notion database
+        uses: Myastr0/mk-notes/sync
+        with:
+          input: './docs'
+          destination: ${{ secrets.NOTION_DATABASE_URL }}
+          notion-api-key: ${{ secrets.NOTION_API_KEY }}
+```
+
+### Sync to Database with Clean Mode
+
+When using clean sync with a database, make sure your markdown files include an `id` in the frontmatter:
+
+```markdown
+---
+id: my-unique-doc-id
+title: My Document
+---
+
+Content here...
+```
+
+```yaml
+name: Clean Sync to Database
+
+on:
+  workflow_dispatch:
+
+jobs:
+  clean-sync-database:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Clean sync to Notion database
+        uses: Myastr0/mk-notes/sync
+        with:
+          input: './docs'
+          destination: ${{ secrets.NOTION_DATABASE_URL }}
+          notion-api-key: ${{ secrets.NOTION_API_KEY }}
+          clean: 'true'
+```
+
 ## Important Notes
 
-- The `clean` option removes ALL existing content from the destination page
-- Use clean sync only when you're sure you want to replace all content
+- **For pages**: The `clean` option removes ALL existing content from the destination page
+- **For databases**: The `clean` option deletes pages with matching `mk-notes-id` property before syncing
+- Use clean sync only when you're sure you want to replace content
 - Always test with the [preview action](./1-preview-action.mdx) first
-- Make sure your Notion integration has access to the target page
+- Make sure your Notion integration has access to the target page or database

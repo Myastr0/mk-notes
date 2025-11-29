@@ -1,0 +1,277 @@
+---
+id: database-sync
+title: Database Synchronization
+description: How to synchronize markdown files to Notion databases
+---
+
+This guide explains how to sync your markdown content to Notion databases instead of regular pages, enabling you to leverage Notion's powerful database features like filtering, sorting, and views.
+
+---
+
+## Why Use Database Sync?
+
+Syncing to a Notion database offers several advantages over regular page sync:
+
+- **Better organization**: Use Notion's table, board, gallery, or calendar views
+- **Filtering & sorting**: Quickly find content using database filters
+- **Custom properties**: Add metadata like status, tags, or dates to your pages
+- **Scalable**: Ideal for managing large collections of documents
+
+---
+
+## Setting Up Your Database
+
+Before syncing, you need to prepare your Notion database with a special property.
+
+### Creating the `mk-notes-id` Property
+
+For MK Notes to identify and update existing pages (when using `--clean` mode), your database must have a **text property** named `mk-notes-id`.
+
+<div className="fd-steps">
+<div className="fd-step">
+
+### Open your Notion database
+
+Navigate to the database where you want to sync your markdown content.
+
+</div>
+<div className="fd-step">
+
+### Add a new property
+
+Click the **+** button in the database header to add a new property.
+
+</div>
+<div className="fd-step">
+
+### Configure the property
+
+- **Name**: `mk-notes-id`
+- **Type**: `Text`
+
+</div>
+</div>
+
+<Callout type="warning" title="Property name must be exact">
+
+The property name must be exactly `mk-notes-id` (all lowercase with hyphens). MK Notes will not recognize variations like `MkNotesId` or `mk_notes_id`.
+
+</Callout>
+
+---
+
+## Configuring Your Markdown Files
+
+### The `id` Frontmatter Property
+
+To enable page identification and updates, add an `id` property to your markdown frontmatter:
+
+```markdown
+---
+id: my-unique-page-id
+title: My Document Title
+---
+
+Your content here...
+```
+
+When syncing to a database:
+
+1. The `id` value from your frontmatter is stored in the `mk-notes-id` database property
+2. MK Notes uses this ID to find and update existing pages during clean sync
+3. Without an `id`, pages will be created but cannot be updated via clean sync
+
+<Callout type="info" title="Choosing good IDs">
+
+Use stable, unique identifiers for your `id` values. Good choices include:
+
+- File paths: `guides/getting-started`
+- Slugs: `api-authentication`
+- UUIDs: `550e8400-e29b-41d4-a716-446655440000`
+
+Avoid using titles as IDs since they may change over time.
+
+</Callout>
+
+---
+
+## Syncing Commands
+
+### Basic Database Sync
+
+To sync markdown files to a database:
+
+```bash
+mk-notes sync \
+  --input ./docs \
+  --destination https://notion.so/myworkspace/database-123456 \
+  --notion-api-key secret_abc123...
+```
+
+This creates new pages in the database for each markdown file. However, running this command multiple times will create duplicate entries.
+
+### Clean Sync (Recommended)
+
+For updating existing content, use the `--clean` flag:
+
+```bash
+mk-notes sync \
+  --input ./docs \
+  --destination https://notion.so/myworkspace/database-123456 \
+  --notion-api-key secret_abc123... \
+  --clean
+```
+
+With clean sync enabled:
+
+1. MK Notes searches for existing pages with matching `mk-notes-id` values
+2. Found pages are deleted
+3. New pages are created with the updated content
+
+<Callout type="warning" title="Requires id in frontmatter">
+
+Clean sync only works for pages that have an `id` defined in their frontmatter. Pages without an `id` will be created but won't be cleaned up on subsequent syncs.
+
+</Callout>
+
+---
+
+## Adding Custom Database Properties
+
+You can populate additional database properties directly from your markdown frontmatter using the `properties` field:
+
+```markdown
+---
+id: api-auth-guide
+title: Authentication Guide
+properties:
+  - name: status
+    value: published
+  - name: category
+    value: API
+  - name: priority
+    value: high
+---
+
+Your content here...
+```
+
+### Supported Property Types
+
+MK Notes automatically maps values to the appropriate Notion property type based on your database schema:
+
+| Notion Property Type | Frontmatter Value Format |
+| -------------------- | ------------------------ |
+| Text                 | `"any string"`           |
+| Number               | `123` or `45.67`         |
+| Select               | `"option-name"`          |
+| Multi-select         | `"option1, option2"`     |
+| Checkbox             | `true` or `false`        |
+| URL                  | `"https://example.com"`  |
+| Email                | `"user@example.com"`     |
+| Phone                | `"+1234567890"`          |
+| Date                 | `"2024-01-15"`           |
+
+<Callout type="info" title="Property must exist">
+
+The database property must already exist in your Notion database. MK Notes will not create new properties automatically—it only populates existing ones.
+
+</Callout>
+
+---
+
+## Complete Example
+
+Here's a complete example of a markdown file optimized for database sync:
+
+```markdown
+---
+id: getting-started-installation
+title: Installation Guide
+icon: 🚀
+properties:
+  - name: status
+    value: published
+  - name: category
+    value: Getting Started
+  - name: last-updated
+    value: 2024-01-15
+---
+
+## Introduction
+
+Welcome to the installation guide...
+
+## Prerequisites
+
+Before you begin, ensure you have...
+
+## Installation Steps
+
+1. First, install the package...
+```
+
+---
+
+## Best Practices
+
+### 1. Always Use Unique IDs
+
+Ensure each markdown file has a unique `id` to prevent conflicts:
+
+```markdown
+---
+id: docs/guides/authentication # Use path-based IDs for uniqueness
+title: Authentication
+---
+```
+
+### 2. Use Clean Sync for Updates
+
+Always use the `--clean` flag when updating existing content to avoid duplicates:
+
+```bash
+mk-notes sync -i ./docs -d <database-url> -k <api-key> --clean
+```
+
+### 3. Preview Before Syncing
+
+Use the preview command to verify your structure:
+
+```bash
+mk-notes preview-sync --input ./docs
+```
+
+### 4. Organize with Database Views
+
+After syncing, create Notion database views to organize your content:
+
+- **Table view**: For detailed property inspection
+- **Board view**: Group by status or category
+- **Gallery view**: Visual overview of your documentation
+
+---
+
+## Troubleshooting
+
+### Pages are duplicated
+
+**Cause**: Running sync without `--clean` flag, or missing `id` in frontmatter.
+
+**Solution**: Add unique `id` values to all markdown files and use `--clean` flag.
+
+### Properties not appearing
+
+**Cause**: Property doesn't exist in the database or name doesn't match exactly.
+
+**Solution**: Ensure the property exists in your Notion database with the exact same name (case-sensitive).
+
+### Clean sync not deleting old pages
+
+**Cause**: The `mk-notes-id` property doesn't exist or has a different name.
+
+**Solution**: Create a text property named exactly `mk-notes-id` in your database.
+
+---
+
+For more information about CLI commands, see the [CLI Commands](./cli-commands) documentation.

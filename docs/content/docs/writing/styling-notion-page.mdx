@@ -14,10 +14,11 @@ This document explains how to customize your Notion Page directly from your mark
 Mk Notes relies on `frontmatter` to be able to add metadata on markdown files.
 
 ```markdown
-# Beggining of your markdown file
+# Beginning of your markdown file
 
 ---
 
+id: unique-page-identifier
 title: The notion page title
 icon: 💡
 
@@ -28,6 +29,26 @@ icon: 💡
 
 Here's the Mk Notes supported properties to customize your Notion Page
 
+### `id`
+
+- Type: `string`
+
+_optional_
+
+This property allows you to specify a unique identifier for your page. This is particularly useful when syncing to a **Notion Database** with the `--clean` option enabled.
+
+When clean sync is enabled and the destination is a database, Mk Notes will use this `id` to find and delete existing pages with the same identifier before creating a new one. This ensures that repeated syncs don't create duplicate entries.
+
+```markdown
+id: <unique-identifier>
+```
+
+<Callout type="info" title="Database property">
+
+When syncing to a database, the `id` value is stored in a property named `mk-notes-id` in your Notion database.
+
+</Callout>
+
 ### `title`
 
 - Type: `string`
@@ -35,7 +56,7 @@ Here's the Mk Notes supported properties to customize your Notion Page
 _optional_
 
 This property allows you to specify a Notion page title.
-If you do not provide this property, Mk Notes will relies on the name of the file.
+If you do not provide this property, Mk Notes will rely on the name of the file.
 
 ```markdown
 title: <string>

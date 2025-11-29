@@ -10,24 +10,55 @@ MK Notes provides two main commands to help you manage your markdown to Notion s
 
 ## `sync`
 
-The `sync` command synchronizes markdown files to a Notion page. You can sync either a single markdown file or an entire directory of markdown files, creating a matching page hierarchy for directories.
+The `sync` command synchronizes markdown files to a Notion page or database. You can sync either a single markdown file or an entire directory of markdown files, creating a matching page hierarchy for directories.
 
 ### Usage
 
 ```bash
-mk-notes sync -i <path> -d <notionPageUrl> -k <notionApiKey>
+mk-notes sync -i <path> -d <notionUrl> -k <notionApiKey>
 ```
 
 ### Required Options
 
 - `-i, --input <path>`: Path to a markdown file or directory containing your markdown files
-- `-d, --destination <notionPageUrl>`: URL of the parent Notion page where content will be synchronized
+- `-d, --destination <notionUrl>`: URL of the parent Notion page or database where content will be synchronized
 - `-k, --notion-api-key <notionApiKey>`: Your Notion API key for authentication
 
 ### Optional Options
 
-- `-c, --clean`: Clean sync mode - **WARNING: removes ALL existing content** from the destination page before syncing, including any manually added content or blocks not created by mk-notes. This prevents duplicate content when repeatedly syncing to the same destination, but will delete any custom content you've added to the page.
+- `-c, --clean`: Clean sync mode - behavior depends on the destination type:
+
+  <Callout type="warning" title="For Notion Pages">
+
+  Removes <b>ALL existing content</b> from the destination page before
+  syncing, including any manually added content or blocks not created by
+  mk-notes.
+
+  </Callout>
+
+  <Callout type="warning" title="For Notion Databases">
+
+  Finds and deletes existing pages with the same `id` (using the `mk-notes-id`
+  notion database property) before creating new ones. This requires the `id`
+  property to be set in your markdown frontmatter.
+
+  For more information about synchronization into a database, you can read the [Database Synchronization](../database-sync) guide.
+
+  </Callout>
+
 - `-l, --lock`: Lock the Notion page after syncing to prevent further editing. This is useful when you want to preserve the synchronized content and prevent accidental modifications.
+
+### Destination Types
+
+Mk Notes supports two types of destinations:
+
+#### Notion Page
+
+When the destination is a Notion page, content is appended directly to the page (or replaces existing content with `--clean`). Child pages are created as sub-pages.
+
+#### Notion Database
+
+When the destination is a Notion database, pages are created as database items. This is useful for managing collections of documents where you want to leverage Notion's database features like filtering, sorting, and views.
 
 ### Examples
 
@@ -112,12 +143,54 @@ mk-notes sync \
 
 This command will:
 
-1. Remove ALL existing content from the destination Notion page (including pages that arelocked)
+1. Remove ALL existing content from the destination Notion page (including pages that are locked)
 2. Read all markdown files in the `./my-docs` directory
 3. Create a matching page hierarchy in Notion
 4. Convert and sync the content to your specified Notion page
 5. **Lock the Notion page** to prevent further editing
 6. Display a success message with the Notion page URL when complete
+
+#### Syncing to a Notion Database
+
+```bash
+mk-notes sync \
+  --input ./my-docs \
+  --destination https://notion.so/myworkspace/database-123456 \
+  --notion-api-key secret_abc123...
+```
+
+This command will:
+
+1. Read all markdown files in the `./my-docs` directory
+2. Create pages as items in the specified Notion database
+3. Display a success message when complete
+
+#### Syncing to a Database with Clean Sync
+
+```bash
+mk-notes sync \
+  --input ./my-docs \
+  --destination https://notion.so/myworkspace/database-123456 \
+  --notion-api-key secret_abc123... \
+  --clean
+```
+
+For database destinations with clean sync, make sure your markdown files include an `id` in the frontmatter:
+
+```markdown
+---
+id: my-unique-page-id
+title: My Document
+---
+
+Content here...
+```
+
+This command will:
+
+1. Find existing pages in the database with matching `mk-notes-id` property
+2. Delete those existing pages
+3. Create new pages as database items with the content from your markdown files
 
 ## `preview-sync`
 

@@ -2,6 +2,7 @@
     "title": "Guides",
     "pages": [
         "cli-commands",
+        "database-sync",
         "architecture",
         "programmatic-usage"
     ]

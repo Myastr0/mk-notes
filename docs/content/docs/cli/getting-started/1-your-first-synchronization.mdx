@@ -4,17 +4,17 @@ title: Your first synchronization
 description: Tutorial to make your first synchronization with Mk Notes
 ---
 
-In this tutorial, you will learn how to synchronize your markdown files in a Notion page with Mk Notes.
+In this tutorial, you will learn how to synchronize your markdown files to Notion with Mk Notes.
 
 ---
 
 ## Requirements
 
-- A **Notion Integration** with read-write access on your Notion page
+- A **Notion Integration** with read-write access on your Notion page or your Notion Database
   <Callout>
-    Read the official
-    [Notion guide](https://developers.notion.com/docs/authorization) to create
-    and setup a Notion Integration on your workspace
+    Read the official [Notion
+    guide](https://developers.notion.com/docs/authorization) to create and setup
+    a Notion Integration on your workspace
   </Callout>
 
 ## Step-by-step guide 👇
@@ -41,18 +41,22 @@ Launch the following command:
 ```bash
   mk-notes sync \
     --input <path-to-your-markdown-file-or-directory> \
-    --destination <notion-page-url> \
+    --destination <notion-page-or-database-url> \
     --notion-api-key <your-notion-secret>
 ```
 
 - `--input` : The path to your markdown file or directory containing markdown files.
-- `--destination` : The Notion page URL where you want to synchronize your markdown files.
+- `--destination` : The Notion page or Notion Database URL where you want to synchronize your markdown files.
 - `--notion-api-key` : Your Notion secret token.
 
-<Callout type="warning">
-  Please note that you can only synchronize markdown files to **Notion Pages**.
-  Notion Databases are not supported for now.
+<Callout type="info">
+  Mk Notes supports both **Notion Pages** and **Notion Databases** as
+  destinations. When syncing to a database, pages are created as database items.
+
+For more information about synchronization into a database, you can read the [Database Synchronization](../guides/database-sync) guide.
+
 </Callout>
+
 </div>
 </div>
 ---
