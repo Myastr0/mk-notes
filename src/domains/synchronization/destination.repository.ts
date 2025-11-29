@@ -42,6 +42,7 @@ export interface DestinationRepository<T extends Page> {
   }: {
     parentPageId: string;
   }) => Promise<void>;
+  deleteObjectById: ({ objectId }: { objectId: string }) => Promise<void>;
   appendToPage: ({
     pageId,
     pageElement,
@@ -69,4 +70,16 @@ export interface DestinationRepository<T extends Page> {
     pageId: string;
   }) => Promise<PageLockedStatus>;
   getObjectType: ({ id }: { id: string }) => Promise<ObjectType>;
+  getObjectIdInDatabaseByMkNotesInternalId: ({
+    dataSourceId,
+    mkNotesInternalId,
+  }: {
+    dataSourceId: string;
+    mkNotesInternalId: string;
+  }) => Promise<string[]>;
+  getDataSourceIdFromDatabaseId: ({
+    databaseId,
+  }: {
+    databaseId: string;
+  }) => Promise<string>;
 }

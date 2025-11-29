@@ -11,6 +11,7 @@ import {
 import winston from 'winston';
 
 import { PageElement } from '@/domains/elements/Element';
+import { MK_NOTES_INTERNAL_ID_PROPERTY_NAME } from '@/domains/notion/constants';
 import {
   isNotionNestingValidationError,
   NotionNestingValidationError,
@@ -483,6 +484,19 @@ export class NotionDestinationRepository
     }
   }
 
+  async getDataSourceIdFromDatabaseId({
+    databaseId,
+  }: {
+    databaseId: string;
+  }): Promise<string> {
+    const database = await this.getDatabaseById({ databaseId });
+
+    if (!('data_sources' in database)) {
+      throw new Error('Database does not have any datasources');
+    }
+    return database.data_sources[0].id;
+  }
+
   async getDatasourceByDatasourceId({
     datasourceId,
   }: {
@@ -491,5 +505,29 @@ export class NotionDestinationRepository
     return this.client.dataSources.retrieve({
       data_source_id: datasourceId,
     });
+  }
+
+  async getObjectIdInDatabaseByMkNotesInternalId({
+    dataSourceId,
+    mkNotesInternalId,
+  }: {
+    dataSourceId: string;
+    mkNotesInternalId: string;
+  }): Promise<string[]> {
+    const items = await this.client.dataSources.query({
+      data_source_id: dataSourceId,
+      filter: {
+        property: MK_NOTES_INTERNAL_ID_PROPERTY_NAME,
+        rich_text: {
+          equals: mkNotesInternalId,
+        },
+      },
+    });
+
+    return items.results.map((item) => item.id);
+  }
+
+  async deleteObjectById({ objectId }: { objectId: string }): Promise<void> {
+    await this.client.blocks.delete({ block_id: objectId });
   }
 }

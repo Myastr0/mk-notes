@@ -115,4 +115,27 @@ export class FakeDestinationRepository<T extends Page>
   }): Promise<PageLockedStatus> {
     return 'unlocked';
   }
+
+  async getObjectIdInDatabaseByMkNotesInternalId({
+    dataSourceId,
+    mkNotesInternalId,
+  }: {
+    dataSourceId: string;
+    mkNotesInternalId: string;
+  }): Promise<string[]> {
+    return Promise.resolve([]);
+  }
+
+  async getDataSourceIdFromDatabaseId({
+    databaseId,
+  }: {
+    databaseId: string;
+  }): Promise<string> {
+    return Promise.resolve('');
+  }
+
+  async deleteObjectById({ objectId }: { objectId: string }): Promise<void> {
+    // no-op in fake repository for testing
+    return Promise.resolve();
+  }
 }
