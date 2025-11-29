@@ -29,8 +29,17 @@ describe('NotionDestinationRepository', () => {
       blocks: {
         children: {
           list: jest.fn(),
+          append: jest.fn(),
         },
         update: jest.fn(),
+        delete: jest.fn(),
+      },
+      databases: {
+        retrieve: jest.fn(),
+      },
+      dataSources: {
+        retrieve: jest.fn(),
+        query: jest.fn(),
       },
       search: jest.fn(),
     } as unknown as jest.Mocked<Client>;
@@ -54,7 +63,7 @@ describe('NotionDestinationRepository', () => {
       jest.spyOn(mockClient.pages,'retrieve').mockResolvedValue({ id: 'page-id', object: 'page' });
 
       const result = await repository.destinationIsAccessible({
-        parentPageId: 'page-id',
+        parentObjectId: 'page-id',
       });
 
       expect(result).toBe(true);
@@ -67,7 +76,7 @@ describe('NotionDestinationRepository', () => {
       jest.spyOn(mockClient.pages,'retrieve').mockRejectedValue(new Error('Not found'));
 
       const result = await repository.destinationIsAccessible({
-        parentPageId: 'invalid-id',
+        parentObjectId: 'invalid-id',
       });
 
       expect(result).toBe(false);
@@ -111,7 +120,7 @@ describe('NotionDestinationRepository', () => {
   });
 
   describe.skip('createPage', () => {
-    it('should create page with converted content', async () => {
+    it('should create page with converted content when parent is a page', async () => {
       const pageElement = new PageElement({
         title: 'Test Page',
         content: [],
@@ -135,20 +144,35 @@ describe('NotionDestinationRepository', () => {
       jest.spyOn(mockClient.blocks.children,'list').mockResolvedValue({ results: [] } as unknown as ListBlockChildrenResponse);
 
       const result = await repository.createPage({
-        parentPageId: 'parent-id',
+        parentObjectId: 'parent-id',
+        parentObjectType: 'page',
         pageElement,
       });
 
       expect(mockClient.pages.create).toHaveBeenCalledWith({
         parent: { type: 'page_id', page_id: 'parent-id' },
         properties: mockNotionPage.properties,
-        children: mockNotionPage.children,
+        icon: undefined,
+        children: [],
       });
 
       expect(result).toMatchObject({
         pageId: 'new-page-id',
         children: [],
       });
+    });
+
+    it('should throw an error when parent object type is unknown', async () => {
+      const pageElement = new PageElement({
+        title: 'Test Page',
+        content: [],
+      });
+
+      await expect(repository.createPage({
+        parentObjectId: 'parent-id',
+        parentObjectType: 'unknown',
+        pageElement,
+      })).rejects.toThrow('Unknown parent object type');
     });
   });
 
@@ -257,49 +281,56 @@ describe('NotionDestinationRepository', () => {
   //   });
   // });
 
-  describe('getPageIdFromPageUrl', () => {
+  describe('getObjectIdFromObjectUrl', () => {
     it('should extract the page ID from a standard Notion URL', () => {
       const pageUrl = 'https://www.notion.so/workspace/Test-Page-12345678901234567890123456789012';
-      const result = repository.getPageIdFromPageUrl({ pageUrl });
+      const result = repository.getObjectIdFromObjectUrl({ objectUrl: pageUrl });
       expect(result).toBe('12345678901234567890123456789012');
     });
 
     it('should extract the page ID from a URL with multiple hyphens', () => {
       const pageUrl = 'https://www.notion.so/workspace/My-Test-Page-With-Many-Hyphens-12345678901234567890123456789012';
-      const result = repository.getPageIdFromPageUrl({ pageUrl });
+      const result = repository.getObjectIdFromObjectUrl({ objectUrl: pageUrl });
       expect(result).toBe('12345678901234567890123456789012');
     });
 
     it('should extract the page ID from a URL without a workspace name', () => {
       const pageUrl = 'https://www.notion.so/Test-Page-12345678901234567890123456789012';
-      const result = repository.getPageIdFromPageUrl({ pageUrl });
+      const result = repository.getObjectIdFromObjectUrl({ objectUrl: pageUrl });
       expect(result).toBe('12345678901234567890123456789012');
     });
 
-    it('should throw an error for a URL without a page ID', () => {
+    it('should throw an error for a URL without a valid Notion ID', () => {
       const pageUrl = 'https://www.notion.so/workspace/Test-Page';
-      expect(() => repository.getPageIdFromPageUrl({ pageUrl })).toThrow('Invalid Notion URL');
+      expect(() => repository.getObjectIdFromObjectUrl({ objectUrl: pageUrl })).toThrow('Invalid Notion URL: No valid Notion ID found');
     });
 
-    it('should throw an error for a URL with an invalid page ID length', () => {
+    it('should throw an error for a URL with an invalid ID length', () => {
       const pageUrl = 'https://www.notion.so/workspace/Test-Page-123456';
-      expect(() => repository.getPageIdFromPageUrl({ pageUrl })).toThrow('Invalid Notion URL');
+      expect(() => repository.getObjectIdFromObjectUrl({ objectUrl: pageUrl })).toThrow('Invalid Notion URL: No valid Notion ID found');
     });
 
-    it('should throw an error for a non-Notion URL', () => {
+    it('should throw an error for a non-Notion URL without valid ID', () => {
       const pageUrl = 'https://example.com/some-page';
-      expect(() => repository.getPageIdFromPageUrl({ pageUrl })).toThrow('Invalid Notion URL');
+      expect(() => repository.getObjectIdFromObjectUrl({ objectUrl: pageUrl })).toThrow('Invalid Notion URL: No valid Notion ID found');
     });
 
-    it('should throw an error when the URL is a Notion Database', () => {
+    it('should extract the database ID from a Notion Database URL', () => {
       const pageUrl = 'https://www.notion.so/16d4754ea1e980d1a2fdc2ab5fa4dfaf?v=7d43042815524daa9c5c3a7a4f8e1fe4&pvs=4';
-      expect(() => repository.getPageIdFromPageUrl({ pageUrl })).toThrow('Notion Databases are not supported yet. Please use a Notion Page URL');
+      const result = repository.getObjectIdFromObjectUrl({ objectUrl: pageUrl });
+      expect(result).toBe('16d4754ea1e980d1a2fdc2ab5fa4dfaf');
     });
 
     it('should extract the page ID from a URL with direct ID and query parameters', () => {
       const pageUrl = 'https://www.notion.so/16d4754ea1e980d1a2fdc2ab5fa4dfaf?pvs=4';
-      const result = repository.getPageIdFromPageUrl({ pageUrl });
+      const result = repository.getObjectIdFromObjectUrl({ objectUrl: pageUrl });
       expect(result).toBe('16d4754ea1e980d1a2fdc2ab5fa4dfaf');
+    });
+
+    it('should extract the ID from a URL with name prefix like MK-Notes-<id>', () => {
+      const pageUrl = 'https://www.notion.so/MK-Notes-4dd0bd3dc73648a9a55dcf05dd03080f';
+      const result = repository.getObjectIdFromObjectUrl({ objectUrl: pageUrl });
+      expect(result).toBe('4dd0bd3dc73648a9a55dcf05dd03080f');
     });
   });
 
@@ -426,6 +457,176 @@ describe('NotionDestinationRepository', () => {
       jest.spyOn(mockClient.pages, 'retrieve').mockRejectedValue(error);
 
       await expect(repository.getPageLockedStatus({ pageId })).rejects.toThrow('Notion API error');
+    });
+  });
+
+  describe('getObjectType', () => {
+    it('should return "page" when the object is a page', async () => {
+      jest.spyOn(mockClient.pages, 'retrieve').mockResolvedValue({
+        id: 'page-id',
+        object: 'page',
+      } as any);
+
+      const result = await repository.getObjectType({ id: 'page-id' });
+
+      expect(result).toBe('page');
+      expect(mockClient.pages.retrieve).toHaveBeenCalledWith({
+        page_id: 'page-id',
+      });
+    });
+
+    it('should return "database" when the object is a database', async () => {
+      jest.spyOn(mockClient.pages, 'retrieve').mockRejectedValue(new Error('Not found'));
+      jest.spyOn(mockClient.databases, 'retrieve').mockResolvedValue({
+        id: 'database-id',
+        object: 'database',
+      } as any);
+
+      const result = await repository.getObjectType({ id: 'database-id' });
+
+      expect(result).toBe('database');
+      expect(mockClient.databases.retrieve).toHaveBeenCalledWith({
+        database_id: 'database-id',
+      });
+    });
+
+    it('should return "unknown" when the object is neither a page nor a database', async () => {
+      jest.spyOn(mockClient.pages, 'retrieve').mockRejectedValue(new Error('Not found'));
+      jest.spyOn(mockClient.databases, 'retrieve').mockRejectedValue(new Error('Not found'));
+
+      const result = await repository.getObjectType({ id: 'invalid-id' });
+
+      expect(result).toBe('unknown');
+    });
+  });
+
+  describe('getDatabaseById', () => {
+    it('should retrieve a database by ID', async () => {
+      const mockDatabase = {
+        id: 'database-id',
+        object: 'database',
+        title: [{ plain_text: 'Test Database' }],
+      };
+
+      jest.spyOn(mockClient.databases, 'retrieve').mockResolvedValue(mockDatabase as any);
+
+      const result = await repository.getDatabaseById({ databaseId: 'database-id' });
+
+      expect(result).toEqual(mockDatabase);
+      expect(mockClient.databases.retrieve).toHaveBeenCalledWith({
+        database_id: 'database-id',
+      });
+    });
+  });
+
+  describe('deleteObjectById', () => {
+    it('should delete an object by ID using blocks.delete', async () => {
+      jest.spyOn(mockClient.blocks, 'delete').mockResolvedValue({} as any);
+
+      await repository.deleteObjectById({ objectId: 'object-id' });
+
+      expect(mockClient.blocks.delete).toHaveBeenCalledWith({
+        block_id: 'object-id',
+      });
+    });
+  });
+
+  describe('getDataSourceIdFromDatabaseId', () => {
+    it('should return the data source ID from a database', async () => {
+      const mockDatabase = {
+        id: 'database-id',
+        object: 'database',
+        data_sources: [{ id: 'data-source-id' }],
+      };
+
+      jest.spyOn(mockClient.databases, 'retrieve').mockResolvedValue(mockDatabase as any);
+
+      const result = await repository.getDataSourceIdFromDatabaseId({ databaseId: 'database-id' });
+
+      expect(result).toBe('data-source-id');
+    });
+
+    it('should throw an error if database has no data sources', async () => {
+      const mockDatabase = {
+        id: 'database-id',
+        object: 'database',
+      };
+
+      jest.spyOn(mockClient.databases, 'retrieve').mockResolvedValue(mockDatabase as any);
+
+      await expect(repository.getDataSourceIdFromDatabaseId({ databaseId: 'database-id' }))
+        .rejects.toThrow('Database does not have any datasources');
+    });
+  });
+
+  describe('getObjectIdInDatabaseByMkNotesInternalId', () => {
+    it('should return object IDs matching the mk-notes internal ID', async () => {
+      const mockQueryResult = {
+        results: [
+          { id: 'object-1' },
+          { id: 'object-2' },
+        ],
+      };
+
+      jest.spyOn(mockClient.dataSources, 'query').mockResolvedValue(mockQueryResult as any);
+
+      const result = await repository.getObjectIdInDatabaseByMkNotesInternalId({
+        dataSourceId: 'data-source-id',
+        mkNotesInternalId: 'mk-notes-123',
+      });
+
+      expect(result).toEqual(['object-1', 'object-2']);
+      expect(mockClient.dataSources.query).toHaveBeenCalledWith({
+        data_source_id: 'data-source-id',
+        filter: {
+          property: 'mk-notes-id',
+          rich_text: {
+            equals: 'mk-notes-123',
+          },
+        },
+      });
+    });
+
+    it('should return empty array when no objects match', async () => {
+      const mockQueryResult = {
+        results: [],
+      };
+
+      jest.spyOn(mockClient.dataSources, 'query').mockResolvedValue(mockQueryResult as any);
+
+      const result = await repository.getObjectIdInDatabaseByMkNotesInternalId({
+        dataSourceId: 'data-source-id',
+        mkNotesInternalId: 'non-existent-id',
+      });
+
+      expect(result).toEqual([]);
+    });
+  });
+
+  describe('destinationIsAccessible with database support', () => {
+    it('should return true when database is accessible', async () => {
+      jest.spyOn(mockClient.pages, 'retrieve').mockRejectedValue(new Error('Not found'));
+      jest.spyOn(mockClient.databases, 'retrieve').mockResolvedValue({
+        id: 'database-id',
+        object: 'database',
+      } as any);
+
+      const result = await repository.destinationIsAccessible({
+        parentObjectId: 'database-id',
+      });
+
+      expect(result).toBe(true);
+    });
+
+    it('should return false when neither page nor database is accessible', async () => {
+      jest.spyOn(mockClient.pages, 'retrieve').mockRejectedValue(new Error('Not found'));
+      jest.spyOn(mockClient.databases, 'retrieve').mockRejectedValue(new Error('Not found'));
+
+      const result = await repository.destinationIsAccessible({
+        parentObjectId: 'invalid-id',
+      });
+
+      expect(result).toBe(false);
     });
   });
 

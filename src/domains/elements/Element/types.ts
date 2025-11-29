@@ -1,0 +1,17 @@
+export enum ElementType {
+  Page = 'page',
+  File = 'file',
+  Text = 'text',
+  Quote = 'quote',
+  Code = 'code',
+  Callout = 'callout',
+  Divider = 'divider',
+  Image = 'image',
+  Link = 'link',
+  Table = 'table',
+  ListItem = 'list-item',
+  Html = 'html',
+  Toggle = 'toggle',
+  Equation = 'equation',
+  TableOfContents = 'table-of-contents',
+}

@@ -1,6 +1,7 @@
 import { type PageElement } from '@/domains/elements';
 import {
   DestinationRepository,
+  ObjectType,
   Page,
   PageLockedStatus,
 } from '@/domains/synchronization/destination.repository';
@@ -10,18 +11,36 @@ import { FakePage } from './fakePage';
 export class FakeDestinationRepository<T extends Page>
   implements DestinationRepository<T>
 {
-  getPageIdFromPageUrl({ pageUrl }: { pageUrl: string }): string {
-    return pageUrl.split('/').pop() ?? '';
+  async getObjectType({ id }: { id: string }): Promise<ObjectType> {
+    return Promise.resolve('page');
+  }
+
+  getObjectIdFromObjectUrl({ objectUrl }: { objectUrl: string }): string {
+    const urlObj = new URL(objectUrl);
+
+    // Notion IDs are 32-character hexadecimal strings (UUID without dashes)
+    // They can be embedded in path segments like "MK-Notes-4dd0bd3dc73648a9a55dcf05dd03080f"
+    const notionIdRegex = /[a-f0-9]{32}/gi;
+    const matches = urlObj.pathname.match(notionIdRegex);
+
+    if (!matches || matches.length === 0) {
+      throw new Error('Invalid Notion URL: No valid Notion ID found');
+    }
+
+    // Return the last match (closest to the end of the URL path)
+    return matches[matches.length - 1];
   }
 
   // Simulate creating a new page
   // eslint-disable-next-line @typescript-eslint/require-await
   async createPage({
     pageElement,
-    parentPageId,
+    parentObjectId,
+    parentObjectType,
   }: {
     pageElement: PageElement;
-    parentPageId: string;
+    parentObjectId: string;
+    parentObjectType: ObjectType;
   }): Promise<T> {
     // Here you would implement the logic to create a new page in the fake destination
     const fakePage = new FakePage({
@@ -55,9 +74,9 @@ export class FakeDestinationRepository<T extends Page>
   // Simulate checking if the destination is accessible
   // eslint-disable-next-line @typescript-eslint/require-await
   async destinationIsAccessible({
-    parentPageId,
+    parentObjectId,
   }: {
-    parentPageId: string;
+    parentObjectId: string;
   }): Promise<boolean> {
     // Here you would implement the logic to check if the destination is accessible
     // For demonstration purposes, let's return a boolean value
@@ -109,5 +128,28 @@ export class FakeDestinationRepository<T extends Page>
     pageId: string;
   }): Promise<PageLockedStatus> {
     return 'unlocked';
+  }
+
+  async getObjectIdInDatabaseByMkNotesInternalId({
+    dataSourceId,
+    mkNotesInternalId,
+  }: {
+    dataSourceId: string;
+    mkNotesInternalId: string;
+  }): Promise<string[]> {
+    return Promise.resolve([]);
+  }
+
+  async getDataSourceIdFromDatabaseId({
+    databaseId,
+  }: {
+    databaseId: string;
+  }): Promise<string> {
+    return Promise.resolve('');
+  }
+
+  async deleteObjectById({ objectId }: { objectId: string }): Promise<void> {
+    // no-op in fake repository for testing
+    return Promise.resolve();
   }
 }

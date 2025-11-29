@@ -8,14 +8,18 @@ export interface Page {
 }
 
 export type PageLockedStatus = 'locked' | 'unlocked';
+export type ObjectType = 'page' | 'database' | 'unknown';
+
 export interface DestinationRepository<T extends Page> {
   createPage: ({
     pageElement,
-    parentPageId,
+    parentObjectId,
+    parentObjectType,
     filePath,
   }: {
     pageElement: PageElement;
-    parentPageId: string;
+    parentObjectId: string;
+    parentObjectType: ObjectType;
     filePath?: string;
   }) => Promise<T>;
   updatePage: ({
@@ -28,16 +32,17 @@ export interface DestinationRepository<T extends Page> {
     filePath?: string;
   }) => Promise<T>;
   destinationIsAccessible: ({
-    parentPageId,
+    parentObjectId,
   }: {
-    parentPageId: string;
+    parentObjectId: string;
   }) => Promise<boolean>;
-  getPageIdFromPageUrl: ({ pageUrl }: { pageUrl: string }) => string;
+  getObjectIdFromObjectUrl: ({ objectUrl }: { objectUrl: string }) => string;
   deleteChildBlocks: ({
     parentPageId,
   }: {
     parentPageId: string;
   }) => Promise<void>;
+  deleteObjectById: ({ objectId }: { objectId: string }) => Promise<void>;
   appendToPage: ({
     pageId,
     pageElement,
@@ -64,4 +69,17 @@ export interface DestinationRepository<T extends Page> {
   }: {
     pageId: string;
   }) => Promise<PageLockedStatus>;
+  getObjectType: ({ id }: { id: string }) => Promise<ObjectType>;
+  getObjectIdInDatabaseByMkNotesInternalId: ({
+    dataSourceId,
+    mkNotesInternalId,
+  }: {
+    dataSourceId: string;
+    mkNotesInternalId: string;
+  }) => Promise<string[]>;
+  getDataSourceIdFromDatabaseId: ({
+    databaseId,
+  }: {
+    databaseId: string;
+  }) => Promise<string>;
 }

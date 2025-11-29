@@ -470,6 +470,62 @@ Content
       expect(result.content).toHaveLength(1);
     });
 
+    it('should parse front matter metadata with id', () => {
+      const markdown = `---
+title: Test Title
+id: unique-page-id-123
+icon: 📄
+---
+Content
+`;
+
+      const result = parser.parse({ content: markdown });
+
+      expect(result.title).toBe('Test Title');
+      expect(result.mkNotesInternalId).toBe('unique-page-id-123');
+      expect(result.icon).toBe('📄' as SupportedEmoji);
+      expect(result.content).toHaveLength(1);
+    });
+
+    it('should parse front matter metadata with properties array', () => {
+      const markdown = `---
+title: Database Entry
+id: entry-001
+properties:
+  - name: status
+    value: active
+  - name: priority
+    value: high
+---
+Content
+`;
+
+      const result = parser.parse({ content: markdown });
+
+      expect(result.title).toBe('Database Entry');
+      expect(result.mkNotesInternalId).toBe('entry-001');
+      expect(result.properties).toBeDefined();
+      expect(result.properties).toHaveLength(2);
+      expect(result.properties).toEqual([
+        { name: 'status', value: 'active' },
+        { name: 'priority', value: 'high' },
+      ]);
+    });
+
+    it('should handle front matter without optional id field', () => {
+      const markdown = `---
+title: Simple Page
+---
+Content
+`;
+
+      const result = parser.parse({ content: markdown });
+
+      expect(result.title).toBe('Simple Page');
+      expect(result.mkNotesInternalId).toBeUndefined();
+      expect(result.properties).toBeUndefined();
+    });
+
     it('should handle HTML content', () => {
       const markdown = '<div>HTML content</div>';
       mockHtmlParser.parse.mockReturnValue({

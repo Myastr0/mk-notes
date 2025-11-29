@@ -1,10 +1,12 @@
 import { Logger } from 'winston';
 
-import { Element } from './Element';
+import { Element, PageElementProperties } from './Element';
 import { SupportedEmoji } from './types';
 
 export interface ParseResult {
+  mkNotesInternalId?: string;
   title?: string;
+  properties?: PageElementProperties[];
   content: Element[];
   icon?: SupportedEmoji;
 }

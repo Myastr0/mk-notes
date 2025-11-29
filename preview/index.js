@@ -4563,6 +4563,18 @@ class Client {
                     auth: args === null || args === void 0 ? void 0 : args.auth,
                 });
             },
+            /**
+             * List page templates that are available for a data source
+             */
+            listTemplates: (args) => {
+                return this.request({
+                    path: api_endpoints_1.listDataSourceTemplates.path(args),
+                    method: api_endpoints_1.listDataSourceTemplates.method,
+                    query: (0, utils_1.pick)(args, api_endpoints_1.listDataSourceTemplates.queryParams),
+                    body: (0, utils_1.pick)(args, api_endpoints_1.listDataSourceTemplates.bodyParams),
+                    auth: args === null || args === void 0 ? void 0 : args.auth,
+                });
+            },
         };
         this.pages = {
             /**
@@ -4983,7 +4995,7 @@ exports["default"] = Client;
 // cspell:disable-file
 // Note: This is a generated file. DO NOT EDIT!
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.oauthIntrospect = exports.oauthRevoke = exports.oauthToken = exports.getFileUpload = exports.completeFileUpload = exports.sendFileUpload = exports.listFileUploads = exports.createFileUpload = exports.getComment = exports.listComments = exports.createComment = exports.search = exports.createDatabase = exports.updateDatabase = exports.getDatabase = exports.createDataSource = exports.queryDataSource = exports.updateDataSource = exports.getDataSource = exports.appendBlockChildren = exports.listBlockChildren = exports.deleteBlock = exports.updateBlock = exports.getBlock = exports.getPageProperty = exports.updatePage = exports.getPage = exports.createPage = exports.listUsers = exports.getUser = exports.getSelf = void 0;
+exports.movePage = exports.oauthIntrospect = exports.oauthRevoke = exports.oauthToken = exports.getFileUpload = exports.completeFileUpload = exports.sendFileUpload = exports.listFileUploads = exports.createFileUpload = exports.getComment = exports.listComments = exports.createComment = exports.search = exports.createDatabase = exports.updateDatabase = exports.getDatabase = exports.listDataSourceTemplates = exports.createDataSource = exports.queryDataSource = exports.updateDataSource = exports.getDataSource = exports.appendBlockChildren = exports.listBlockChildren = exports.deleteBlock = exports.updateBlock = exports.getBlock = exports.getPageProperty = exports.updatePage = exports.getPage = exports.createPage = exports.listUsers = exports.getUser = exports.getSelf = void 0;
 /**
  * Retrieve your token's bot user
  */
@@ -5021,7 +5033,15 @@ exports.createPage = {
     method: "post",
     pathParams: [],
     queryParams: [],
-    bodyParams: ["parent", "properties", "icon", "cover", "content", "children"],
+    bodyParams: [
+        "parent",
+        "properties",
+        "icon",
+        "cover",
+        "content",
+        "children",
+        "template",
+    ],
     path: () => `pages`,
 };
 /**
@@ -5046,6 +5066,8 @@ exports.updatePage = {
         "icon",
         "cover",
         "is_locked",
+        "template",
+        "erase_content",
         "archived",
         "in_trash",
     ],
@@ -5177,6 +5199,7 @@ exports.queryDataSource = {
         "page_size",
         "archived",
         "in_trash",
+        "result_type",
     ],
     path: (p) => `data_sources/${p.data_source_id}/query`,
 };
@@ -5189,6 +5212,16 @@ exports.createDataSource = {
     queryParams: [],
     bodyParams: ["parent", "properties", "title", "icon"],
     path: () => `data_sources`,
+};
+/**
+ * List templates in a data source
+ */
+exports.listDataSourceTemplates = {
+    method: "get",
+    pathParams: ["data_source_id"],
+    queryParams: ["name", "start_cursor", "page_size"],
+    bodyParams: [],
+    path: (p) => `data_sources/${p.data_source_id}/templates`,
 };
 /**
  * Retrieve a database
@@ -5375,6 +5408,16 @@ exports.oauthIntrospect = {
     queryParams: [],
     bodyParams: ["token"],
     path: () => `oauth/introspect`,
+};
+/**
+ * Move a page
+ */
+exports.movePage = {
+    method: "post",
+    pathParams: ["page_id"],
+    queryParams: [],
+    bodyParams: ["parent"],
+    path: (p) => `pages/${p.page_id}/move`,
 };
 //# sourceMappingURL=api-endpoints.js.map
 
@@ -5608,6 +5651,8 @@ function isAPIErrorCode(code) {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.iteratePaginatedAPI = iteratePaginatedAPI;
 exports.collectPaginatedAPI = collectPaginatedAPI;
+exports.iterateDataSourceTemplates = iterateDataSourceTemplates;
+exports.collectDataSourceTemplates = collectDataSourceTemplates;
 exports.isFullBlock = isFullBlock;
 exports.isFullPage = isFullPage;
 exports.isFullDataSource = isFullDataSource;
@@ -5674,6 +5719,55 @@ async function collectPaginatedAPI(listFn, firstPageArgs) {
     const results = [];
     for await (const item of iteratePaginatedAPI(listFn, firstPageArgs)) {
         results.push(item);
+    }
+    return results;
+}
+/**
+ * Returns an async iterator over data source templates.
+ *
+ * Example (given a notion Client called `notion`):
+ *
+ * ```
+ * for await (const template of iterateDataSourceTemplates(notion, {
+ *   data_source_id: dataSourceId,
+ * })) {
+ *   console.log(template.name, template.is_default)
+ * }
+ * ```
+ *
+ * @param client A Notion client instance.
+ * @param args Arguments including the data_source_id and optional start_cursor.
+ */
+async function* iterateDataSourceTemplates(client, args) {
+    let nextCursor = args.start_cursor;
+    do {
+        const response = await client.dataSources.listTemplates({
+            ...args,
+            start_cursor: nextCursor,
+        });
+        yield* response.templates;
+        nextCursor = response.next_cursor;
+    } while (nextCursor);
+}
+/**
+ * Collect all data source templates into an in-memory array.
+ *
+ * Example (given a notion Client called `notion`):
+ *
+ * ```
+ * const templates = await collectDataSourceTemplates(notion, {
+ *   data_source_id: dataSourceId,
+ * })
+ * // Do something with templates.
+ * ```
+ *
+ * @param client A Notion client instance.
+ * @param args Arguments including the data_source_id and optional start_cursor.
+ */
+async function collectDataSourceTemplates(client, args) {
+    const results = [];
+    for await (const template of iterateDataSourceTemplates(client, args)) {
+        results.push(template);
     }
     return results;
 }
@@ -5854,7 +5948,7 @@ function extractBlockId(urlWithBlock) {
  * @packageDocumentation
  */
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.extractBlockId = exports.extractPageId = exports.extractDatabaseId = exports.extractNotionId = exports.isFullPageOrDataSource = exports.isFullComment = exports.isFullUser = exports.isFullPage = exports.isFullDatabase = exports.isFullDataSource = exports.isFullBlock = exports.iteratePaginatedAPI = exports.collectPaginatedAPI = exports.isNotionClientError = exports.RequestTimeoutError = exports.UnknownHTTPResponseError = exports.APIResponseError = exports.ClientErrorCode = exports.APIErrorCode = exports.LogLevel = exports.Client = void 0;
+exports.extractBlockId = exports.extractPageId = exports.extractDatabaseId = exports.extractNotionId = exports.isFullPageOrDataSource = exports.isFullComment = exports.isFullUser = exports.isFullPage = exports.isFullDatabase = exports.isFullDataSource = exports.isFullBlock = exports.iterateDataSourceTemplates = exports.collectDataSourceTemplates = exports.iteratePaginatedAPI = exports.collectPaginatedAPI = exports.isNotionClientError = exports.RequestTimeoutError = exports.UnknownHTTPResponseError = exports.APIResponseError = exports.ClientErrorCode = exports.APIErrorCode = exports.LogLevel = exports.Client = void 0;
 var Client_1 = __nccwpck_require__(9711);
 Object.defineProperty(exports, "Client", ({ enumerable: true, get: function () { return Client_1.default; } }));
 var logging_1 = __nccwpck_require__(2743);
@@ -5870,6 +5964,8 @@ Object.defineProperty(exports, "isNotionClientError", ({ enumerable: true, get: 
 var helpers_1 = __nccwpck_require__(5847);
 Object.defineProperty(exports, "collectPaginatedAPI", ({ enumerable: true, get: function () { return helpers_1.collectPaginatedAPI; } }));
 Object.defineProperty(exports, "iteratePaginatedAPI", ({ enumerable: true, get: function () { return helpers_1.iteratePaginatedAPI; } }));
+Object.defineProperty(exports, "collectDataSourceTemplates", ({ enumerable: true, get: function () { return helpers_1.collectDataSourceTemplates; } }));
+Object.defineProperty(exports, "iterateDataSourceTemplates", ({ enumerable: true, get: function () { return helpers_1.iterateDataSourceTemplates; } }));
 Object.defineProperty(exports, "isFullBlock", ({ enumerable: true, get: function () { return helpers_1.isFullBlock; } }));
 Object.defineProperty(exports, "isFullDataSource", ({ enumerable: true, get: function () { return helpers_1.isFullDataSource; } }));
 Object.defineProperty(exports, "isFullDatabase", ({ enumerable: true, get: function () { return helpers_1.isFullDatabase; } }));
@@ -75012,186 +75108,15 @@ if (require.main === require.cache[eval('__filename')]) {
 
 /***/ }),
 
-/***/ 3739:
-/***/ ((__unused_webpack_module, exports) => {
+/***/ 7512:
+/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.EquationElement = exports.TableOfContentsElement = exports.ToggleElement = exports.HtmlElement = exports.LinkElement = exports.ImageElement = exports.DividerElement = exports.CalloutElement = exports.SpecialCalloutType = exports.CodeElement = exports.isElementCodeLanguage = exports.ElementCodeLanguage = exports.QuoteElement = exports.TextElement = exports.TextElementStyle = exports.TextElementLevel = exports.TableElement = exports.ListItemElement = exports.FileElement = exports.PageElement = exports.Element = exports.ElementType = void 0;
-var ElementType;
-(function (ElementType) {
-    ElementType["Page"] = "page";
-    ElementType["File"] = "file";
-    ElementType["Text"] = "text";
-    ElementType["Quote"] = "quote";
-    ElementType["Code"] = "code";
-    ElementType["Callout"] = "callout";
-    ElementType["Divider"] = "divider";
-    ElementType["Image"] = "image";
-    ElementType["Link"] = "link";
-    ElementType["Table"] = "table";
-    ElementType["ListItem"] = "list-item";
-    ElementType["Html"] = "html";
-    ElementType["Toggle"] = "toggle";
-    ElementType["Equation"] = "equation";
-    ElementType["TableOfContents"] = "table-of-contents";
-})(ElementType || (exports.ElementType = ElementType = {}));
-class Element {
-    type;
-    constructor(type) {
-        this.type = type;
-    }
-}
-exports.Element = Element;
-/**
- * Element that represents the concept of page (in knowledge management systems)
- */
-class PageElement extends Element {
-    title;
-    icon;
-    content;
-    constructor({ title, icon, content = [], }) {
-        super(ElementType.Page);
-        this.title = title;
-        this.icon = icon;
-        this.content = content;
-    }
-    getIcon() {
-        return this.icon;
-    }
-    addElementToBeginning(element) {
-        this.content.unshift(element);
-    }
-    addElementToEnd(element) {
-        this.content.push(element);
-    }
-}
-exports.PageElement = PageElement;
-/**
- * Element that represents a file in the system
- */
-class FileElement extends Element {
-    content;
-    name;
-    creationDate;
-    lastUpdatedDate;
-    extension;
-    constructor({ content, name, creationDate, lastUpdatedDate, extension, }) {
-        super(ElementType.File);
-        this.content = content;
-        this.name = name;
-        this.creationDate = creationDate;
-        this.lastUpdatedDate = lastUpdatedDate;
-        this.extension = extension;
-    }
-}
-exports.FileElement = FileElement;
-class ListItemElement extends Element {
-    listType;
-    text;
-    children;
-    constructor({ listType, text, children, }) {
-        super(ElementType.ListItem);
-        this.listType = listType;
-        this.text = text;
-        this.children = children;
-    }
-}
-exports.ListItemElement = ListItemElement;
-class TableElement extends Element {
-    rows;
-    constructor({ rows }) {
-        super(ElementType.Table);
-        this.rows = rows;
-    }
-}
-exports.TableElement = TableElement;
-var TextElementLevel;
-(function (TextElementLevel) {
-    TextElementLevel["Heading1"] = "heading_1";
-    TextElementLevel["Heading2"] = "heading_2";
-    TextElementLevel["Heading3"] = "heading_3";
-    TextElementLevel["Heading4"] = "heading_4";
-    TextElementLevel["Heading5"] = "heading_5";
-    TextElementLevel["Heading6"] = "heading_6";
-    TextElementLevel["Paragraph"] = "paragraph";
-})(TextElementLevel || (exports.TextElementLevel = TextElementLevel = {}));
-var TextElementStyle;
-(function (TextElementStyle) {
-    TextElementStyle["Italic"] = "italic";
-    TextElementStyle["Bold"] = "bold";
-    TextElementStyle["Strikethrough"] = "strikethrough";
-    TextElementStyle["Underline"] = "underline";
-})(TextElementStyle || (exports.TextElementStyle = TextElementStyle = {}));
-class TextElement extends Element {
-    text;
-    level;
-    styles = {
-        italic: false,
-        bold: false,
-        strikethrough: false,
-        underline: false,
-        code: false,
-    };
-    constructor({ text, level = TextElementLevel.Paragraph, styles, }) {
-        super(ElementType.Text);
-        this.text = text;
-        this.level = level;
-        this.styles.bold = styles?.bold || false;
-        this.styles.italic = styles?.italic || false;
-        this.styles.strikethrough = styles?.strikethrough || false;
-        this.styles.underline = styles?.underline || false;
-        this.styles.code = styles?.code || false;
-    }
-}
-exports.TextElement = TextElement;
-class QuoteElement extends Element {
-    text;
-    constructor({ text }) {
-        super(ElementType.Quote);
-        this.text = text;
-    }
-}
-exports.QuoteElement = QuoteElement;
-var ElementCodeLanguage;
-(function (ElementCodeLanguage) {
-    ElementCodeLanguage["JavaScript"] = "javascript";
-    ElementCodeLanguage["TypeScript"] = "typescript";
-    ElementCodeLanguage["Python"] = "python";
-    ElementCodeLanguage["Java"] = "java";
-    ElementCodeLanguage["CSharp"] = "csharp";
-    ElementCodeLanguage["CPlusPlus"] = "c++";
-    ElementCodeLanguage["Go"] = "go";
-    ElementCodeLanguage["Ruby"] = "ruby";
-    ElementCodeLanguage["Swift"] = "swift";
-    ElementCodeLanguage["Kotlin"] = "kotlin";
-    ElementCodeLanguage["Rust"] = "rust";
-    ElementCodeLanguage["Shell"] = "shell";
-    ElementCodeLanguage["Scala"] = "scala";
-    ElementCodeLanguage["SQL"] = "sql";
-    ElementCodeLanguage["HTML"] = "html";
-    ElementCodeLanguage["CSS"] = "css";
-    ElementCodeLanguage["JSON"] = "json";
-    ElementCodeLanguage["YAML"] = "yaml";
-    ElementCodeLanguage["Markdown"] = "markdown";
-    ElementCodeLanguage["Mermaid"] = "mermaid";
-    ElementCodeLanguage["PlainText"] = "plaintext";
-})(ElementCodeLanguage || (exports.ElementCodeLanguage = ElementCodeLanguage = {}));
-const isElementCodeLanguage = (value) => {
-    return Object.values(ElementCodeLanguage).includes(value);
-};
-exports.isElementCodeLanguage = isElementCodeLanguage;
-class CodeElement extends Element {
-    language;
-    text;
-    constructor({ language, text, }) {
-        super(ElementType.Code);
-        this.language = language;
-        this.text = text;
-    }
-}
-exports.CodeElement = CodeElement;
+exports.CalloutElement = exports.SpecialCalloutType = void 0;
+const Element_class_1 = __nccwpck_require__(5238);
+const types_1 = __nccwpck_require__(9461);
 const specialCalloutRegex = 
 // eslint-disable-next-line no-useless-escape
 /^\s*\[\!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\](.*)/ims;
@@ -75203,7 +75128,7 @@ var SpecialCalloutType;
     SpecialCalloutType["Warning"] = "warning";
     SpecialCalloutType["Caution"] = "caution";
 })(SpecialCalloutType || (exports.SpecialCalloutType = SpecialCalloutType = {}));
-class CalloutElement extends Element {
+class CalloutElement extends Element_class_1.Element {
     text;
     icon;
     calloutType;
@@ -75211,7 +75136,7 @@ class CalloutElement extends Element {
         return specialCalloutRegex.test(text.trim());
     }
     constructor({ icon, text }) {
-        super(ElementType.Callout);
+        super(types_1.ElementType.Callout);
         this.icon = icon;
         this.text = text;
         const { text: parsedText, calloutType } = this.getSpecialCalloutTypeAndText(text);
@@ -75257,13 +75182,194 @@ class CalloutElement extends Element {
     }
 }
 exports.CalloutElement = CalloutElement;
-class DividerElement extends Element {
+
+
+/***/ }),
+
+/***/ 9769:
+/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.CodeElement = exports.isElementCodeLanguage = exports.ElementCodeLanguage = void 0;
+const Element_class_1 = __nccwpck_require__(5238);
+const types_1 = __nccwpck_require__(9461);
+var ElementCodeLanguage;
+(function (ElementCodeLanguage) {
+    ElementCodeLanguage["JavaScript"] = "javascript";
+    ElementCodeLanguage["TypeScript"] = "typescript";
+    ElementCodeLanguage["Python"] = "python";
+    ElementCodeLanguage["Java"] = "java";
+    ElementCodeLanguage["CSharp"] = "csharp";
+    ElementCodeLanguage["CPlusPlus"] = "c++";
+    ElementCodeLanguage["Go"] = "go";
+    ElementCodeLanguage["Ruby"] = "ruby";
+    ElementCodeLanguage["Swift"] = "swift";
+    ElementCodeLanguage["Kotlin"] = "kotlin";
+    ElementCodeLanguage["Rust"] = "rust";
+    ElementCodeLanguage["Shell"] = "shell";
+    ElementCodeLanguage["Scala"] = "scala";
+    ElementCodeLanguage["SQL"] = "sql";
+    ElementCodeLanguage["HTML"] = "html";
+    ElementCodeLanguage["CSS"] = "css";
+    ElementCodeLanguage["JSON"] = "json";
+    ElementCodeLanguage["YAML"] = "yaml";
+    ElementCodeLanguage["Markdown"] = "markdown";
+    ElementCodeLanguage["Mermaid"] = "mermaid";
+    ElementCodeLanguage["PlainText"] = "plaintext";
+})(ElementCodeLanguage || (exports.ElementCodeLanguage = ElementCodeLanguage = {}));
+const isElementCodeLanguage = (value) => {
+    return Object.values(ElementCodeLanguage).includes(value);
+};
+exports.isElementCodeLanguage = isElementCodeLanguage;
+class CodeElement extends Element_class_1.Element {
+    language;
+    text;
+    constructor({ language, text, }) {
+        super(types_1.ElementType.Code);
+        this.language = language;
+        this.text = text;
+    }
+}
+exports.CodeElement = CodeElement;
+
+
+/***/ }),
+
+/***/ 1983:
+/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.DividerElement = void 0;
+const Element_class_1 = __nccwpck_require__(5238);
+const types_1 = __nccwpck_require__(9461);
+class DividerElement extends Element_class_1.Element {
     constructor() {
-        super(ElementType.Divider);
+        super(types_1.ElementType.Divider);
     }
 }
 exports.DividerElement = DividerElement;
-class ImageElement extends Element {
+
+
+/***/ }),
+
+/***/ 5238:
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.Element = void 0;
+class Element {
+    type;
+    constructor(type) {
+        this.type = type;
+    }
+}
+exports.Element = Element;
+
+
+/***/ }),
+
+/***/ 1020:
+/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.EquationElement = void 0;
+const Element_class_1 = __nccwpck_require__(5238);
+const types_1 = __nccwpck_require__(9461);
+class EquationElement extends Element_class_1.Element {
+    equation;
+    styles = {
+        italic: false,
+        bold: false,
+        strikethrough: false,
+        underline: false,
+        code: false,
+    };
+    constructor({ equation, styles, }) {
+        super(types_1.ElementType.Equation);
+        this.equation = equation;
+        this.styles.bold = styles?.bold || false;
+        this.styles.italic = styles?.italic || false;
+        this.styles.strikethrough = styles?.strikethrough || false;
+        this.styles.underline = styles?.underline || false;
+        this.styles.code = styles?.code || false;
+    }
+}
+exports.EquationElement = EquationElement;
+
+
+/***/ }),
+
+/***/ 5320:
+/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.FileElement = void 0;
+const Element_class_1 = __nccwpck_require__(5238);
+const types_1 = __nccwpck_require__(9461);
+/**
+ * Element that represents a file in the system
+ */
+class FileElement extends Element_class_1.Element {
+    content;
+    name;
+    creationDate;
+    lastUpdatedDate;
+    extension;
+    constructor({ content, name, creationDate, lastUpdatedDate, extension, }) {
+        super(types_1.ElementType.File);
+        this.content = content;
+        this.name = name;
+        this.creationDate = creationDate;
+        this.lastUpdatedDate = lastUpdatedDate;
+        this.extension = extension;
+    }
+}
+exports.FileElement = FileElement;
+
+
+/***/ }),
+
+/***/ 877:
+/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.HtmlElement = void 0;
+const Element_class_1 = __nccwpck_require__(5238);
+const types_1 = __nccwpck_require__(9461);
+class HtmlElement extends Element_class_1.Element {
+    html;
+    constructor({ html }) {
+        super(types_1.ElementType.Html);
+        this.html = html;
+    }
+}
+exports.HtmlElement = HtmlElement;
+
+
+/***/ }),
+
+/***/ 7047:
+/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.ImageElement = void 0;
+const Element_class_1 = __nccwpck_require__(5238);
+const types_1 = __nccwpck_require__(9461);
+class ImageElement extends Element_class_1.Element {
     base64;
     url;
     caption;
@@ -75273,7 +75379,7 @@ class ImageElement extends Element {
     extension;
     filepath;
     constructor({ base64, url, name, creationDate, lastUpdatedDate, extension, caption, filepath, }) {
-        super(ElementType.Image);
+        super(types_1.ElementType.Image);
         this.name = name;
         this.creationDate = creationDate;
         this.lastUpdatedDate = lastUpdatedDate;
@@ -75285,44 +75391,191 @@ class ImageElement extends Element {
     }
 }
 exports.ImageElement = ImageElement;
-class LinkElement extends Element {
+
+
+/***/ }),
+
+/***/ 538:
+/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.LinkElement = void 0;
+const Element_class_1 = __nccwpck_require__(5238);
+const types_1 = __nccwpck_require__(9461);
+class LinkElement extends Element_class_1.Element {
     url;
     text;
     caption;
     constructor({ url, text, caption, }) {
-        super(ElementType.Link);
+        super(types_1.ElementType.Link);
         this.url = url;
         this.text = text;
         this.caption = caption;
     }
 }
 exports.LinkElement = LinkElement;
-class HtmlElement extends Element {
-    html;
-    constructor({ html }) {
-        super(ElementType.Html);
-        this.html = html;
-    }
-}
-exports.HtmlElement = HtmlElement;
-class ToggleElement extends Element {
-    title;
+
+
+/***/ }),
+
+/***/ 1539:
+/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.ListItemElement = void 0;
+const Element_class_1 = __nccwpck_require__(5238);
+const types_1 = __nccwpck_require__(9461);
+class ListItemElement extends Element_class_1.Element {
+    listType;
+    text;
     children;
-    constructor({ title, children }) {
-        super(ElementType.Toggle);
-        this.title = title;
+    constructor({ listType, text, children, }) {
+        super(types_1.ElementType.ListItem);
+        this.listType = listType;
+        this.text = text;
         this.children = children;
     }
 }
-exports.ToggleElement = ToggleElement;
-class TableOfContentsElement extends Element {
+exports.ListItemElement = ListItemElement;
+
+
+/***/ }),
+
+/***/ 2407:
+/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.PageElement = void 0;
+const Element_class_1 = __nccwpck_require__(5238);
+const types_1 = __nccwpck_require__(9461);
+/**
+ * Element that represents the concept of page (in knowledge management systems)
+ */
+class PageElement extends Element_class_1.Element {
+    mkNotesInternalId;
+    title;
+    icon;
+    content;
+    properties;
+    constructor({ mkNotesInternalId, title, icon, content = [], properties, }) {
+        super(types_1.ElementType.Page);
+        this.mkNotesInternalId = mkNotesInternalId;
+        this.title = title;
+        this.icon = icon;
+        this.content = content;
+        this.properties = properties;
+    }
+    getIcon() {
+        return this.icon;
+    }
+    addElementToBeginning(element) {
+        this.content.unshift(element);
+    }
+    addElementToEnd(element) {
+        this.content.push(element);
+    }
+}
+exports.PageElement = PageElement;
+
+
+/***/ }),
+
+/***/ 9248:
+/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.QuoteElement = void 0;
+const Element_class_1 = __nccwpck_require__(5238);
+const types_1 = __nccwpck_require__(9461);
+class QuoteElement extends Element_class_1.Element {
+    text;
+    constructor({ text }) {
+        super(types_1.ElementType.Quote);
+        this.text = text;
+    }
+}
+exports.QuoteElement = QuoteElement;
+
+
+/***/ }),
+
+/***/ 9704:
+/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.TableElement = void 0;
+const Element_class_1 = __nccwpck_require__(5238);
+const types_1 = __nccwpck_require__(9461);
+class TableElement extends Element_class_1.Element {
+    rows;
+    constructor({ rows }) {
+        super(types_1.ElementType.Table);
+        this.rows = rows;
+    }
+}
+exports.TableElement = TableElement;
+
+
+/***/ }),
+
+/***/ 4728:
+/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.TableOfContentsElement = void 0;
+const Element_class_1 = __nccwpck_require__(5238);
+const types_1 = __nccwpck_require__(9461);
+class TableOfContentsElement extends Element_class_1.Element {
     constructor() {
-        super(ElementType.TableOfContents);
+        super(types_1.ElementType.TableOfContents);
     }
 }
 exports.TableOfContentsElement = TableOfContentsElement;
-class EquationElement extends Element {
-    equation;
+
+
+/***/ }),
+
+/***/ 8731:
+/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.TextElement = exports.TextElementStyle = exports.TextElementLevel = void 0;
+const Element_class_1 = __nccwpck_require__(5238);
+const types_1 = __nccwpck_require__(9461);
+var TextElementLevel;
+(function (TextElementLevel) {
+    TextElementLevel["Heading1"] = "heading_1";
+    TextElementLevel["Heading2"] = "heading_2";
+    TextElementLevel["Heading3"] = "heading_3";
+    TextElementLevel["Heading4"] = "heading_4";
+    TextElementLevel["Heading5"] = "heading_5";
+    TextElementLevel["Heading6"] = "heading_6";
+    TextElementLevel["Paragraph"] = "paragraph";
+})(TextElementLevel || (exports.TextElementLevel = TextElementLevel = {}));
+var TextElementStyle;
+(function (TextElementStyle) {
+    TextElementStyle["Italic"] = "italic";
+    TextElementStyle["Bold"] = "bold";
+    TextElementStyle["Strikethrough"] = "strikethrough";
+    TextElementStyle["Underline"] = "underline";
+})(TextElementStyle || (exports.TextElementStyle = TextElementStyle = {}));
+class TextElement extends Element_class_1.Element {
+    text;
+    level;
     styles = {
         italic: false,
         bold: false,
@@ -75330,9 +75583,10 @@ class EquationElement extends Element {
         underline: false,
         code: false,
     };
-    constructor({ equation, styles, }) {
-        super(ElementType.Equation);
-        this.equation = equation;
+    constructor({ text, level = TextElementLevel.Paragraph, styles, }) {
+        super(types_1.ElementType.Text);
+        this.text = text;
+        this.level = level;
         this.styles.bold = styles?.bold || false;
         this.styles.italic = styles?.italic || false;
         this.styles.strikethrough = styles?.strikethrough || false;
@@ -75340,7 +75594,100 @@ class EquationElement extends Element {
         this.styles.code = styles?.code || false;
     }
 }
-exports.EquationElement = EquationElement;
+exports.TextElement = TextElement;
+
+
+/***/ }),
+
+/***/ 1690:
+/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.ToggleElement = void 0;
+const Element_class_1 = __nccwpck_require__(5238);
+const types_1 = __nccwpck_require__(9461);
+class ToggleElement extends Element_class_1.Element {
+    title;
+    children;
+    constructor({ title, children }) {
+        super(types_1.ElementType.Toggle);
+        this.title = title;
+        this.children = children;
+    }
+}
+exports.ToggleElement = ToggleElement;
+
+
+/***/ }),
+
+/***/ 2052:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __exportStar = (this && this.__exportStar) || function(m, exports) {
+    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+__exportStar(__nccwpck_require__(7512), exports);
+__exportStar(__nccwpck_require__(9769), exports);
+__exportStar(__nccwpck_require__(1983), exports);
+__exportStar(__nccwpck_require__(5238), exports);
+__exportStar(__nccwpck_require__(1020), exports);
+__exportStar(__nccwpck_require__(5320), exports);
+__exportStar(__nccwpck_require__(877), exports);
+__exportStar(__nccwpck_require__(7047), exports);
+__exportStar(__nccwpck_require__(538), exports);
+__exportStar(__nccwpck_require__(1539), exports);
+__exportStar(__nccwpck_require__(2407), exports);
+__exportStar(__nccwpck_require__(9248), exports);
+__exportStar(__nccwpck_require__(9704), exports);
+__exportStar(__nccwpck_require__(4728), exports);
+__exportStar(__nccwpck_require__(8731), exports);
+__exportStar(__nccwpck_require__(1690), exports);
+__exportStar(__nccwpck_require__(9461), exports);
+
+
+/***/ }),
+
+/***/ 9461:
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.ElementType = void 0;
+var ElementType;
+(function (ElementType) {
+    ElementType["Page"] = "page";
+    ElementType["File"] = "file";
+    ElementType["Text"] = "text";
+    ElementType["Quote"] = "quote";
+    ElementType["Code"] = "code";
+    ElementType["Callout"] = "callout";
+    ElementType["Divider"] = "divider";
+    ElementType["Image"] = "image";
+    ElementType["Link"] = "link";
+    ElementType["Table"] = "table";
+    ElementType["ListItem"] = "list-item";
+    ElementType["Html"] = "html";
+    ElementType["Toggle"] = "toggle";
+    ElementType["Equation"] = "equation";
+    ElementType["TableOfContents"] = "table-of-contents";
+})(ElementType || (exports.ElementType = ElementType = {}));
 
 
 /***/ }),
@@ -75376,7 +75723,7 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 __exportStar(__nccwpck_require__(2057), exports);
-__exportStar(__nccwpck_require__(3739), exports);
+__exportStar(__nccwpck_require__(2052), exports);
 __exportStar(__nccwpck_require__(464), exports);
 __exportStar(__nccwpck_require__(5666), exports);
 
@@ -75523,47 +75870,42 @@ class SynchronizeMarkdownToNotion {
     }
     async execute(args) {
         const { notionParentPageUrl, cleanSync, lockPage, ...others } = args;
-        const notionPageId = this.destinationRepository.getPageIdFromPageUrl({
-            pageUrl: notionParentPageUrl,
+        const notionObjectId = this.destinationRepository.getObjectIdFromObjectUrl({
+            objectUrl: notionParentPageUrl,
         });
-        // If clean sync is enabled, delete all existing content first
-        if (cleanSync) {
-            this.logger.info('Clean sync enabled - removing existing content');
-            try {
-                await this.destinationRepository.deleteChildBlocks({
-                    parentPageId: notionPageId,
-                });
-                this.logger.info('Successfully removed existing content');
-            }
-            catch (error) {
-                this.logger.warn('Failed to remove existing content, continuing with sync', { error });
-            }
+        // Check if the Notion page is accessible
+        const destinationIsAccessible = await this.destinationRepository.destinationIsAccessible({
+            parentObjectId: notionObjectId,
+        });
+        if (!destinationIsAccessible) {
+            throw new Error('Destination is not accessible');
+        }
+        // Check if the source is accessible
+        try {
+            await this.sourceRepository.sourceIsAccessible(others);
+        }
+        catch (err) {
+            throw new Error(`Source is not accessible:`, {
+                cause: err,
+            });
+        }
+        const parentObjectType = await this.destinationRepository.getObjectType({
+            id: notionObjectId,
+        });
+        if (parentObjectType === 'unknown') {
+            throw new Error('Parent object type is unknown');
         }
         try {
-            // Check if the Notion page is accessible
-            const destinationIsAccessible = await this.destinationRepository.destinationIsAccessible({
-                parentPageId: notionPageId,
-            });
-            if (!destinationIsAccessible) {
-                throw new Error('Destination is not accessible');
-            }
-            // Check if the GitHub repository is accessible
-            try {
-                await this.sourceRepository.sourceIsAccessible(others);
-            }
-            catch (err) {
-                throw new Error(`Source is not accessible:`, {
-                    cause: err,
-                });
-            }
             this.logger.info('Starting synchronization process');
             const filePaths = await this.sourceRepository.getFilePathList(others);
             const siteMap = sitemap_1.SiteMap.buildFromFilePaths(filePaths);
             // Traverse the SiteMap and synchronize files
             await this.synchronizeTreeNode({
                 node: siteMap.root,
-                parentPageId: notionPageId,
+                parentObjectId: notionObjectId,
+                parentObjectType,
                 lockPage,
+                cleanSync,
             });
             this.logger.info('Synchronization process completed successfully');
         }
@@ -75576,106 +75918,198 @@ class SynchronizeMarkdownToNotion {
             throw error;
         }
     }
-    async synchronizeTreeNode({ node, parentPageId, lockPage, }) {
-        // If the current node has content AND is the root node, add it to the parent page
-        if (node.filepath && node.parent === null) {
-            try {
-                this.logger.info(`Adding content from ${node.filepath} to parent page`);
-                // Retrieve the file content
-                const file = await this.sourceRepository.getFile({
-                    path: node.filepath,
-                });
-                // Set the current file path for image resolution
-                if (this.elementConverter.setCurrentFilePath) {
-                    this.elementConverter.setCurrentFilePath(node.filepath);
-                }
-                // Convert the file content to elements
-                const pageElement = this.elementConverter.convertToElement(file);
-                if (!(pageElement instanceof elements_1.PageElement)) {
-                    throw new Error('Element is not a PageElement');
-                }
-                // Add the content to the existing parent page by appending it
-                await this.destinationRepository.appendToPage({
-                    pageId: parentPageId,
-                    pageElement,
-                });
-                this.logger.info(`Added content from ${node.filepath} to parent page`);
-                if (lockPage) {
-                    await this.destinationRepository.setPageLockedStatus({
-                        pageId: parentPageId,
-                        lockStatus: 'locked',
+    /**
+     * Fetches a file and converts it to a PageElement
+     */
+    async fetchAndConvertToPageElement(filePath) {
+        const file = await this.sourceRepository.getFile({ path: filePath });
+        if (this.elementConverter.setCurrentFilePath) {
+            this.elementConverter.setCurrentFilePath(filePath);
+        }
+        const element = this.elementConverter.convertToElement(file);
+        if (!(element instanceof elements_1.PageElement)) {
+            throw new Error('Element is not a PageElement');
+        }
+        return element;
+    }
+    /**
+     * Locks a page if locking is enabled
+     */
+    async lockPageIfNeeded(pageId, shouldLock) {
+        if (shouldLock) {
+            await this.destinationRepository.setPageLockedStatus({
+                pageId,
+                lockStatus: 'locked',
+            });
+            this.logger.info(`Locked page ${pageId}`);
+        }
+    }
+    /**
+     * Synchronizes the root node to the parent object (page or database)
+     * Returns the page ID to use as parent for child nodes
+     */
+    async synchronizeRootNode({ node, parentObjectId, parentObjectType, lockPage, cleanSync, }) {
+        this.logger.info(`Adding content from ${node.filepath} to parent ${parentObjectType}`);
+        const pageElement = await this.fetchAndConvertToPageElement(node.filepath);
+        if (parentObjectType === 'unknown') {
+            throw new Error('Parent object type is unknown');
+        }
+        if (parentObjectType === 'page') {
+            // If clean sync is enabled, delete all existing content first
+            if (cleanSync) {
+                this.logger.info('Clean sync enabled - removing existing content');
+                try {
+                    await this.destinationRepository.deleteChildBlocks({
+                        parentPageId: parentObjectId,
                     });
-                    this.logger.info(`Locked parent page ${parentPageId}`);
+                    this.logger.info('Successfully removed existing content');
+                }
+                catch (error) {
+                    this.logger.warn('Failed to remove existing content, continuing with sync', { error });
                 }
             }
-            catch (error) {
-                if (error instanceof Error) {
-                    this.logger.error(`Failed to add content from ${node.filepath} to parent page`, {
-                        error,
+            await this.destinationRepository.appendToPage({
+                pageId: parentObjectId,
+                pageElement,
+            });
+            this.logger.info(`Added content from ${node.filepath} to parent page`);
+            await this.lockPageIfNeeded(parentObjectId, lockPage);
+            return parentObjectId;
+        }
+        if (cleanSync) {
+            await this.cleanSyncDatabase({
+                databaseId: parentObjectId,
+                pageElement,
+            });
+        }
+        // parentObjectType === 'database'
+        const newPage = await this.destinationRepository.createPage({
+            pageElement,
+            parentObjectId,
+            parentObjectType,
+            filePath: node.filepath,
+        });
+        if (!newPage.pageId) {
+            throw new Error('New page ID is undefined');
+        }
+        return newPage.pageId;
+    }
+    async cleanSyncDatabase({ databaseId, pageElement, }) {
+        const dataSourceId = await this.destinationRepository.getDataSourceIdFromDatabaseId({
+            databaseId,
+        });
+        if (pageElement.mkNotesInternalId === undefined) {
+            this.logger.warn('mk-notes-internal-id is undefined, skipping clean sync');
+            return;
+        }
+        const objectIds = await this.destinationRepository.getObjectIdInDatabaseByMkNotesInternalId({
+            dataSourceId,
+            mkNotesInternalId: pageElement.mkNotesInternalId,
+        });
+        if (objectIds.length === 0) {
+            this.logger.warn('No object IDs found, skipping clean sync');
+            return;
+        }
+        if (objectIds.length > 1) {
+            this.logger.info(`Multiple object IDs found with ${pageElement.mkNotesInternalId}, deleting all objects`);
+        }
+        await Promise.all(objectIds.map(async (objectId) => this.destinationRepository.deleteObjectById({
+            objectId,
+        })));
+    }
+    /**
+     * Synchronizes a child node and its descendants recursively
+     */
+    async synchronizeChildNode({ childNode, parentPageId, lockPage, }) {
+        const filePath = childNode.filepath;
+        this.logger.info(`Processing file: ${filePath}`);
+        const pageElement = await this.fetchAndConvertToPageElement(filePath);
+        // Add standard elements at the beginning (in reverse order)
+        pageElement.addElementToBeginning(new elements_1.TableOfContentsElement());
+        pageElement.addElementToBeginning(new elements_1.DividerElement());
+        if (childNode.children.length > 0) {
+            pageElement.addElementToEnd(new elements_1.DividerElement());
+        }
+        const newPage = await this.destinationRepository.createPage({
+            pageElement,
+            parentObjectId: parentPageId,
+            parentObjectType: 'page',
+            filePath,
+        });
+        this.logger.info(`Created Notion page for file: ${filePath}`);
+        if (!newPage.pageId) {
+            throw new Error('Page ID is undefined');
+        }
+        // Recursively process children
+        for (const grandChild of childNode.children) {
+            await this.synchronizeChildNode({
+                childNode: grandChild,
+                parentPageId: newPage.pageId,
+                lockPage,
+            });
+        }
+        await this.lockPageIfNeeded(newPage.pageId, lockPage);
+    }
+    /**
+     * Main orchestrator for synchronizing a tree node and its children
+     */
+    async synchronizeTreeNode({ node, parentObjectId, parentObjectType, lockPage, cleanSync, }) {
+        let parentPageId = parentObjectId;
+        switch (parentObjectType) {
+            case 'unknown':
+                throw new Error('Parent object type is unknown');
+            case 'database':
+                if (this.getIsRootNode(node)) {
+                    parentPageId = await this.synchronizeRootNode({
+                        node,
+                        parentObjectId,
+                        parentObjectType,
+                        lockPage,
+                        cleanSync,
                     });
                 }
-                throw error;
-            }
+                else {
+                    parentPageId = await this.synchronizeRootNode({
+                        node: node.children[0],
+                        parentObjectId,
+                        parentObjectType,
+                        lockPage,
+                        cleanSync,
+                    });
+                }
+                break;
+            case 'page':
+                if (this.getIsRootNode(node)) {
+                    parentPageId = await this.synchronizeRootNode({
+                        node,
+                        parentObjectId,
+                        parentObjectType,
+                        lockPage,
+                        cleanSync,
+                    });
+                }
+                break;
+            default:
+                throw new Error('Invalid parent object type');
         }
         for (const childNode of node.children) {
-            const filePath = childNode.filepath;
-            this.logger.info(`Processing file: ${filePath}`);
             try {
-                // Retrieve the file from the source repository
-                const file = await this.sourceRepository.getFile({
-                    path: filePath,
-                });
-                // Set the current file path for image resolution
-                if (this.elementConverter.setCurrentFilePath) {
-                    this.elementConverter.setCurrentFilePath(filePath);
-                }
-                // Convert the file content to a Notion page element
-                const pageElement = this.elementConverter.convertToElement(file);
-                if (!(pageElement instanceof elements_1.PageElement)) {
-                    throw new Error('Element is not a PageElement');
-                }
-                [new elements_1.DividerElement(), new elements_1.TableOfContentsElement()].forEach((element) => {
-                    pageElement.addElementToBeginning(element);
-                });
-                if (childNode.children.length > 0) {
-                    // Add divider to the end of the page
-                    pageElement.addElementToEnd(new elements_1.DividerElement());
-                }
-                // Create the Notion page and get the new page ID
-                const newPage = await this.destinationRepository.createPage({
-                    pageElement,
+                await this.synchronizeChildNode({
+                    childNode,
                     parentPageId,
-                    filePath,
+                    lockPage,
                 });
-                this.logger.info(`Created Notion page for file: ${filePath}`);
-                // Recursively process the children of the current node
-                if (childNode.children.length > 0) {
-                    if (newPage.pageId === undefined) {
-                        throw new Error('Page ID is undefined');
-                    }
-                    await this.synchronizeTreeNode({
-                        node: childNode,
-                        parentPageId: newPage.pageId,
-                        lockPage,
-                    });
-                }
-                if (lockPage && newPage.pageId) {
-                    await this.destinationRepository.setPageLockedStatus({
-                        pageId: newPage.pageId,
-                        lockStatus: 'locked',
-                    });
-                    this.logger.info(`Locked page ${newPage.pageId}`);
-                }
             }
             catch (error) {
-                if (error instanceof Error) {
-                    this.logger.error(`Failed to synchronize file: ${filePath}`, {
-                        error,
-                    });
-                }
+                this.logger.error(`Failed to synchronize file: ${childNode.filepath}`, {
+                    error,
+                });
                 throw error;
             }
         }
+    }
+    getIsRootNode(node) {
+        return node.parent === null && !['', undefined].includes(node.filepath);
     }
 }
 exports.SynchronizeMarkdownToNotion = SynchronizeMarkdownToNotion;
@@ -75758,6 +76192,18 @@ exports.NotionPage = NotionPage;
 
 /***/ }),
 
+/***/ 8642:
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.MK_NOTES_INTERNAL_ID_PROPERTY_NAME = void 0;
+exports.MK_NOTES_INTERNAL_ID_PROPERTY_NAME = 'mk-notes-id';
+
+
+/***/ }),
+
 /***/ 8109:
 /***/ ((__unused_webpack_module, exports) => {
 
@@ -75789,7 +76235,7 @@ exports.isNotionNestingValidationError = isNotionNestingValidationError;
 
 /***/ }),
 
-/***/ 8434:
+/***/ 8188:
 /***/ ((__unused_webpack_module, exports) => {
 
 "use strict";
@@ -77093,11 +77539,17 @@ class MarkdownParser extends elements_1.ParserRepository {
             content: elements,
         };
         const fileMetadata = this.getMetadata(content);
+        if (fileMetadata.id) {
+            result.mkNotesInternalId = fileMetadata.id;
+        }
         if (fileMetadata.title) {
             result.title = fileMetadata.title;
         }
         if (fileMetadata.icon) {
             result.icon = fileMetadata.icon;
+        }
+        if (fileMetadata.properties && Array.isArray(fileMetadata.properties)) {
+            result.properties = fileMetadata.properties;
         }
         return result;
     }
@@ -77484,7 +77936,7 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 __exportStar(__nccwpck_require__(3913), exports);
-__exportStar(__nccwpck_require__(8434), exports);
+__exportStar(__nccwpck_require__(8188), exports);
 __exportStar(__nccwpck_require__(2792), exports);
 __exportStar(__nccwpck_require__(6918), exports);
 __exportStar(__nccwpck_require__(3942), exports);
@@ -77535,6 +77987,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.NotionConverterRepository = void 0;
 const path = __importStar(__nccwpck_require__(6928));
 const elements_1 = __nccwpck_require__(7591);
+const constants_1 = __nccwpck_require__(8642);
 const NotionPage_1 = __nccwpck_require__(3913);
 const SUPPORTED_IMAGE_URL_EXTENSIONS = [
     '.bmp',
@@ -77579,7 +78032,323 @@ class NotionConverterRepository {
         // Relative paths or absolute local paths
         return true;
     }
-    async convertPageElement(element) {
+    // ============================================
+    // Property Conversion Functions
+    // ============================================
+    /**
+     * Converts a string value to a Notion TitleProperty
+     */
+    convertToTitleProperty(value) {
+        if (typeof value !== 'string') {
+            throw new Error(`Invalid value type: ${typeof value}`);
+        }
+        return {
+            id: 'title',
+            type: 'title',
+            title: [
+                {
+                    type: 'text',
+                    text: {
+                        content: value,
+                        link: null,
+                    },
+                },
+            ],
+        };
+    }
+    /**
+     * Converts a string value to a Notion RichTextProperty
+     */
+    convertToRichTextProperty(value) {
+        if (typeof value !== 'string') {
+            throw new Error(`Invalid value type: ${typeof value}`);
+        }
+        return {
+            type: 'rich_text',
+            rich_text: [
+                {
+                    type: 'text',
+                    text: {
+                        content: value,
+                        link: null,
+                    },
+                },
+            ],
+        };
+    }
+    /**
+     * Converts a string value to a Notion NumberProperty
+     * Returns null if the value cannot be parsed as a number
+     */
+    convertToNumberProperty(value) {
+        if (typeof value !== 'number') {
+            throw new Error(`Invalid value type: ${typeof value}`);
+        }
+        const parsed = value;
+        if (isNaN(parsed)) {
+            this.logger.warn(`Cannot convert "${value}" to number property, skipping`);
+            return null;
+        }
+        return {
+            type: 'number',
+            number: parsed,
+        };
+    }
+    /**
+     * Converts a string value to a Notion UrlProperty
+     */
+    convertToUrlProperty(value) {
+        if (typeof value !== 'string') {
+            throw new Error(`Invalid value type: ${typeof value}`);
+        }
+        return {
+            type: 'url',
+            url: value || null,
+        };
+    }
+    /**
+     * Converts a string value to a Notion SelectProperty
+     * The value should match one of the available options in the database property definition
+     */
+    convertToSelectProperty(value, propertyDefinition) {
+        if (typeof value !== 'string') {
+            throw new Error(`Invalid value type: ${typeof value}`);
+        }
+        // Type-narrow to access select options
+        if (propertyDefinition.type === 'select') {
+            const { options } = propertyDefinition.select;
+            const matchingOption = options.find((opt) => opt.name.toLowerCase() === value.toLowerCase());
+            if (matchingOption) {
+                return {
+                    type: 'select',
+                    select: {
+                        id: matchingOption.id,
+                        name: matchingOption.name,
+                        color: matchingOption.color,
+                    },
+                };
+            }
+        }
+        // If no matching option found, create a new one with the provided value
+        // Notion will create the option if it doesn't exist
+        return {
+            type: 'select',
+            select: {
+                id: '',
+                name: value,
+            },
+        };
+    }
+    /**
+     * Converts a string value to a Notion MultiSelectProperty
+     * The value should be a comma-separated list of option names
+     */
+    convertToMultiSelectProperty(value, propertyDefinition) {
+        if (typeof value !== 'string' && !Array.isArray(value)) {
+            throw new Error(`Invalid value type: ${typeof value}`);
+        }
+        const values = value instanceof Array ? value : [value];
+        // Type-narrow to access multi_select options
+        const options = propertyDefinition.type === 'multi_select'
+            ? propertyDefinition.multi_select.options
+            : [];
+        const multiSelectOptions = values.map((val) => {
+            const matchingOption = options.find((opt) => opt.name.toLowerCase() === String(val).toLowerCase());
+            if (matchingOption) {
+                return {
+                    id: matchingOption.id,
+                    name: matchingOption.name,
+                    color: matchingOption.color,
+                };
+            }
+            // Create new option if not found
+            return {
+                id: '',
+                name: String(val),
+            };
+        });
+        return {
+            type: 'multi_select',
+            multi_select: multiSelectOptions,
+        };
+    }
+    /**
+     * Converts a string value to a Notion DateProperty
+     * Supports ISO 8601 date strings (YYYY-MM-DD or YYYY-MM-DDTHH:mm:ss)
+     */
+    convertToDateProperty(value) {
+        if (typeof value !== 'string') {
+            throw new Error(`Invalid value type: ${typeof value}`);
+        }
+        // Try to parse the date
+        const date = new Date(value);
+        if (isNaN(date.getTime())) {
+            this.logger.warn(`Cannot convert "${value}" to date property, skipping`);
+            return null;
+        }
+        // Format as ISO string (Notion expects ISO 8601 format)
+        return {
+            type: 'date',
+            date: value, // Pass the original value if it's already in ISO format
+        };
+    }
+    /**
+     * Converts a string value to a Notion CheckboxProperty
+     * Accepts: "true", "false", "yes", "no", "1", "0"
+     */
+    convertToCheckboxProperty(value) {
+        if (typeof value !== 'string' && typeof value !== 'boolean') {
+            throw new Error(`Invalid value type: ${typeof value}`);
+        }
+        if (typeof value === 'boolean') {
+            return {
+                type: 'checkbox',
+                checkbox: value,
+            };
+        }
+        const normalizedValue = value.toLowerCase().trim();
+        const trueValues = ['true', 'yes', '1', 'on', 'checked'];
+        const isChecked = trueValues.includes(normalizedValue);
+        return {
+            type: 'checkbox',
+            checkbox: isChecked,
+        };
+    }
+    /**
+     * Converts a string value to a Notion EmailProperty
+     */
+    convertToEmailProperty(value) {
+        if (typeof value !== 'string') {
+            throw new Error(`Invalid value type: ${typeof value}`);
+        }
+        return {
+            type: 'email',
+            email: value || null,
+        };
+    }
+    /**
+     * Converts a string value to a Notion PhoneNumberProperty
+     */
+    convertToPhoneNumberProperty(value) {
+        if (typeof value !== 'string') {
+            throw new Error(`Invalid value type: ${typeof value}`);
+        }
+        return {
+            type: 'phone_number',
+            phone_number: value || null,
+        };
+    }
+    /**
+     * Converts a string value to a Notion StatusProperty
+     * The value should match one of the available status options in the database property definition
+     */
+    convertToStatusProperty(value, propertyDefinition) {
+        if (typeof value !== 'string') {
+            throw new Error(`Invalid value type: ${typeof value}`);
+        }
+        // Type-narrow to access status options
+        if (propertyDefinition.type === 'status') {
+            const { options } = propertyDefinition.status;
+            const matchingOption = options.find((opt) => opt.name.toLowerCase() === value.toLowerCase());
+            if (matchingOption) {
+                return {
+                    type: 'status',
+                    status: {
+                        id: matchingOption.id,
+                        name: matchingOption.name,
+                        color: matchingOption.color,
+                    },
+                };
+            }
+        }
+        // If no matching option found, use the value as-is
+        // Note: Notion may reject this if the status doesn't exist
+        return {
+            type: 'status',
+            status: {
+                id: '',
+                name: value,
+            },
+        };
+    }
+    /**
+     * Converts a PageElementProperty to the appropriate Notion property based on the database property definition
+     */
+    convertPropertyValue(value, propertyDefinition) {
+        if (value instanceof Array) {
+            if (propertyDefinition.type === 'multi_select') {
+                return this.convertToMultiSelectProperty(value, propertyDefinition);
+            }
+            this.logger.warn(`Unsupported array value for property type "${propertyDefinition.type}"`);
+            return null;
+        }
+        switch (propertyDefinition.type) {
+            case 'title':
+                return this.convertToTitleProperty(value);
+            case 'rich_text':
+                return this.convertToRichTextProperty(value);
+            case 'number':
+                return this.convertToNumberProperty(value);
+            case 'url':
+                return this.convertToUrlProperty(value);
+            case 'select':
+                return this.convertToSelectProperty(value, propertyDefinition);
+            case 'multi_select':
+                return this.convertToMultiSelectProperty(value, propertyDefinition);
+            case 'date':
+                return this.convertToDateProperty(value);
+            case 'checkbox':
+                return this.convertToCheckboxProperty(value);
+            case 'email':
+                return this.convertToEmailProperty(value);
+            case 'phone_number':
+                return this.convertToPhoneNumberProperty(value);
+            case 'status':
+                return this.convertToStatusProperty(value, propertyDefinition);
+            case 'people':
+            case 'files':
+            case 'relation':
+            case 'formula':
+            case 'rollup':
+            case 'created_time':
+            case 'created_by':
+            case 'last_edited_time':
+            case 'last_edited_by':
+            case 'unique_id':
+                this.logger.warn(`Property type "${propertyDefinition.type}" cannot be converted from string, skipping property "${propertyDefinition.name}"`);
+                return null;
+        }
+    }
+    /**
+     * Converts page element properties to Notion PageProperties based on database property definitions
+     *
+     * @param properties - Array of PageElementProperties from the markdown frontmatter
+     * @param notionPropertyDefinitions - Array of database property definitions from Notion
+     * @returns PageProperties object ready to be used in Notion API calls
+     */
+    convertPageElementProperties(properties, notionProperties = []) {
+        const result = {};
+        // Create a map of property definitions by name for quick lookup
+        const definitionMap = new Map();
+        for (const property of notionProperties) {
+            definitionMap.set(property.name, property.definition);
+        }
+        // Convert each page element property
+        for (const property of properties ?? []) {
+            const definition = definitionMap.get(property.name);
+            if (!definition) {
+                this.logger.warn(`No matching Notion property definition found for "${property.name}", skipping`);
+                continue;
+            }
+            const convertedValue = this.convertPropertyValue(property.value, definition);
+            if (convertedValue !== null) {
+                // Use the original definition name to preserve casing
+                result[definition.name] = convertedValue;
+            }
+        }
+        return result;
+    }
+    async convertPageElement(element, notionPropertyDefinitions = []) {
         const title = {
             id: 'title',
             type: 'title',
@@ -77593,10 +78362,20 @@ class NotionConverterRepository {
                 },
             ],
         };
+        const elementProperties = element.properties ?? [];
+        if (element.mkNotesInternalId) {
+            elementProperties.push({
+                name: constants_1.MK_NOTES_INTERNAL_ID_PROPERTY_NAME,
+                value: element.mkNotesInternalId,
+            });
+        }
+        // Convert page element properties to Notion properties
+        const convertedProperties = this.convertPageElementProperties(elementProperties, notionPropertyDefinitions);
         const result = {
             children: [],
             properties: {
                 title,
+                ...convertedProperties,
             },
         };
         for (const contentElement of element.content) {
@@ -77646,8 +78425,8 @@ class NotionConverterRepository {
                 return null;
         }
     }
-    async convertFromElement(element) {
-        const notionPageInput = await this.convertPageElement(element);
+    async convertFromElement(element, availableProperties = []) {
+        const notionPageInput = await this.convertPageElement(element, availableProperties);
         return NotionPage_1.NotionPage.fromPartialCreatePageBodyParameters(notionPageInput);
     }
     convertText(element) {
@@ -78085,6 +78864,7 @@ exports.NotionConverterRepository = NotionConverterRepository;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.NotionDestinationRepository = void 0;
 const client_1 = __nccwpck_require__(8342);
+const constants_1 = __nccwpck_require__(8642);
 const error_1 = __nccwpck_require__(8109);
 const NotionPage_1 = __nccwpck_require__(3913);
 const utils_1 = __nccwpck_require__(7100);
@@ -78119,37 +78899,33 @@ class NotionDestinationRepository {
             throw error instanceof Error ? error : new Error(String(error));
         }
     }
-    getPageIdFromPageUrl({ pageUrl }) {
-        const urlObj = new URL(pageUrl);
-        const pathSegments = urlObj.pathname.split('-');
-        let lastSegment = pathSegments[pathSegments.length - 1];
-        /**
-         * If the URL has a query parameter `v`, it's becase it's a Notion Database
-         * Unfortunatly, for now, mk-notes doesn't support Notion Databases
-         **/
-        if (urlObj.searchParams.has('v')) {
-            throw new Error('Notion Databases are not supported yet. Please use a Notion Page URL');
+    getObjectIdFromObjectUrl({ objectUrl }) {
+        const urlObj = new URL(objectUrl);
+        // Notion IDs are 32-character hexadecimal strings (UUID without dashes)
+        // They can be embedded in path segments like "MK-Notes-4dd0bd3dc73648a9a55dcf05dd03080f"
+        const notionIdRegex = /[a-f0-9]{32}/gi;
+        const matches = urlObj.pathname.match(notionIdRegex);
+        if (!matches || matches.length === 0) {
+            throw new Error('Invalid Notion URL: No valid Notion ID found');
         }
-        if (lastSegment.startsWith('/')) {
-            lastSegment = lastSegment.slice(1);
-        }
-        const [lastSegmentWithoutQueryParams] = lastSegment.split('?');
-        if (!lastSegmentWithoutQueryParams) {
-            throw new Error('Invalid Notion URL');
-        }
-        if (lastSegmentWithoutQueryParams.length !== 32) {
-            throw new Error('Invalid Notion URL');
-        }
-        return lastSegmentWithoutQueryParams;
+        // Return the last match (closest to the end of the URL path)
+        return matches[matches.length - 1];
     }
-    async destinationIsAccessible({ parentPageId, }) {
+    async destinationIsAccessible({ parentObjectId, }) {
         try {
-            await this.getPage({ pageId: parentPageId });
+            await this.getPage({ pageId: parentObjectId });
             return true;
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
         }
         catch (err) {
-            return false;
+            try {
+                await this.getDatabaseById({ databaseId: parentObjectId });
+                return true;
+                // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            }
+            catch (_err) {
+                return false;
+            }
         }
     }
     async getPageById({ notionPageId, }) {
@@ -78168,16 +78944,41 @@ class NotionDestinationRepository {
             isLocked: pageObjectResponse.is_locked ?? false,
         });
     }
-    async createPage({ parentPageId, pageElement, filePath, }) {
+    async createPage({ parentObjectId, parentObjectType, pageElement, filePath, }) {
         // Set the current file path for image resolution
         if (filePath) {
             this.notionConverter.setCurrentFilePath(filePath);
         }
-        const notionPage = await this.notionConverter.convertFromElement(pageElement);
+        if (parentObjectType === 'unknown') {
+            throw new Error('Unknown parent object type');
+        }
+        let parent;
+        const availableProperties = [];
+        if (parentObjectType === 'page') {
+            parent = { type: 'page_id', page_id: parentObjectId };
+        }
+        if (parentObjectType === 'database') {
+            const database = await this.getDatabaseById({
+                databaseId: parentObjectId,
+            });
+            if (!('data_sources' in database)) {
+                throw new Error('Database does not have any datasources');
+            }
+            const datasource = await this.getDatasourceByDatasourceId({
+                datasourceId: database.data_sources[0].id,
+            });
+            parent = { type: 'data_source_id', data_source_id: datasource.id };
+            availableProperties.push(...Object.entries(datasource.properties).map(([name, property]) => ({
+                name,
+                definition: property,
+                type: property.type,
+            })));
+        }
+        const notionPage = await this.notionConverter.convertFromElement(pageElement, availableProperties);
         const NOTION_BLOCK_LIMIT = 100;
         // First create the page without children
         const { id: notionPageId } = await this.client.pages.create({
-            parent: { type: 'page_id', page_id: parentPageId },
+            parent,
             properties: notionPage.properties,
             icon: notionPage.icon,
             children: [], // Create page without children initially
@@ -78327,6 +79128,53 @@ class NotionDestinationRepository {
             return 'unlocked';
         }
         return isLocked ? 'locked' : 'unlocked';
+    }
+    async getDatabaseById({ databaseId, }) {
+        return this.client.databases.retrieve({
+            database_id: databaseId,
+        });
+    }
+    async getObjectType({ id, }) {
+        try {
+            await this.client.pages.retrieve({ page_id: id });
+            return 'page';
+        }
+        catch {
+            try {
+                await this.client.databases.retrieve({ database_id: id });
+                return 'database';
+            }
+            catch {
+                return 'unknown';
+            }
+        }
+    }
+    async getDataSourceIdFromDatabaseId({ databaseId, }) {
+        const database = await this.getDatabaseById({ databaseId });
+        if (!('data_sources' in database)) {
+            throw new Error('Database does not have any datasources');
+        }
+        return database.data_sources[0].id;
+    }
+    async getDatasourceByDatasourceId({ datasourceId, }) {
+        return this.client.dataSources.retrieve({
+            data_source_id: datasourceId,
+        });
+    }
+    async getObjectIdInDatabaseByMkNotesInternalId({ dataSourceId, mkNotesInternalId, }) {
+        const items = await this.client.dataSources.query({
+            data_source_id: dataSourceId,
+            filter: {
+                property: constants_1.MK_NOTES_INTERNAL_ID_PROPERTY_NAME,
+                rich_text: {
+                    equals: mkNotesInternalId,
+                },
+            },
+        });
+        return items.results.map((item) => item.id);
+    }
+    async deleteObjectById({ objectId }) {
+        await this.client.blocks.delete({ block_id: objectId });
     }
 }
 exports.NotionDestinationRepository = NotionDestinationRepository;
@@ -84722,7 +85570,7 @@ var lexer = _Lexer.lex;
 /***/ ((module) => {
 
 "use strict";
-module.exports = /*#__PURE__*/JSON.parse('{"name":"@notionhq/client","version":"5.1.0","description":"A simple and easy to use client for the Notion API","engines":{"node":">=18"},"homepage":"https://developers.notion.com/docs/getting-started","bugs":{"url":"https://github.com/makenotion/notion-sdk-js/issues"},"repository":{"type":"git","url":"https://github.com/makenotion/notion-sdk-js/"},"keywords":["notion","notionapi","rest","notion-api"],"main":"./build/src","types":"./build/src/index.d.ts","scripts":{"prepare":"npm run build","prepublishOnly":"npm run checkLoggedIn && npm run lint && npm run test","build":"tsc","prettier":"prettier --write .","lint":"prettier --check . && eslint . --ext .ts && cspell \'**/*\' ","test":"jest ./test","check-links":"git ls-files | grep md$ | xargs -n 1 markdown-link-check","prebuild":"npm run clean","clean":"rm -rf ./build","checkLoggedIn":"./scripts/verifyLoggedIn.sh","install:examples":"for dir in examples/*/; do echo \\"Installing dependencies in $dir...\\"; (cd \\"$dir\\" && npm install); done","examples:install":"npm run install:examples","examples:typecheck":"for dir in examples/*/; do echo \\"Typechecking $dir...\\"; (cd \\"$dir\\" && npx tsc --noEmit) || exit 1; done"},"author":"","license":"MIT","files":["build/package.json","build/src/**"],"devDependencies":{"@types/jest":"28.1.4","@typescript-eslint/eslint-plugin":"5.39.0","@typescript-eslint/parser":"5.39.0","cspell":"5.4.1","eslint":"7.24.0","jest":"28.1.2","markdown-link-check":"3.13.7","prettier":"2.8.8","ts-jest":"28.0.5","typescript":"5.9.2"}}');
+module.exports = /*#__PURE__*/JSON.parse('{"name":"@notionhq/client","version":"5.4.0","description":"A simple and easy to use client for the Notion API","engines":{"node":">=18"},"homepage":"https://developers.notion.com/docs/getting-started","bugs":{"url":"https://github.com/makenotion/notion-sdk-js/issues"},"repository":{"type":"git","url":"https://github.com/makenotion/notion-sdk-js/"},"keywords":["notion","notionapi","rest","notion-api"],"main":"./build/src","types":"./build/src/index.d.ts","scripts":{"prepare":"npm run build","prepublishOnly":"npm run checkLoggedIn && npm run lint && npm run test","build":"tsc","prettier":"prettier --write .","lint":"prettier --check . && eslint . --ext .ts && cspell \'**/*\' ","test":"jest ./test","check-links":"git ls-files | grep md$ | xargs -n 1 markdown-link-check","prebuild":"npm run clean","clean":"rm -rf ./build","checkLoggedIn":"./scripts/verifyLoggedIn.sh","install:examples":"for dir in examples/*/; do echo \\"Installing dependencies in $dir...\\"; (cd \\"$dir\\" && npm install); done","examples:install":"npm run install:examples","examples:typecheck":"for dir in examples/*/; do echo \\"Typechecking $dir...\\"; (cd \\"$dir\\" && npx tsc --noEmit) || exit 1; done"},"author":"","license":"MIT","files":["build/package.json","build/src/**"],"devDependencies":{"@types/jest":"28.1.4","@typescript-eslint/eslint-plugin":"5.39.0","@typescript-eslint/parser":"5.39.0","cspell":"5.4.1","eslint":"7.24.0","jest":"28.1.2","markdown-link-check":"3.13.7","prettier":"2.8.8","ts-jest":"28.0.5","typescript":"5.9.2"}}');
 
 /***/ }),
 

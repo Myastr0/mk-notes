@@ -2,6 +2,8 @@ import { Client, isFullPage, LogLevel } from '@notionhq/client';
 import {
   BlockObjectResponse,
   CreatePageParameters,
+  GetDatabaseResponse,
+  GetDataSourceResponse,
   PageObjectResponse,
   PartialBlockObjectResponse,
   UpdatePageParameters,
@@ -9,6 +11,7 @@ import {
 import winston from 'winston';
 
 import { PageElement } from '@/domains/elements/Element';
+import { MK_NOTES_INTERNAL_ID_PROPERTY_NAME } from '@/domains/notion/constants';
 import {
   isNotionNestingValidationError,
   NotionNestingValidationError,
@@ -16,13 +19,16 @@ import {
 import { NotionPage } from '@/domains/notion/NotionPage';
 import {
   DestinationRepository,
+  ObjectType,
   PageLockedStatus,
 } from '@/domains/synchronization/destination.repository';
 
 import {
   BlockObjectRequest,
   BlockObjectRequestWithoutChildren,
+  DatabaseProperty,
   Icon,
+  Parent,
   TitleProperty,
 } from '../../domains/notion/types';
 import { NotionConverterRepository } from './notion.converter';
@@ -83,50 +89,39 @@ export class NotionDestinationRepository
     }
   }
 
-  getPageIdFromPageUrl({ pageUrl }: { pageUrl: string }): string {
-    const urlObj = new URL(pageUrl);
+  getObjectIdFromObjectUrl({ objectUrl }: { objectUrl: string }): string {
+    const urlObj = new URL(objectUrl);
 
-    const pathSegments = urlObj.pathname.split('-');
-    let lastSegment = pathSegments[pathSegments.length - 1];
+    // Notion IDs are 32-character hexadecimal strings (UUID without dashes)
+    // They can be embedded in path segments like "MK-Notes-4dd0bd3dc73648a9a55dcf05dd03080f"
+    const notionIdRegex = /[a-f0-9]{32}/gi;
+    const matches = urlObj.pathname.match(notionIdRegex);
 
-    /**
-     * If the URL has a query parameter `v`, it's becase it's a Notion Database
-     * Unfortunatly, for now, mk-notes doesn't support Notion Databases
-     **/
-    if (urlObj.searchParams.has('v')) {
-      throw new Error(
-        'Notion Databases are not supported yet. Please use a Notion Page URL'
-      );
+    if (!matches || matches.length === 0) {
+      throw new Error('Invalid Notion URL: No valid Notion ID found');
     }
 
-    if (lastSegment.startsWith('/')) {
-      lastSegment = lastSegment.slice(1);
-    }
-
-    const [lastSegmentWithoutQueryParams] = lastSegment.split('?');
-
-    if (!lastSegmentWithoutQueryParams) {
-      throw new Error('Invalid Notion URL');
-    }
-
-    if (lastSegmentWithoutQueryParams.length !== 32) {
-      throw new Error('Invalid Notion URL');
-    }
-
-    return lastSegmentWithoutQueryParams;
+    // Return the last match (closest to the end of the URL path)
+    return matches[matches.length - 1];
   }
 
   async destinationIsAccessible({
-    parentPageId,
+    parentObjectId,
   }: {
-    parentPageId: string;
+    parentObjectId: string;
   }): Promise<boolean> {
     try {
-      await this.getPage({ pageId: parentPageId });
+      await this.getPage({ pageId: parentObjectId });
       return true;
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (err) {
-      return false;
+      try {
+        await this.getDatabaseById({ databaseId: parentObjectId });
+        return true;
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      } catch (_err) {
+        return false;
+      }
     }
   }
 
@@ -153,12 +148,15 @@ export class NotionDestinationRepository
       isLocked: pageObjectResponse.is_locked ?? false,
     });
   }
+
   async createPage({
-    parentPageId,
+    parentObjectId,
+    parentObjectType,
     pageElement,
     filePath,
   }: {
-    parentPageId: string;
+    parentObjectId: string;
+    parentObjectType: ObjectType;
     pageElement: PageElement;
     filePath?: string;
   }): Promise<NotionPage> {
@@ -167,13 +165,51 @@ export class NotionDestinationRepository
       this.notionConverter.setCurrentFilePath(filePath);
     }
 
-    const notionPage =
-      await this.notionConverter.convertFromElement(pageElement);
+    if (parentObjectType === 'unknown') {
+      throw new Error('Unknown parent object type');
+    }
+
+    let parent: Parent | undefined;
+    const availableProperties: DatabaseProperty[] = [];
+
+    if (parentObjectType === 'page') {
+      parent = { type: 'page_id', page_id: parentObjectId };
+    }
+
+    if (parentObjectType === 'database') {
+      const database = await this.getDatabaseById({
+        databaseId: parentObjectId,
+      });
+
+      if (!('data_sources' in database)) {
+        throw new Error('Database does not have any datasources');
+      }
+
+      const datasource = await this.getDatasourceByDatasourceId({
+        datasourceId: database.data_sources[0].id,
+      });
+
+      parent = { type: 'data_source_id', data_source_id: datasource.id };
+
+      availableProperties.push(
+        ...Object.entries(datasource.properties).map(([name, property]) => ({
+          name,
+          definition: property,
+          type: property.type,
+        }))
+      );
+    }
+
+    const notionPage = await this.notionConverter.convertFromElement(
+      pageElement,
+      availableProperties
+    );
+
     const NOTION_BLOCK_LIMIT = 100;
 
     // First create the page without children
     const { id: notionPageId } = await this.client.pages.create({
-      parent: { type: 'page_id', page_id: parentPageId },
+      parent,
       properties: notionPage.properties as CreatePageParameters['properties'],
       icon: notionPage.icon,
       children: [], // Create page without children initially
@@ -418,5 +454,80 @@ export class NotionDestinationRepository
     }
 
     return isLocked ? 'locked' : 'unlocked';
+  }
+
+  async getDatabaseById({
+    databaseId,
+  }: {
+    databaseId: string;
+  }): Promise<GetDatabaseResponse> {
+    return this.client.databases.retrieve({
+      database_id: databaseId,
+    });
+  }
+
+  async getObjectType({
+    id,
+  }: {
+    id: string;
+  }): Promise<'page' | 'database' | 'unknown'> {
+    try {
+      await this.client.pages.retrieve({ page_id: id });
+      return 'page';
+    } catch {
+      try {
+        await this.client.databases.retrieve({ database_id: id });
+        return 'database';
+      } catch {
+        return 'unknown';
+      }
+    }
+  }
+
+  async getDataSourceIdFromDatabaseId({
+    databaseId,
+  }: {
+    databaseId: string;
+  }): Promise<string> {
+    const database = await this.getDatabaseById({ databaseId });
+
+    if (!('data_sources' in database)) {
+      throw new Error('Database does not have any datasources');
+    }
+    return database.data_sources[0].id;
+  }
+
+  async getDatasourceByDatasourceId({
+    datasourceId,
+  }: {
+    datasourceId: string;
+  }): Promise<GetDataSourceResponse> {
+    return this.client.dataSources.retrieve({
+      data_source_id: datasourceId,
+    });
+  }
+
+  async getObjectIdInDatabaseByMkNotesInternalId({
+    dataSourceId,
+    mkNotesInternalId,
+  }: {
+    dataSourceId: string;
+    mkNotesInternalId: string;
+  }): Promise<string[]> {
+    const items = await this.client.dataSources.query({
+      data_source_id: dataSourceId,
+      filter: {
+        property: MK_NOTES_INTERNAL_ID_PROPERTY_NAME,
+        rich_text: {
+          equals: mkNotesInternalId,
+        },
+      },
+    });
+
+    return items.results.map((item) => item.id);
+  }
+
+  async deleteObjectById({ objectId }: { objectId: string }): Promise<void> {
+    await this.client.blocks.delete({ block_id: objectId });
   }
 }
