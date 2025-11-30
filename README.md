@@ -55,6 +55,12 @@ Visit the [official documentation](https://www.mk-notes.io) to learn more about 
 
 <br />
 
+## Contributors
+
+<a href="https://github.com/Myastr0/mk-notes/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=Myastr0/mk-notes" />
+</a>
+
 ### Want to Contribute? 💪
 
 If you want to file a bug or submit a PR, read up on
