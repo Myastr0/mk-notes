@@ -13,12 +13,7 @@ import {
 import { cn } from '../lib/cn';
 import { useCopyButton } from 'fumadocs-ui/utils/use-copy-button';
 import { buttonVariants } from './ui/button';
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from './tabs.unstyled';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from './tabs.unstyled';
 import { mergeRefs } from '../lib/merge-refs';
 
 export interface CodeBlockProps extends ComponentProps<'figure'> {
@@ -103,7 +98,7 @@ export function CodeBlock({
         keepBackground && 'bg-(--shiki-light-bg) dark:bg-(--shiki-dark-bg)',
 
         'shiki relative border shadow-sm not-prose overflow-hidden text-sm',
-        props.className,
+        props.className
       )}
     >
       {title ? (
@@ -138,7 +133,7 @@ export function CodeBlock({
         tabIndex={0}
         className={cn(
           'text-[0.8125rem] py-3.5 overflow-auto max-h-[600px] fd-scroll-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-fd-ring',
-          viewportProps.className,
+          viewportProps.className
         )}
         style={
           {
@@ -184,9 +179,9 @@ function CopyButton({
         buttonVariants({
           className:
             'hover:text-fd-accent-foreground data-checked:text-fd-accent-foreground',
-          size: 'icon-xs',
+          size: 'icon',
         }),
-        className,
+        className
       )}
       aria-label={checked ? 'Copied Text' : 'Copy Text'}
       onClick={onClick}
@@ -208,7 +203,7 @@ export function CodeBlockTabs({ ref, ...props }: ComponentProps<typeof Tabs>) {
       className={cn(
         'bg-fd-card rounded-xl border',
         !nested && 'my-4',
-        props.className,
+        props.className
       )}
     >
       <TabsContext
@@ -217,7 +212,7 @@ export function CodeBlockTabs({ ref, ...props }: ComponentProps<typeof Tabs>) {
             containerRef,
             nested,
           }),
-          [nested],
+          [nested]
         )}
       >
         {props.children}
@@ -232,7 +227,7 @@ export function CodeBlockTabsList(props: ComponentProps<typeof TabsList>) {
       {...props}
       className={cn(
         'flex flex-row px-2 overflow-x-auto text-fd-muted-foreground',
-        props.className,
+        props.className
       )}
     >
       {props.children}
@@ -249,7 +244,7 @@ export function CodeBlockTabsTrigger({
       {...props}
       className={cn(
         'relative group inline-flex text-sm font-medium text-nowrap items-center transition-colors gap-2 px-2 py-1.5 hover:text-fd-accent-foreground data-[state=active]:text-fd-primary [&_svg]:size-3.5',
-        props.className,
+        props.className
       )}
     >
       <div className="absolute inset-x-2 bottom-0 h-px group-data-[state=active]:bg-fd-primary" />
