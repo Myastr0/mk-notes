@@ -1,30 +1,12 @@
-import { defineCollection, defineConfig } from '@content-collections/core';
-import {
-  frontmatterSchema,
-  metaSchema,
-  transformMDX,
-} from '@fumadocs/content-collections/configuration';
-import {remarkNpm} from 'fumadocs-core/mdx-plugins';
+import { defineConfig } from '@content-collections/core';
+import { docs, docsMetas } from './collections/docs';
+import { blogs, blogsMetas } from './collections/blogs';
+import { authors } from './collections/authors';
 
-const docs = defineCollection({
-  name: 'docs',
-  directory: 'content/docs',
-  include: '**/*.mdx',
-  schema: frontmatterSchema,
-  transform: (document, context) =>
-    transformMDX(document, context, {
-      remarkPlugins: [remarkNpm],
-    }),
-});
-
-const metas = defineCollection({
-  name: 'meta',
-  directory: 'content/docs',
-  include: '**/meta.json',
-  parser: 'json',
-  schema: metaSchema,
-});
+export { docs, docsMetas } from './collections/docs';
+export { blogs, blogsMetas } from './collections/blogs';
+export { authors } from './collections/authors';
 
 export default defineConfig({
-  collections: [docs, metas],
+  collections: [docs, docsMetas, blogs, blogsMetas, authors],
 });

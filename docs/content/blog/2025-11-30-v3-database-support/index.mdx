@@ -1,0 +1,96 @@
+---
+slug: v3-database-support
+date: 2025-11-30
+title: 'Mk Notes v3.0.0: Sync to Notion Databases'
+author: Myastr0
+description: Introducing Notion database destination support – organize your markdown content with filters, views, and custom properties.
+---
+
+We're thrilled to announce **Mk Notes v3.0.0** – a major release that brings one of our most requested features: **Notion database synchronization**! 🗄️
+
+{/* truncate */}
+
+Until now, Mk Notes could sync your markdown files to Notion pages, mirroring your folder structure. With v3.0.0, you can now sync directly to **Notion databases**, unlocking powerful organizational features like filtering, sorting, and custom views.
+
+## Why Database Sync?
+
+Notion databases are incredibly powerful for managing collections of documents. By syncing your markdown content to a database, you can:
+
+- **Organize with views**: Table, board, gallery, or calendar – pick your favorite way to browse your docs
+- **Filter & sort**: Quickly find content using Notion's native filtering system
+- **Add custom metadata**: Enrich your pages with properties like status, tags, categories, or dates
+- **Scale effortlessly**: Perfect for managing large documentation sets, knowledge bases, or content libraries
+
+## How It Works
+
+Getting started with database sync is simple. Just point your `--destination` flag to a Notion database URL instead of a page:
+
+```bash
+mk-notes sync \
+  --input ./docs \
+  --destination https://notion.so/myworkspace/my-database-123456 \
+  --notion-api-key secret_abc123...
+```
+
+Mk Notes automatically detects whether your destination is a page or a database and handles the sync accordingly.
+
+## Custom Properties from Frontmatter
+
+One of the most exciting features is the ability to populate database properties directly from your markdown frontmatter. Add a `properties` field to your frontmatter, and Mk Notes will map the values to your Notion database columns:
+
+```markdown
+---
+id: getting-started-guide
+title: Getting Started
+properties:
+  - name: status
+    value: published
+  - name: category
+    value: Documentation
+  - name: priority
+    value: high
+---
+
+Your content here...
+```
+
+Mk Notes supports a wide range of property types including text, numbers, select, multi-select, checkboxes, URLs, emails, dates, and more!
+
+## Clean Sync for Databases
+
+We've also introduced a clean sync mode for databases. By adding a `mk-notes-id` text property to your database and using the `--clean` flag, Mk Notes can identify and update existing pages instead of creating duplicates:
+
+```bash
+    mk-notes sync \
+        --input ./docs \
+        --destination <database-url> \
+        --notion-api-key <api-key> \
+        --clean
+```
+
+Combined with the `id` frontmatter property in your markdown files, this enables a true **idempotent sync** workflow – run it as many times as you want, and your database stays clean.
+
+## Real-World Use Cases
+
+Here are some ways you can leverage database sync:
+
+- **Documentation portals**: Sync your docs and use a board view to track review status
+- **Blog management**: Manage draft and published posts with a table view
+- **Knowledge bases**: Organize articles by category with a gallery view
+- **Release notes**: Track versions with dates using a timeline view
+
+## Getting Started
+
+Ready to try it out? Update to v3.0.0:
+
+```bash
+npm install -g @mk-notes/cli@latest
+```
+
+Then check out our [Database Synchronization Guide](/docs/cli/guides/database-sync) for detailed setup instructions and best practices.
+
+---
+
+This release represents a significant step forward for Mk Notes. Database support has been one of the most requested features, and we're excited to finally deliver it. As always, we'd love to hear your feedback – [open an issue](https://github.com/Myastr0/mk-notes/issues) or reach out on GitHub!
+
+Happy syncing! 🚀
