@@ -19,7 +19,9 @@ export default async function Page(props: PageProps<'/docs/[[...slug]]'>) {
   return (
     <DocsPage toc={page.data.toc} full={page.data.full}>
       <DocsTitle>{page.data.title}</DocsTitle>
-      <DocsDescription className='border-b pb-4'>{page.data.description}</DocsDescription>
+      <DocsDescription className="border-b pb-4">
+        {page.data.description}
+      </DocsDescription>
       <DocsBody>
         <MDXContent
           code={page.data.body}
@@ -38,7 +40,7 @@ export function generateStaticParams() {
 }
 
 export async function generateMetadata(
-  props: PageProps<'/docs/[[...slug]]'>,
+  props: PageProps<'/docs/[[...slug]]'>
 ): Promise<Metadata> {
   const params = await props.params;
   const page = source.getPage(params.slug);
