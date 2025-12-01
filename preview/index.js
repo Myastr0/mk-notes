@@ -75002,7 +75002,7 @@ class MkNotes {
     /**
      * Preview the synchronization of a markdown file to Notion
      */
-    async previewSynchronization({ inputPath, format, output, }) {
+    async previewSynchronization({ inputPath, format, output, flat = false, }) {
         const previewSynchronizationFeature = new domains_1.PreviewSynchronization({
             sourceRepository: this.infrastructureInstances.fileSystemSource,
         });
@@ -75010,6 +75010,7 @@ class MkNotes {
             path: inputPath,
         }, {
             format,
+            flat,
         });
         if (!output) {
             return result;
@@ -75020,7 +75021,7 @@ class MkNotes {
     /**
      * Synchronize a markdown file to Notion
      */
-    async synchronizeMarkdownToNotionFromFileSystem({ inputPath, parentNotionPageId, cleanSync = false, lockPage = false, }) {
+    async synchronizeMarkdownToNotionFromFileSystem({ inputPath, parentNotionPageId, cleanSync = false, lockPage = false, flat = false, }) {
         const synchronizeMarkdownToNotion = new domains_1.SynchronizeMarkdownToNotion({
             logger: this.logger,
             destinationRepository: this.infrastructureInstances.notionDestination,
@@ -75032,6 +75033,7 @@ class MkNotes {
             notionParentPageUrl: parentNotionPageId,
             cleanSync,
             lockPage,
+            flat,
         });
     }
 }
@@ -75812,7 +75814,7 @@ class PreviewSynchronization {
     constructor(params) {
         this.sourceRepository = params.sourceRepository;
     }
-    async execute(args, { format } = {}) {
+    async execute(args, { format, flat = false, } = {}) {
         // Check if the GitHub repository is accessible
         try {
             await this.sourceRepository.sourceIsAccessible(args);
@@ -75840,6 +75842,9 @@ class PreviewSynchronization {
         }
         const filePaths = await this.sourceRepository.getFilePathList(args);
         const siteMap = sitemap_1.SiteMap.buildFromFilePaths(filePaths);
+        if (flat) {
+            siteMap.flatten();
+        }
         return sitemapSerializer(siteMap);
     }
 }
@@ -75869,7 +75874,7 @@ class SynchronizeMarkdownToNotion {
         this.logger = params.logger;
     }
     async execute(args) {
-        const { notionParentPageUrl, cleanSync, lockPage, ...others } = args;
+        const { notionParentPageUrl, cleanSync, lockPage, flat = false, ...others } = args;
         const notionObjectId = this.destinationRepository.getObjectIdFromObjectUrl({
             objectUrl: notionParentPageUrl,
         });
@@ -75899,6 +75904,9 @@ class SynchronizeMarkdownToNotion {
             this.logger.info('Starting synchronization process');
             const filePaths = await this.sourceRepository.getFilePathList(others);
             const siteMap = sitemap_1.SiteMap.buildFromFilePaths(filePaths);
+            if (flat && parentObjectType === 'database') {
+                siteMap.flatten();
+            }
             // Traverse the SiteMap and synchronize files
             await this.synchronizeTreeNode({
                 node: siteMap.root,
@@ -75906,6 +75914,7 @@ class SynchronizeMarkdownToNotion {
                 parentObjectType,
                 lockPage,
                 cleanSync,
+                flat,
             });
             this.logger.info('Synchronization process completed successfully');
         }
@@ -75995,32 +76004,19 @@ class SynchronizeMarkdownToNotion {
         return newPage.pageId;
     }
     async cleanSyncDatabase({ databaseId, pageElement, }) {
-        const dataSourceId = await this.destinationRepository.getDataSourceIdFromDatabaseId({
-            databaseId,
-        });
         if (pageElement.mkNotesInternalId === undefined) {
             this.logger.warn('mk-notes-internal-id is undefined, skipping clean sync');
             return;
         }
-        const objectIds = await this.destinationRepository.getObjectIdInDatabaseByMkNotesInternalId({
-            dataSourceId,
+        await this.destinationRepository.deletePagesInDatabaseByInternalId({
+            databaseId,
             mkNotesInternalId: pageElement.mkNotesInternalId,
         });
-        if (objectIds.length === 0) {
-            this.logger.warn('No object IDs found, skipping clean sync');
-            return;
-        }
-        if (objectIds.length > 1) {
-            this.logger.info(`Multiple object IDs found with ${pageElement.mkNotesInternalId}, deleting all objects`);
-        }
-        await Promise.all(objectIds.map(async (objectId) => this.destinationRepository.deleteObjectById({
-            objectId,
-        })));
     }
     /**
      * Synchronizes a child node and its descendants recursively
      */
-    async synchronizeChildNode({ childNode, parentPageId, lockPage, }) {
+    async synchronizeChildNode({ childNode, parentPageId, lockPage, cleanSync, parentObjectType = 'page', }) {
         const filePath = childNode.filepath;
         this.logger.info(`Processing file: ${filePath}`);
         const pageElement = await this.fetchAndConvertToPageElement(filePath);
@@ -76030,10 +76026,22 @@ class SynchronizeMarkdownToNotion {
         if (childNode.children.length > 0) {
             pageElement.addElementToEnd(new elements_1.DividerElement());
         }
+        // If parent is a database (e.g. in flat sync), we need to clean up previous version of this specific page
+        if (parentObjectType === 'database' && cleanSync) {
+            if (!pageElement.mkNotesInternalId) {
+                this.logger.warn('mk-notes-internal-id is undefined, skipping clean sync for child node');
+            }
+            else {
+                await this.destinationRepository.deletePagesInDatabaseByInternalId({
+                    databaseId: parentPageId,
+                    mkNotesInternalId: pageElement.mkNotesInternalId,
+                });
+            }
+        }
         const newPage = await this.destinationRepository.createPage({
             pageElement,
             parentObjectId: parentPageId,
-            parentObjectType: 'page',
+            parentObjectType,
             filePath,
         });
         this.logger.info(`Created Notion page for file: ${filePath}`);
@@ -76046,6 +76054,7 @@ class SynchronizeMarkdownToNotion {
                 childNode: grandChild,
                 parentPageId: newPage.pageId,
                 lockPage,
+                cleanSync,
             });
         }
         await this.lockPageIfNeeded(newPage.pageId, lockPage);
@@ -76053,29 +76062,65 @@ class SynchronizeMarkdownToNotion {
     /**
      * Main orchestrator for synchronizing a tree node and its children
      */
-    async synchronizeTreeNode({ node, parentObjectId, parentObjectType, lockPage, cleanSync, }) {
+    async synchronizeTreeNode({ node, parentObjectId, parentObjectType, lockPage, cleanSync, flat = false, }) {
         let parentPageId = parentObjectId;
+        if (flat && parentObjectType !== 'database') {
+            this.logger.warn('Flat option ignored because destination is not a database');
+        }
+        const isFlatSync = flat && parentObjectType === 'database';
+        // If flat sync is enabled, flatten the sitemap starting from this node
+        // Since we are passing the root node here usually, this affects the whole tree
+        // But we rely on SiteMap.flatten() which works on the whole structure anyway if we had access to SiteMap
+        // Here we only have the root node. But wait, SiteMap.flatten() modifies the tree structure in place.
+        // Since we don't have the SiteMap instance here, we can implement a helper or just assume
+        // the caller has done it? No, the plan says "If flat is true, call siteMap.flatten() immediately."
+        // But we don't have the siteMap instance here.
+        // Correction: We call synchronizeTreeNode with siteMap.root.
+        // We should probably move the flatten call to `execute` BEFORE calling synchronizeTreeNode.
+        // BUT `execute` has the SiteMap instance!
+        // Let's revert to the plan: "In synchronizeTreeNode: If flat is true, call siteMap.flatten() immediately."
+        // Ah, `synchronizeTreeNode` receives a `node`. It doesn't have the `SiteMap` instance.
+        // The `execute` method has the `SiteMap` instance.
+        // So I will modify `execute` instead to flatten the map.
+        // Wait, I already modified `execute` but didn't add the flatten call there.
+        // I will add the flatten logic in `execute` in a separate tool call.
         switch (parentObjectType) {
             case 'unknown':
                 throw new Error('Parent object type is unknown');
             case 'database':
-                if (this.getIsRootNode(node)) {
-                    parentPageId = await this.synchronizeRootNode({
-                        node,
-                        parentObjectId,
-                        parentObjectType,
-                        lockPage,
-                        cleanSync,
-                    });
+                if (isFlatSync) {
+                    // In flat sync, if the root has content, we sync it to the DB.
+                    if (this.getIsRootNode(node)) {
+                        await this.synchronizeRootNode({
+                            node,
+                            parentObjectId,
+                            parentObjectType,
+                            lockPage,
+                            cleanSync,
+                        });
+                    }
+                    // Children will also be synced to the DB (parentObjectId)
+                    parentPageId = parentObjectId;
                 }
                 else {
-                    parentPageId = await this.synchronizeRootNode({
-                        node: node.children[0],
-                        parentObjectId,
-                        parentObjectType,
-                        lockPage,
-                        cleanSync,
-                    });
+                    if (this.getIsRootNode(node)) {
+                        parentPageId = await this.synchronizeRootNode({
+                            node,
+                            parentObjectId,
+                            parentObjectType,
+                            lockPage,
+                            cleanSync,
+                        });
+                    }
+                    else {
+                        parentPageId = await this.synchronizeRootNode({
+                            node: node.children[0],
+                            parentObjectId,
+                            parentObjectType,
+                            lockPage,
+                            cleanSync,
+                        });
+                    }
                 }
                 break;
             case 'page':
@@ -76098,6 +76143,8 @@ class SynchronizeMarkdownToNotion {
                     childNode,
                     parentPageId,
                     lockPage,
+                    cleanSync,
+                    parentObjectType: isFlatSync ? 'database' : 'page',
                 });
             }
             catch (error) {
@@ -76482,7 +76529,12 @@ class SiteMap {
     removeUselessNodesTree(node) {
         while (node.children.length === 1 &&
             path.extname(node.children[0].filepath) === '') {
-            node.children = node.children[0].children;
+            const [child] = node.children;
+            node.children = child.children;
+            // Fix parent pointers for the adopted children
+            node.children.forEach((grandChild) => {
+                grandChild.parent = node;
+            });
         }
         return node;
     }
@@ -76492,6 +76544,32 @@ class SiteMap {
     _updateTree() {
         this.removeUselessNodesTree(this._root);
         this.traverseAndUpdate(this._root);
+    }
+    /**
+     * Flattens the sitemap structure so all files are direct children of the root.
+     * This is useful for flat synchronization mode.
+     */
+    flatten() {
+        const allNodes = [];
+        // Collect all nodes except root
+        const collectNodes = (node) => {
+            // We don't include the current node if it's the root
+            if (node !== this._root) {
+                allNodes.push(node);
+            }
+            node.children.forEach(collectNodes);
+        };
+        // Start collection from root's children
+        this._root.children.forEach(collectNodes);
+        // Clear existing children of root
+        this._root.children = [];
+        // Reassign all collected nodes as direct children of root
+        // And clear their children since they are now flat
+        allNodes.forEach((node) => {
+            node.parent = this._root;
+            node.children = [];
+            this._root.children.push(node);
+        });
     }
     /**
      * TODO: Implement mkdocs.yaml sitemap parsing
@@ -79172,6 +79250,25 @@ class NotionDestinationRepository {
             },
         });
         return items.results.map((item) => item.id);
+    }
+    async deletePagesInDatabaseByInternalId({ databaseId, mkNotesInternalId, }) {
+        const dataSourceId = await this.getDataSourceIdFromDatabaseId({
+            databaseId,
+        });
+        const objectIds = await this.getObjectIdInDatabaseByMkNotesInternalId({
+            dataSourceId,
+            mkNotesInternalId,
+        });
+        if (objectIds.length === 0) {
+            this.logger.warn('No object IDs found, skipping clean sync');
+            return;
+        }
+        if (objectIds.length > 1) {
+            this.logger.info(`Multiple object IDs found with ${mkNotesInternalId}, deleting all objects`);
+        }
+        await Promise.all(objectIds.map(async (objectId) => this.deleteObjectById({
+            objectId,
+        })));
     }
     async deleteObjectById({ objectId }) {
         await this.client.blocks.delete({ block_id: objectId });
