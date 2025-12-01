@@ -48,10 +48,12 @@ export class MkNotes {
     inputPath,
     format,
     output,
+    flat = false,
   }: {
     inputPath: string;
     format: PreviewFormat;
     output?: string;
+    flat?: boolean;
   }): Promise<string> {
     const previewSynchronizationFeature = new PreviewSynchronization({
       sourceRepository: this.infrastructureInstances.fileSystemSource,
@@ -63,6 +65,7 @@ export class MkNotes {
       },
       {
         format,
+        flat,
       }
     );
 
@@ -83,11 +86,13 @@ export class MkNotes {
     parentNotionPageId,
     cleanSync = false,
     lockPage = false,
+    flat = false,
   }: {
     inputPath: string;
     parentNotionPageId: string;
     cleanSync?: boolean;
     lockPage?: boolean;
+    flat?: boolean;
   }): Promise<void> {
     const synchronizeMarkdownToNotion = new SynchronizeMarkdownToNotion({
       logger: this.logger,
@@ -101,6 +106,7 @@ export class MkNotes {
       notionParentPageUrl: parentNotionPageId,
       cleanSync,
       lockPage,
+      flat,
     });
   }
 }

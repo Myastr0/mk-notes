@@ -152,4 +152,15 @@ export class FakeDestinationRepository<T extends Page>
     // no-op in fake repository for testing
     return Promise.resolve();
   }
+
+  async deletePagesInDatabaseByInternalId({
+    databaseId,
+    mkNotesInternalId,
+  }: {
+    databaseId: string;
+    mkNotesInternalId: string;
+  }): Promise<void> {
+    // no-op in fake repository for testing
+    return Promise.resolve();
+  }
 }

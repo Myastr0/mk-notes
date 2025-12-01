@@ -134,5 +134,43 @@ describe('SiteMap', () => {
     it('should throw error for invalid JSON data', () => {
       expect(() => SiteMap.fromJSON({})).toThrow('Invalid data');
     });
+    it('should collapse directory structure if it has only one child (default behavior)', () => {
+      const filePaths = ['root/dir1/dir2/file.md'];
+      const sitemap = SiteMap.buildFromFilePaths(filePaths);
+      
+      // The tool collapses intermediate directories with single children
+      // root -> file.md
+      
+      expect(sitemap.root.children).toHaveLength(1);
+      const child = sitemap.root.children[0];
+      expect(child.name).toBe('file.md');
+      expect(child.children).toHaveLength(0);
+    });
+
+    it('should preserve directory structure if it has multiple children (though first file consumes parent)', () => {
+      const filePaths = ['dir1/file1.md', 'dir1/file2.md', 'other.md'];
+      const sitemap = SiteMap.buildFromFilePaths(filePaths);
+      
+      // root -> dir1, other.md
+      // dir1 has file1.md, file2.md
+      // BUT traverseAndUpdate applies "First Child Rule" to dir1 (since no index.md)
+      // dir1 consumes file1.md. dir1.filepath = file1.md path.
+      // dir1 children = [file2.md].
+      
+      expect(sitemap.root.children).toHaveLength(2);
+      
+      const dir1 = sitemap.root.children.find(c => c.name === 'dir1');
+      const other = sitemap.root.children.find(c => c.name === 'other.md');
+      
+      expect(dir1).toBeDefined();
+      expect(other).toBeDefined();
+      
+      // Expect dir1 to have consumed file1.md and kept file2.md as child
+      expect(dir1!.children).toHaveLength(1);
+      expect(dir1!.children[0].name).toBe('file2.md');
+      // dir1 filepath should match file1.md
+      expect(dir1!.filepath).toContain('file1.md');
+    });
+
   });
 });

@@ -82,4 +82,11 @@ export interface DestinationRepository<T extends Page> {
   }: {
     databaseId: string;
   }) => Promise<string>;
+  deletePagesInDatabaseByInternalId: ({
+    databaseId,
+    mkNotesInternalId,
+  }: {
+    databaseId: string;
+    mkNotesInternalId: string;
+  }) => Promise<void>;
 }

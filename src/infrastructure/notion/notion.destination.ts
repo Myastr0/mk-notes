@@ -527,6 +527,42 @@ export class NotionDestinationRepository
     return items.results.map((item) => item.id);
   }
 
+  async deletePagesInDatabaseByInternalId({
+    databaseId,
+    mkNotesInternalId,
+  }: {
+    databaseId: string;
+    mkNotesInternalId: string;
+  }): Promise<void> {
+    const dataSourceId = await this.getDataSourceIdFromDatabaseId({
+      databaseId,
+    });
+
+    const objectIds = await this.getObjectIdInDatabaseByMkNotesInternalId({
+      dataSourceId,
+      mkNotesInternalId,
+    });
+
+    if (objectIds.length === 0) {
+      this.logger.warn('No object IDs found, skipping clean sync');
+      return;
+    }
+
+    if (objectIds.length > 1) {
+      this.logger.info(
+        `Multiple object IDs found with ${mkNotesInternalId}, deleting all objects`
+      );
+    }
+
+    await Promise.all(
+      objectIds.map(async (objectId) =>
+        this.deleteObjectById({
+          objectId,
+        })
+      )
+    );
+  }
+
   async deleteObjectById({ objectId }: { objectId: string }): Promise<void> {
     await this.client.blocks.delete({ block_id: objectId });
   }
