@@ -133,7 +133,12 @@ export class SiteMap {
       node.children.length === 1 &&
       path.extname(node.children[0].filepath) === ''
     ) {
-      node.children = node.children[0].children;
+      const [child] = node.children;
+      node.children = child.children;
+      // Fix parent pointers for the adopted children
+      node.children.forEach((grandChild) => {
+        grandChild.parent = node;
+      });
     }
 
     return node;
@@ -144,6 +149,37 @@ export class SiteMap {
   _updateTree(): void {
     this.removeUselessNodesTree(this._root);
     this.traverseAndUpdate(this._root);
+  }
+
+  /**
+   * Flattens the sitemap structure so all files are direct children of the root.
+   * This is useful for flat synchronization mode.
+   */
+  flatten(): void {
+    const allNodes: TreeNode[] = [];
+
+    // Collect all nodes except root
+    const collectNodes = (node: TreeNode) => {
+      // We don't include the current node if it's the root
+      if (node !== this._root) {
+        allNodes.push(node);
+      }
+      node.children.forEach(collectNodes);
+    };
+
+    // Start collection from root's children
+    this._root.children.forEach(collectNodes);
+
+    // Clear existing children of root
+    this._root.children = [];
+
+    // Reassign all collected nodes as direct children of root
+    // And clear their children since they are now flat
+    allNodes.forEach((node) => {
+      node.parent = this._root;
+      node.children = [];
+      this._root.children.push(node);
+    });
   }
 
   /**

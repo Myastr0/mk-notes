@@ -91,5 +91,34 @@ describe('PreviewSynchronization', () => {
 
       expect(buildFromFilePathsSpy).toHaveBeenCalledWith(filePaths);
     });
+
+    it('should flatten the sitemap when flat option is true', async () => {
+      // Use a structure that prevents root collapsing of the directory
+      // root -> section, other.md
+      // section -> child1.md, child2.md
+      // section will consume child1.md
+      // child2.md will remain as child of section
+      const filePaths = ['section/child1.md', 'section/child2.md', 'other.md'];
+      jest
+        .spyOn(sourceRepository, 'getFilePathList')
+        .mockResolvedValue(filePaths);
+
+      // When flattened, children should be at root level
+      const result = await previewSync.execute(
+        { path: 'test/path' },
+        { format: 'json', flat: true }
+      );
+      
+      const parsedResult = JSON.parse(result);
+      
+      const childrenNames = parsedResult.children.map((c: any) => c.name);
+      // 'section' node exists (having consumed child1.md)
+      expect(childrenNames).toContain('section');
+      // 'child2.md' node exists (was nested, now flat)
+      expect(childrenNames).toContain('child2.md');
+      // 'other.md' node exists
+      expect(childrenNames).toContain('other.md');
+      expect(parsedResult.children.length).toBe(3);
+    });
   });
 });

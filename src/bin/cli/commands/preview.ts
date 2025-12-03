@@ -53,6 +53,11 @@ command.addOption(
 
 command.option('-o, --output <output>', 'Output file path');
 
+command.option(
+  '--flat',
+  'Flat sync - If destination is a database, all files will be created as direct children of the database, not nested'
+);
+
 command.option('-v, --verbosity <verbosity>', 'Verbosity level', 'error');
 
 interface PreviewOptions {
@@ -60,9 +65,16 @@ interface PreviewOptions {
   format: PreviewFormat;
   output?: string;
   verbosity?: string;
+  flat?: boolean;
 }
 command.action(async (opts: PreviewOptions) => {
-  const { input: directoryPath, format, output, verbosity = 'error' } = opts;
+  const {
+    input: directoryPath,
+    format,
+    output,
+    verbosity = 'error',
+    flat = false,
+  } = opts;
 
   if (!isValidVerbosity(verbosity)) {
     throw new Error(`Invalid verbosity: ${verbosity}`);
@@ -77,6 +89,7 @@ command.action(async (opts: PreviewOptions) => {
     inputPath: directoryPath,
     format,
     output,
+    flat,
   });
 
   // eslint-disable-next-line no-console

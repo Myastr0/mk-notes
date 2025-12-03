@@ -27,7 +27,10 @@ export class PreviewSynchronization<T> {
 
   async execute(
     args: T,
-    { format }: { format?: PreviewFormat; output?: string } = {}
+    {
+      format,
+      flat = false,
+    }: { format?: PreviewFormat; output?: string; flat?: boolean } = {}
   ): Promise<string> {
     // Check if the GitHub repository is accessible
     try {
@@ -57,6 +60,10 @@ export class PreviewSynchronization<T> {
     const filePaths = await this.sourceRepository.getFilePathList(args);
 
     const siteMap = SiteMap.buildFromFilePaths(filePaths);
+
+    if (flat) {
+      siteMap.flatten();
+    }
 
     return sitemapSerializer(siteMap);
   }

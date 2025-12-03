@@ -29,6 +29,9 @@ export interface SynchronizeOptions {
 
   /** When true, lock the Notion page after syncing */
   lockPage: boolean;
+
+  /** When true, and destination is a database, create all files as direct children */
+  flat?: boolean;
 }
 
 export class SynchronizeMarkdownToNotion<T, U extends Page> {
@@ -49,7 +52,13 @@ export class SynchronizeMarkdownToNotion<T, U extends Page> {
       notionParentPageUrl: string;
     } & SynchronizeOptions
   ): Promise<void> {
-    const { notionParentPageUrl, cleanSync, lockPage, ...others } = args;
+    const {
+      notionParentPageUrl,
+      cleanSync,
+      lockPage,
+      flat = false,
+      ...others
+    } = args;
 
     const notionObjectId = this.destinationRepository.getObjectIdFromObjectUrl({
       objectUrl: notionParentPageUrl,
@@ -82,6 +91,12 @@ export class SynchronizeMarkdownToNotion<T, U extends Page> {
       throw new Error('Parent object type is unknown');
     }
 
+    if (flat && parentObjectType === 'page') {
+      throw new Error(
+        'Flat sync is only supported for database destinations. Pages do not support flat sync.'
+      );
+    }
+
     try {
       this.logger.info('Starting synchronization process');
 
@@ -91,6 +106,10 @@ export class SynchronizeMarkdownToNotion<T, U extends Page> {
 
       const siteMap = SiteMap.buildFromFilePaths(filePaths);
 
+      if (flat && parentObjectType === 'database') {
+        siteMap.flatten();
+      }
+
       // Traverse the SiteMap and synchronize files
       await this.synchronizeTreeNode({
         node: siteMap.root,
@@ -98,6 +117,7 @@ export class SynchronizeMarkdownToNotion<T, U extends Page> {
         parentObjectType,
         lockPage,
         cleanSync,
+        flat,
       });
 
       this.logger.info('Synchronization process completed successfully');
@@ -233,11 +253,6 @@ export class SynchronizeMarkdownToNotion<T, U extends Page> {
     databaseId: string;
     pageElement: PageElement;
   }): Promise<void> {
-    const dataSourceId =
-      await this.destinationRepository.getDataSourceIdFromDatabaseId({
-        databaseId,
-      });
-
     if (pageElement.mkNotesInternalId === undefined) {
       this.logger.warn(
         'mk-notes-internal-id is undefined, skipping clean sync'
@@ -245,44 +260,26 @@ export class SynchronizeMarkdownToNotion<T, U extends Page> {
       return;
     }
 
-    const objectIds =
-      await this.destinationRepository.getObjectIdInDatabaseByMkNotesInternalId(
-        {
-          dataSourceId,
-          mkNotesInternalId: pageElement.mkNotesInternalId,
-        }
-      );
-
-    if (objectIds.length === 0) {
-      this.logger.warn('No object IDs found, skipping clean sync');
-      return;
-    }
-
-    if (objectIds.length > 1) {
-      this.logger.info(
-        `Multiple object IDs found with ${pageElement.mkNotesInternalId}, deleting all objects`
-      );
-    }
-
-    await Promise.all(
-      objectIds.map(async (objectId) =>
-        this.destinationRepository.deleteObjectById({
-          objectId,
-        })
-      )
-    );
+    await this.destinationRepository.deletePagesInDatabaseByInternalId({
+      databaseId,
+      mkNotesInternalId: pageElement.mkNotesInternalId,
+    });
   }
   /**
    * Synchronizes a child node and its descendants recursively
    */
   private async synchronizeChildNode({
     childNode,
-    parentPageId,
+    parentObjectId,
     lockPage,
+    cleanSync,
+    parentObjectType = 'page',
   }: {
     childNode: TreeNode;
-    parentPageId: string;
+    parentObjectId: string;
     lockPage: boolean;
+    cleanSync: boolean;
+    parentObjectType?: ObjectType;
   }): Promise<void> {
     const filePath = childNode.filepath;
     this.logger.info(`Processing file: ${filePath}`);
@@ -297,10 +294,24 @@ export class SynchronizeMarkdownToNotion<T, U extends Page> {
       pageElement.addElementToEnd(new DividerElement());
     }
 
+    // If parent is a database (e.g. in flat sync), we need to clean up previous version of this specific page
+    if (parentObjectType === 'database' && cleanSync) {
+      if (!pageElement.mkNotesInternalId) {
+        this.logger.warn(
+          'mk-notes-internal-id is undefined, skipping clean sync for child node'
+        );
+      } else {
+        await this.destinationRepository.deletePagesInDatabaseByInternalId({
+          databaseId: parentObjectId,
+          mkNotesInternalId: pageElement.mkNotesInternalId,
+        });
+      }
+    }
+
     const newPage = await this.destinationRepository.createPage({
       pageElement,
-      parentObjectId: parentPageId,
-      parentObjectType: 'page',
+      parentObjectId,
+      parentObjectType,
       filePath,
     });
 
@@ -314,8 +325,9 @@ export class SynchronizeMarkdownToNotion<T, U extends Page> {
     for (const grandChild of childNode.children) {
       await this.synchronizeChildNode({
         childNode: grandChild,
-        parentPageId: newPage.pageId,
+        parentObjectId: newPage.pageId,
         lockPage,
+        cleanSync,
       });
     }
 
@@ -331,36 +343,31 @@ export class SynchronizeMarkdownToNotion<T, U extends Page> {
     parentObjectType,
     lockPage,
     cleanSync,
+    flat = false,
   }: {
     node: TreeNode;
     parentObjectId: string;
     parentObjectType: ObjectType;
     lockPage: boolean;
     cleanSync: boolean;
+    flat?: boolean;
   }): Promise<void> {
     let parentPageId: string = parentObjectId;
+
+    const isFlatSync = flat && parentObjectType === 'database';
 
     switch (parentObjectType) {
       case 'unknown':
         throw new Error('Parent object type is unknown');
       case 'database':
-        if (this.getIsRootNode(node)) {
-          parentPageId = await this.synchronizeRootNode({
-            node,
-            parentObjectId,
-            parentObjectType,
-            lockPage,
-            cleanSync,
-          });
-        } else {
-          parentPageId = await this.synchronizeRootNode({
-            node: node.children[0],
-            parentObjectId,
-            parentObjectType,
-            lockPage,
-            cleanSync,
-          });
-        }
+        parentPageId = await this.handleDatabaseSynchronization({
+          node,
+          parentObjectId,
+          parentObjectType,
+          lockPage,
+          cleanSync,
+          isFlatSync,
+        });
         break;
       case 'page':
         if (this.getIsRootNode(node)) {
@@ -381,8 +388,10 @@ export class SynchronizeMarkdownToNotion<T, U extends Page> {
       try {
         await this.synchronizeChildNode({
           childNode,
-          parentPageId,
+          parentObjectId: parentPageId,
           lockPage,
+          cleanSync,
+          parentObjectType: isFlatSync ? 'database' : 'page',
         });
       } catch (error) {
         this.logger.error(`Failed to synchronize file: ${childNode.filepath}`, {
@@ -391,6 +400,53 @@ export class SynchronizeMarkdownToNotion<T, U extends Page> {
         throw error;
       }
     }
+  }
+
+  private async handleDatabaseSynchronization({
+    node,
+    parentObjectId,
+    parentObjectType,
+    lockPage,
+    cleanSync,
+    isFlatSync,
+  }: {
+    node: TreeNode;
+    parentObjectId: string;
+    parentObjectType: ObjectType;
+    lockPage: boolean;
+    cleanSync: boolean;
+    isFlatSync: boolean;
+  }): Promise<string> {
+    if (isFlatSync) {
+      if (this.getIsRootNode(node)) {
+        await this.synchronizeRootNode({
+          node,
+          parentObjectId,
+          parentObjectType,
+          lockPage,
+          cleanSync,
+        });
+      }
+      return parentObjectId;
+    }
+
+    if (this.getIsRootNode(node)) {
+      return await this.synchronizeRootNode({
+        node,
+        parentObjectId,
+        parentObjectType,
+        lockPage,
+        cleanSync,
+      });
+    }
+
+    return await this.synchronizeRootNode({
+      node: node.children[0],
+      parentObjectId,
+      parentObjectType,
+      lockPage,
+      cleanSync,
+    });
   }
 
   private getIsRootNode(node: TreeNode): boolean {

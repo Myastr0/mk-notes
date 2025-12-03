@@ -34,6 +34,11 @@ command.option(
 
 command.option('-l, --lock', 'Lock the Notion page after syncing');
 
+command.option(
+  '-f, --flat',
+  'Flat sync - If destination is a database, all files will be created as direct children of the database, not nested'
+);
+
 command.option('-v, --verbosity <verbosity>', 'Verbosity level', 'error');
 interface SyncOptions {
   input: string;
@@ -42,6 +47,7 @@ interface SyncOptions {
   clean?: boolean;
   lock?: boolean;
   verbosity?: string;
+  flat?: boolean;
 }
 
 command.action(async (opts: SyncOptions) => {
@@ -52,6 +58,7 @@ command.action(async (opts: SyncOptions) => {
     clean = false,
     lock = false,
     verbosity = 'error',
+    flat = false,
   } = opts;
 
   if (!isValidVerbosity(verbosity)) {
@@ -68,6 +75,7 @@ command.action(async (opts: SyncOptions) => {
     parentNotionPageId: notionParentPageUrl,
     cleanSync: clean,
     lockPage: lock,
+    flat,
   });
 
   // eslint-disable-next-line no-console

@@ -134,6 +134,45 @@ Clean sync only works for pages that have an `id` defined in their frontmatter. 
 
 </Callout>
 
+### Flat Sync
+
+By default, MK Notes preserves your directory structure when syncing to a database, creating nested pages for subdirectories. The `--flat` option flattens this structure, creating all markdown files as direct children of the database:
+
+```bash
+mk-notes sync \
+  --input ./docs \
+  --destination https://notion.so/myworkspace/database-123456 \
+  --notion-api-key secret_abc123... \
+  --flat
+```
+
+**When to use flat sync:**
+
+- You want all documents at the same level in your database
+- You prefer to organize using database views and filters rather than page hierarchies
+- Your directory structure is just for file organization, not content hierarchy
+
+**Example:**
+
+With a directory structure like:
+```
+docs/
+  guides/
+    getting-started.md
+    advanced.md
+  api/
+    authentication.md
+```
+
+- **Without `--flat`**: Creates nested pages (guides → getting-started, advanced)
+- **With `--flat`**: Creates all four files as direct database entries
+
+<Callout type="warning" title="Database Only">
+
+The `--flat` option only works with database destinations. Using it with a page destination will result in an error.
+
+</Callout>
+
 ---
 
 ## Adding Custom Database Properties
