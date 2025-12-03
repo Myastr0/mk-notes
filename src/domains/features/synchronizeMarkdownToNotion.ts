@@ -91,6 +91,12 @@ export class SynchronizeMarkdownToNotion<T, U extends Page> {
       throw new Error('Parent object type is unknown');
     }
 
+    if (flat && parentObjectType === 'page') {
+      throw new Error(
+        'Flat sync is only supported for database destinations. Pages do not support flat sync.'
+      );
+    }
+
     try {
       this.logger.info('Starting synchronization process');
 
@@ -264,13 +270,13 @@ export class SynchronizeMarkdownToNotion<T, U extends Page> {
    */
   private async synchronizeChildNode({
     childNode,
-    parentPageId,
+    parentObjectId,
     lockPage,
     cleanSync,
     parentObjectType = 'page',
   }: {
     childNode: TreeNode;
-    parentPageId: string;
+    parentObjectId: string;
     lockPage: boolean;
     cleanSync: boolean;
     parentObjectType?: ObjectType;
@@ -296,7 +302,7 @@ export class SynchronizeMarkdownToNotion<T, U extends Page> {
         );
       } else {
         await this.destinationRepository.deletePagesInDatabaseByInternalId({
-          databaseId: parentPageId,
+          databaseId: parentObjectId,
           mkNotesInternalId: pageElement.mkNotesInternalId,
         });
       }
@@ -304,7 +310,7 @@ export class SynchronizeMarkdownToNotion<T, U extends Page> {
 
     const newPage = await this.destinationRepository.createPage({
       pageElement,
-      parentObjectId: parentPageId,
+      parentObjectId,
       parentObjectType,
       filePath,
     });
@@ -319,7 +325,7 @@ export class SynchronizeMarkdownToNotion<T, U extends Page> {
     for (const grandChild of childNode.children) {
       await this.synchronizeChildNode({
         childNode: grandChild,
-        parentPageId: newPage.pageId,
+        parentObjectId: newPage.pageId,
         lockPage,
         cleanSync,
       });
@@ -348,68 +354,20 @@ export class SynchronizeMarkdownToNotion<T, U extends Page> {
   }): Promise<void> {
     let parentPageId: string = parentObjectId;
 
-    if (flat && parentObjectType !== 'database') {
-      this.logger.warn(
-        'Flat option ignored because destination is not a database'
-      );
-    }
-
     const isFlatSync = flat && parentObjectType === 'database';
-
-    // If flat sync is enabled, flatten the sitemap starting from this node
-    // Since we are passing the root node here usually, this affects the whole tree
-    // But we rely on SiteMap.flatten() which works on the whole structure anyway if we had access to SiteMap
-    // Here we only have the root node. But wait, SiteMap.flatten() modifies the tree structure in place.
-    // Since we don't have the SiteMap instance here, we can implement a helper or just assume
-    // the caller has done it? No, the plan says "If flat is true, call siteMap.flatten() immediately."
-    // But we don't have the siteMap instance here.
-    // Correction: We call synchronizeTreeNode with siteMap.root.
-    // We should probably move the flatten call to `execute` BEFORE calling synchronizeTreeNode.
-    // BUT `execute` has the SiteMap instance!
-    // Let's revert to the plan: "In synchronizeTreeNode: If flat is true, call siteMap.flatten() immediately."
-    // Ah, `synchronizeTreeNode` receives a `node`. It doesn't have the `SiteMap` instance.
-    // The `execute` method has the `SiteMap` instance.
-    // So I will modify `execute` instead to flatten the map.
-
-    // Wait, I already modified `execute` but didn't add the flatten call there.
-    // I will add the flatten logic in `execute` in a separate tool call.
 
     switch (parentObjectType) {
       case 'unknown':
         throw new Error('Parent object type is unknown');
       case 'database':
-        if (isFlatSync) {
-          // In flat sync, if the root has content, we sync it to the DB.
-          if (this.getIsRootNode(node)) {
-            await this.synchronizeRootNode({
-              node,
-              parentObjectId,
-              parentObjectType,
-              lockPage,
-              cleanSync,
-            });
-          }
-          // Children will also be synced to the DB (parentObjectId)
-          parentPageId = parentObjectId;
-        } else {
-          if (this.getIsRootNode(node)) {
-            parentPageId = await this.synchronizeRootNode({
-              node,
-              parentObjectId,
-              parentObjectType,
-              lockPage,
-              cleanSync,
-            });
-          } else {
-            parentPageId = await this.synchronizeRootNode({
-              node: node.children[0],
-              parentObjectId,
-              parentObjectType,
-              lockPage,
-              cleanSync,
-            });
-          }
-        }
+        parentPageId = await this.handleDatabaseSynchronization({
+          node,
+          parentObjectId,
+          parentObjectType,
+          lockPage,
+          cleanSync,
+          isFlatSync,
+        });
         break;
       case 'page':
         if (this.getIsRootNode(node)) {
@@ -430,7 +388,7 @@ export class SynchronizeMarkdownToNotion<T, U extends Page> {
       try {
         await this.synchronizeChildNode({
           childNode,
-          parentPageId,
+          parentObjectId: parentPageId,
           lockPage,
           cleanSync,
           parentObjectType: isFlatSync ? 'database' : 'page',
@@ -442,6 +400,53 @@ export class SynchronizeMarkdownToNotion<T, U extends Page> {
         throw error;
       }
     }
+  }
+
+  private async handleDatabaseSynchronization({
+    node,
+    parentObjectId,
+    parentObjectType,
+    lockPage,
+    cleanSync,
+    isFlatSync,
+  }: {
+    node: TreeNode;
+    parentObjectId: string;
+    parentObjectType: ObjectType;
+    lockPage: boolean;
+    cleanSync: boolean;
+    isFlatSync: boolean;
+  }): Promise<string> {
+    if (isFlatSync) {
+      if (this.getIsRootNode(node)) {
+        await this.synchronizeRootNode({
+          node,
+          parentObjectId,
+          parentObjectType,
+          lockPage,
+          cleanSync,
+        });
+      }
+      return parentObjectId;
+    }
+
+    if (this.getIsRootNode(node)) {
+      return await this.synchronizeRootNode({
+        node,
+        parentObjectId,
+        parentObjectType,
+        lockPage,
+        cleanSync,
+      });
+    }
+
+    return await this.synchronizeRootNode({
+      node: node.children[0],
+      parentObjectId,
+      parentObjectType,
+      lockPage,
+      cleanSync,
+    });
   }
 
   private getIsRootNode(node: TreeNode): boolean {

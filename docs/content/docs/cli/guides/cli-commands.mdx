@@ -48,6 +48,8 @@ mk-notes sync -i <path> -d <notionUrl> -k <notionApiKey>
 
 - `-l, --lock`: Lock the Notion page after syncing to prevent further editing. This is useful when you want to preserve the synchronized content and prevent accidental modifications.
 
+- `-f, --flat`: **Database destination only** - Flattens the directory structure so all markdown files are created as direct children of the database, not nested as child pages. This option is only available when the destination is a Notion database. If used with a page destination, an error will be thrown.
+
 ### Destination Types
 
 Mk Notes supports two types of destinations:
@@ -191,6 +193,31 @@ This command will:
 1. Find existing pages in the database with matching `mk-notes-id` property
 2. Delete those existing pages
 3. Create new pages as database items with the content from your markdown files
+
+#### Flat Sync to a Database
+
+```bash
+mk-notes sync \
+  --input ./my-docs \
+  --destination https://notion.so/myworkspace/database-123456 \
+  --notion-api-key secret_abc123... \
+  --flat
+```
+
+The `--flat` option creates all markdown files as direct children of the database, ignoring the directory structure. This is useful when you want a flat list of all documents in your database without nested page hierarchies.
+
+This command will:
+
+1. Read all markdown files in the directory
+2. Flatten the directory structure
+3. Create all files as direct database items (no nested pages)
+4. Each file becomes a separate database entry
+
+<Callout type="warning" title="Database Only">
+
+The `--flat` option only works with database destinations. If you try to use it with a page destination, MK Notes will throw an error.
+
+</Callout>
 
 ## `preview-sync`
 

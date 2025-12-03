@@ -134,7 +134,7 @@ describe('SynchronizeMarkdownToNotion - Flat Sync', () => {
     });
   });
 
-  it('should ignore flat option if destination is not a database', async () => {
+  it('should throw error if flat option is used with page destination', async () => {
     // Mock destination as a page instead of a database
     jest.spyOn(destinationRepository, 'getObjectType').mockResolvedValue('page');
     jest
@@ -145,40 +145,16 @@ describe('SynchronizeMarkdownToNotion - Flat Sync', () => {
       .spyOn(sourceRepository, 'getFilePathList')
       .mockResolvedValue(['parent.md', 'child/child.md']);
 
-    const pageElement = new PageElement({
-      title: 'Test',
-      content: [],
-      mkNotesInternalId: 'id',
-    });
-    jest
-      .spyOn(elementConverter, 'convertToElement')
-      .mockReturnValue(pageElement);
-    jest
-      .spyOn(sourceRepository, 'getFile')
-      .mockResolvedValue(new FakeFile({ content: '' }));
-
-    const createPageSpy = jest.spyOn(destinationRepository, 'createPage');
-
-    await synchronizer.execute({
-      notionParentPageUrl: databaseUrl,
-      cleanSync: false,
-      lockPage: false,
-      flat: true, // Should be ignored
-      path: 'test',
-    });
-
-    // Should behave like hierarchical sync
-    // parent.md -> created as child of root page
-    // child/child.md -> created as child of root page
-    // It will create 2 pages because there is no index.md handling in this fake setup that merges them
-    
-    expect(createPageSpy).toHaveBeenCalledTimes(2);
-    expect(createPageSpy).toHaveBeenCalledWith(
-      expect.objectContaining({
-        parentObjectType: 'page',
-        // parentObjectId should be the root page ID (databaseId in this mock setup acting as pageId)
-        parentObjectId: '12345678901234567890123456789012',
+    await expect(
+      synchronizer.execute({
+        notionParentPageUrl: databaseUrl,
+        cleanSync: false,
+        lockPage: false,
+        flat: true,
+        path: 'test',
       })
+    ).rejects.toThrow(
+      'Flat sync is only supported for database destinations. Pages do not support flat sync.'
     );
   });
 });
