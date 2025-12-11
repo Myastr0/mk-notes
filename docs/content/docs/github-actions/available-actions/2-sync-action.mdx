@@ -31,13 +31,15 @@ steps:
 
 ## Inputs
 
-| Input            | Description                                                                                                                        | Required | Default |
-| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------- | -------- | ------- |
-| `input`          | The path to the markdown file or directory to synchronize                                                                          | `true`   | -       |
-| `destination`    | The Notion page or database URL where you want to synchronize your markdown files                                                  | `true`   | -       |
-| `notion-api-key` | Your Notion secret token                                                                                                           | `true`   | -       |
-| `clean`          | Clean sync mode - For pages: removes ALL existing content. For databases: deletes pages with matching `mk-notes-id` before syncing | `false`  | `false` |
-| `lock`           | Lock the Notion page after syncing                                                                                                 | `false`  | `false` |
+| Input            | Description                                                                                                           | Required | Default |
+| ---------------- | --------------------------------------------------------------------------------------------------------------------- | -------- | ------- |
+| `input`          | The path to the markdown file or directory to synchronize                                                             | `true`   | -       |
+| `destination`    | The Notion page or database URL where you want to synchronize your markdown files                                     | `true`   | -       |
+| `notion-api-key` | Your Notion secret token                                                                                              | `true`   | -       |
+| `clean`          | Clean sync mode - removes ALL existing content from the destination before syncing                                    | `false`  | `false` |
+| `lock`           | Lock the Notion page after syncing                                                                                    | `false`  | `false` |
+| `save-id`        | Save Notion page IDs back to the source markdown files' frontmatter, enabling incremental updates on subsequent syncs | `false`  | `false` |
+| `force-new`      | Force creation of new pages, ignoring any existing page IDs in the markdown frontmatter                               | `false`  | `false` |
 
 ## Destination Types
 
@@ -188,10 +190,115 @@ jobs:
           clean: 'true'
 ```
 
+### Sync with Save ID (Incremental Updates)
+
+Use `save-id` to enable incremental updates. After syncing, the Notion page IDs are saved back to your markdown files, allowing subsequent syncs to update existing pages instead of creating duplicates.
+
+<Callout type="info" title="Committing changes">
+
+When using `save-id`, you need to commit the updated markdown files back to your repository. The example below shows how to do this automatically.
+
+</Callout>
+
+```yaml
+name: Sync with Incremental Updates
+
+on:
+  push:
+    branches: [main]
+    paths: ['docs/**']
+
+jobs:
+  sync-incremental:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Sync to Notion with save-id
+        uses: Myastr0/mk-notes/sync
+        with:
+          input: './docs'
+          destination: ${{ secrets.NOTION_DOCS_PAGE_URL }}
+          notion-api-key: ${{ secrets.NOTION_API_KEY }}
+          save-id: 'true'
+
+      - name: Commit updated page IDs
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add docs/
+          git diff --staged --quiet || git commit -m "chore: update Notion page IDs"
+          git push
+```
+
+### Force New Pages
+
+Use `force-new` when you want to create new pages, ignoring any existing page IDs stored in the markdown frontmatter:
+
+```yaml
+name: Force New Sync
+
+on:
+  workflow_dispatch:
+
+jobs:
+  force-new-sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Force create new pages in Notion
+        uses: Myastr0/mk-notes/sync
+        with:
+          input: './docs'
+          destination: ${{ secrets.NOTION_DOCS_PAGE_URL }}
+          notion-api-key: ${{ secrets.NOTION_API_KEY }}
+          force-new: 'true'
+```
+
+### Complete Reset with New IDs
+
+Combine `clean`, `force-new`, and `save-id` to completely reset your synchronization:
+
+```yaml
+name: Reset Sync
+
+on:
+  workflow_dispatch:
+
+jobs:
+  reset-sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Reset sync to Notion
+        uses: Myastr0/mk-notes/sync
+        with:
+          input: './docs'
+          destination: ${{ secrets.NOTION_DOCS_PAGE_URL }}
+          notion-api-key: ${{ secrets.NOTION_API_KEY }}
+          clean: 'true'
+          force-new: 'true'
+          save-id: 'true'
+
+      - name: Commit new page IDs
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add docs/
+          git diff --staged --quiet || git commit -m "chore: reset Notion page IDs"
+          git push
+```
+
 ## Important Notes
 
-- **For pages**: The `clean` option removes ALL existing content from the destination page
-- **For databases**: The `clean` option deletes pages with matching `mk-notes-id` property before syncing
+- **For clean sync**: The `clean` option removes ALL existing content from the destination before syncing
+- **For save-id**: Remember to commit the updated markdown files back to your repository
+- **For force-new**: Use with caution as it may create duplicate pages if used without `clean`
 - Use clean sync only when you're sure you want to replace content
 - Always test with the [preview action](./1-preview-action.mdx) first
 - Make sure your Notion integration has access to the target page or database

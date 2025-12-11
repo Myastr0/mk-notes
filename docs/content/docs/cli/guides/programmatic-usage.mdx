@@ -8,16 +8,172 @@ Mk Notes can be used programmatically in your Javascript/Typescript projects.
 
 ---
 
-The library exposes a MkClient class that allows you to use the main functionalities of Mk Notes directly inside you code.
+The library exposes a `MkNotes` class that allows you to use the main functionalities of Mk Notes directly inside your code.
+
+## Installation
+
+```bash
+npm install mk-notes
+```
+
+## Basic Usage
 
 ```ts
-import { MkClient } from 'mk-notes';
+import MkNotes from 'mk-notes';
 
-const client = new MkClient({
-  notionApiToken: 'YOUR_NOTION_SECRET',
+const client = new MkNotes({
+  notionApiKey: 'YOUR_NOTION_SECRET',
 });
 
-client.previewSynchronization({ inputPath: './notes/' }).then(console.log);
+// Preview synchronization
+client
+  .previewSynchronization({
+    inputPath: './notes/',
+    format: 'plainText',
+  })
+  .then(console.log);
+```
+
+---
+
+## Constructor Options
+
+| Option         | Type                                     | Description                             | Default   |
+| -------------- | ---------------------------------------- | --------------------------------------- | --------- |
+| `notionApiKey` | `string`                                 | Your Notion API secret token (required) | -         |
+| `LOG_LEVEL`    | `'error' \| 'warn' \| 'info' \| 'debug'` | Log level for the client                | `'error'` |
+| `logger`       | `winston.Logger`                         | Custom Winston logger instance          | -         |
+
+```ts
+import MkNotes from 'mk-notes';
+
+const client = new MkNotes({
+  notionApiKey: process.env.NOTION_API_KEY,
+  LOG_LEVEL: 'info',
+});
+```
+
+---
+
+## Methods
+
+### `previewSynchronization`
+
+Preview how your markdown files will be organized in Notion without making any changes.
+
+```ts
+const preview = await client.previewSynchronization({
+  inputPath: './docs/',
+  format: 'plainText', // or 'json'
+  output: './preview.txt', // optional: save to file
+});
+
+console.log(preview);
+```
+
+#### Parameters
+
+| Parameter   | Type                    | Description                          | Required |
+| ----------- | ----------------------- | ------------------------------------ | -------- |
+| `inputPath` | `string`                | Path to a markdown file or directory | Yes      |
+| `format`    | `'plainText' \| 'json'` | Output format for the preview        | Yes      |
+| `output`    | `string`                | Path to save the preview output      | No       |
+
+---
+
+### `synchronizeMarkdownToNotionFromFileSystem`
+
+Synchronize markdown files to a Notion page or database.
+
+```ts
+await client.synchronizeMarkdownToNotionFromFileSystem({
+  inputPath: './docs/',
+  parentNotionPageId: 'https://notion.so/myworkspace/page-123456',
+  cleanSync: false,
+  lockPage: false,
+  saveId: true,
+  forceNew: false,
+});
+```
+
+#### Parameters
+
+| Parameter            | Type      | Description                                        | Default  |
+| -------------------- | --------- | -------------------------------------------------- | -------- |
+| `inputPath`          | `string`  | Path to a markdown file or directory               | Required |
+| `parentNotionPageId` | `string`  | URL of the Notion page or database                 | Required |
+| `cleanSync`          | `boolean` | Remove existing content before syncing             | `false`  |
+| `lockPage`           | `boolean` | Lock the Notion page after syncing                 | `false`  |
+| `saveId`             | `boolean` | Save Notion page IDs back to markdown frontmatter  | `false`  |
+| `forceNew`           | `boolean` | Force creation of new pages, ignoring existing IDs | `false`  |
+
+---
+
+## Examples
+
+### Basic Sync
+
+```ts
+import MkNotes from 'mk-notes';
+
+const client = new MkNotes({
+  notionApiKey: process.env.NOTION_API_KEY,
+});
+
+await client.synchronizeMarkdownToNotionFromFileSystem({
+  inputPath: './docs/',
+  parentNotionPageId: process.env.NOTION_PAGE_URL,
+});
+```
+
+### Sync with Incremental Updates
+
+Use `saveId: true` to enable incremental updates. After the first sync, page IDs are saved to your markdown files and subsequent syncs will update existing pages.
+
+```ts
+await client.synchronizeMarkdownToNotionFromFileSystem({
+  inputPath: './docs/',
+  parentNotionPageId: process.env.NOTION_PAGE_URL,
+  saveId: true,
+});
+```
+
+### Clean Sync with Locking
+
+```ts
+await client.synchronizeMarkdownToNotionFromFileSystem({
+  inputPath: './docs/',
+  parentNotionPageId: process.env.NOTION_PAGE_URL,
+  cleanSync: true,
+  lockPage: true,
+});
+```
+
+### Force New Pages
+
+Create new pages regardless of existing IDs in the frontmatter:
+
+```ts
+await client.synchronizeMarkdownToNotionFromFileSystem({
+  inputPath: './docs/',
+  parentNotionPageId: process.env.NOTION_PAGE_URL,
+  forceNew: true,
+  saveId: true, // Save the new page IDs
+});
+```
+
+### Complete Reset
+
+Combine options for a complete reset:
+
+```ts
+await client.synchronizeMarkdownToNotionFromFileSystem({
+  inputPath: './docs/',
+  parentNotionPageId: process.env.NOTION_PAGE_URL,
+  cleanSync: true, // Delete existing content
+  forceNew: true, // Ignore existing IDs
+  saveId: true, // Save new IDs
+});
 ```
 
 ---
