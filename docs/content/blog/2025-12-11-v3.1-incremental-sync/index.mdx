@@ -1,0 +1,134 @@
+---
+slug: v3.1-incremental-sync
+date: 2025-12-11
+title: 'Mk Notes v3.1.0: Incremental Sync & Persistent Page Links'
+author: Myastr0
+description: Introducing --save-id and --force-new options for true incremental updates that preserve your Notion page links.
+---
+
+We're excited to release **Mk Notes v3.1.0** – a feature update focused on making your sync workflows smarter and preserving your Notion page links across updates.
+
+{/* truncate */}
+
+## Listening to the Community
+
+This release directly addresses feedback from our community. Two issues in particular shaped this update:
+
+- [Issue #66](https://github.com/Myastr0/mk-notes/issues/66): A request for a `--save-id` parameter that stores Notion page IDs back to markdown files, enabling true incremental updates
+- [Issue #67](https://github.com/Myastr0/mk-notes/issues/67): A request for persistent page links – when pages are shared in Slack or linked across Notion, those links should remain valid after re-syncing
+
+The common theme? **Stability**. Users wanted their synced content to be updateable without breaking existing links or creating duplicates.
+
+## The Problem with Clean Sync
+
+In v3.0.0, we introduced database sync with a `--clean` option. While useful, it had a significant limitation: every sync created brand new pages. This meant:
+
+- Links shared in Slack or other tools would break after each sync
+- References to pages within Notion would become stale
+- Comments on blocks would be lost
+- There was no way to "update in place"
+
+## Introducing `--save-id`
+
+The new `--save-id` option solves this by creating a bidirectional link between your markdown files and Notion pages.
+
+```bash
+mk-notes sync \
+  --input ./docs \
+  --destination https://notion.so/myworkspace/page-123456 \
+  --notion-api-key secret_abc123... \
+  --save-id
+```
+
+After syncing, Mk Notes writes the Notion page ID back to your markdown file's frontmatter:
+
+```markdown
+---
+id: 12345678-1234-1234-1234-123456789abc
+title: My Document
+---
+
+Your content here...
+```
+
+On subsequent syncs, Mk Notes recognizes this ID and **updates the existing page** instead of creating a new one. Your links stay valid, your page history is preserved, and you get true incremental updates.
+
+### Why This Matters
+
+- **Persistent links**: Share a doc link in Slack – it works forever
+- **Notion references**: Link pages within Notion – references stay valid
+- **Simpler setup**: No need for special database properties
+- **Git-friendly**: Page mappings are stored in your repo alongside your content
+
+## Introducing `--force-new`
+
+Sometimes you _do_ want to start fresh. The new `--force-new` option ignores any stored page IDs and creates new pages:
+
+```bash
+mk-notes sync \
+  --input ./docs \
+  --destination https://notion.so/myworkspace/page-123456 \
+  --notion-api-key secret_abc123... \
+  --force-new
+```
+
+This is useful when:
+
+- Migrating content to a new Notion workspace
+- Testing sync without affecting production pages
+- Intentionally creating a fresh copy of your documentation
+
+### Combining Options
+
+You can combine these options for different workflows:
+
+| Options                         | Behavior                                             |
+| ------------------------------- | ---------------------------------------------------- |
+| `--save-id`                     | Updates existing pages, saves IDs to frontmatter     |
+| `--force-new`                   | Creates new pages, ignores existing IDs              |
+| `--clean --save-id`             | Clears destination, creates new pages, saves new IDs |
+| `--clean --force-new --save-id` | Full reset: clears all, creates new, saves new IDs   |
+
+## GitHub Actions Support
+
+Both options are available in the GitHub Action:
+
+```yaml
+- name: Sync to Notion with incremental updates
+  uses: Myastr0/mk-notes/sync
+  with:
+    input: './docs'
+    destination: ${{ secrets.NOTION_PAGE_URL }}
+    notion-api-key: ${{ secrets.NOTION_API_KEY }}
+    save-id: 'true'
+
+- name: Commit updated page IDs
+  run: |
+    git config --local user.email "github-actions[bot]@users.noreply.github.com"
+    git config --local user.name "github-actions[bot]"
+    git add docs/
+    git diff --staged --quiet || git commit -m "chore: update Notion page IDs"
+    git push
+```
+
+## Breaking Change: Simplified ID Handling
+
+As part of this update, we've simplified how page tracking works. The `mk-notes-id` database property is no longer used. Instead, all page tracking is handled through the `id` frontmatter field and the `--save-id` option.
+
+This makes the sync process simpler and more predictable – your markdown files are the single source of truth for page mappings.
+
+## Getting Started
+
+Update to v3.1.0:
+
+```bash
+npm install -g @mk-notes/cli@latest
+```
+
+Then add `--save-id` to your sync command to enable incremental updates. Check out the updated [CLI Commands](/docs/cli/guides/cli-commands) documentation for all the details.
+
+---
+
+Thank you to everyone who shared feedback and feature requests. This release is a direct result of your input! As always, we welcome your thoughts – [open an issue](https://github.com/Myastr0/mk-notes/issues) or start a discussion on GitHub.
+
+Happy syncing! 🔗
