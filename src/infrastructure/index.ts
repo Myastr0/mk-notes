@@ -6,18 +6,16 @@ import {
   PageElement,
   SourceRepository,
 } from '@/domains';
-import {
-  FileConverter,
-  FileSystemSourceRepository,
-} from '@/infrastructure/filesystem';
-import { HtmlParser } from '@/infrastructure/html';
-import { MarkdownParser } from '@/infrastructure/markdown';
-import {
-  NotionConverterRepository,
-  NotionDestinationRepository,
-  NotionFileUploadService,
-  NotionPage,
-} from '@/infrastructure/notion';
+import { NotionPage } from '@/domains/notion/entities/NotionPage';
+// Infrastructure imports
+import { FileConverter } from '@/infrastructure/converters/file/file.converter';
+import { NotionConverterRepository } from '@/infrastructure/converters/notion/notion.converter';
+import { NotionFileUploadService } from '@/infrastructure/destinations/notion/file-upload.service';
+import { NotionDestinationRepository } from '@/infrastructure/destinations/notion/notion.destination';
+import { NotionClientRepository } from '@/infrastructure/notion/notion-client.repository';
+import { HtmlParser } from '@/infrastructure/parsers/html';
+import { MarkdownParser } from '@/infrastructure/parsers/markdown';
+import { FileSystemSourceRepository } from '@/infrastructure/sources/filesystem/fileSystem.source';
 
 let infraInstances: InfrastructureInstances | null;
 
@@ -43,6 +41,9 @@ const buildInstances = ({
     apiKey: notionApiKey,
     logger,
   });
+  const notionClient = new NotionClientRepository({
+    apiKey: notionApiKey,
+  });
   const notionConverter = new NotionConverterRepository({
     logger,
     fileUploadService,
@@ -65,7 +66,7 @@ const buildInstances = ({
     notionDestination: new NotionDestinationRepository({
       logger,
       notionConverter,
-      apiKey: notionApiKey,
+      notionClient,
     }),
     notionConverter,
   };

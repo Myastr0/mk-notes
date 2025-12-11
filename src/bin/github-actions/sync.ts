@@ -10,6 +10,8 @@ enum Inputs {
   NotionApiKey = 'notion-api-key', // Notion API key
   Destination = 'destination', // Notion page URL
   Lock = 'lock', // Lock page
+  SaveId = 'save-id', // Save ID
+  ForceNew = 'force-new', // Force new
 }
 
 export const sync = async (earlyExit: boolean = false) => {
@@ -19,6 +21,8 @@ export const sync = async (earlyExit: boolean = false) => {
     const notionApiKey = getInput(Inputs.NotionApiKey, { required: true });
     const clean = getInputAsBool(Inputs.Clean);
     const lock = getInputAsBool(Inputs.Lock) ?? false;
+    const saveId = getInputAsBool(Inputs.SaveId);
+    const forceNew = getInputAsBool(Inputs.ForceNew);
 
     const mkNotes = new MkNotes({
       notionApiKey,
@@ -29,6 +33,8 @@ export const sync = async (earlyExit: boolean = false) => {
       parentNotionPageId: destination,
       cleanSync: clean,
       lockPage: lock,
+      saveId: saveId,
+      forceNew: forceNew,
     });
 
     // node will stay alive if any promises are not resolved,

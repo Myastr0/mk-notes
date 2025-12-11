@@ -1,6 +1,6 @@
 import { getInput, info, setFailed, setOutput } from '@actions/core';
 
-import { isValidFormat } from '@/domains/features/previewSynchronization';
+import { isValidFormat } from '@/domains/synchronization/features/preview-synchronization.feature';
 import { MkNotes } from '@/MkNotes';
 
 enum Inputs {

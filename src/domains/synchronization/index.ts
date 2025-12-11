@@ -1,2 +1,2 @@
-export * from './destination.repository';
-export * from './source.repository';
+export * from './repositories/destination.repository';
+export * from './repositories/source.repository';

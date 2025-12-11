@@ -5,6 +5,7 @@ import {
   PreviewFormat,
   PreviewSynchronization,
   SynchronizeMarkdownToNotion,
+  SynchronizeOptions,
 } from '@/domains';
 import {
   getInfrastructureInstances,
@@ -12,6 +13,12 @@ import {
 } from '@/infrastructure';
 
 import { LogLevel } from './domains/logger/types';
+
+export interface SyncOptions {
+  cleanSync: boolean;
+  lockPage: boolean;
+  saveId: boolean;
+}
 
 /**
  * MkNotes client
@@ -83,12 +90,12 @@ export class MkNotes {
     parentNotionPageId,
     cleanSync = false,
     lockPage = false,
+    saveId = false,
+    forceNew = false,
   }: {
     inputPath: string;
     parentNotionPageId: string;
-    cleanSync?: boolean;
-    lockPage?: boolean;
-  }): Promise<void> {
+  } & SynchronizeOptions): Promise<void> {
     const synchronizeMarkdownToNotion = new SynchronizeMarkdownToNotion({
       logger: this.logger,
       destinationRepository: this.infrastructureInstances.notionDestination,
@@ -101,6 +108,8 @@ export class MkNotes {
       notionParentPageUrl: parentNotionPageId,
       cleanSync,
       lockPage,
+      saveId,
+      forceNew,
     });
   }
 }

@@ -1,4 +1,4 @@
-import { type TreeNode } from '../TreeNode';
+import { type TreeNode } from '../entities/TreeNode';
 import { type SitemapSerializer } from './types';
 
 interface NodePreview {
