@@ -34,6 +34,10 @@ command.option(
 
 command.option('-l, --lock', 'Lock the Notion page after syncing');
 
+command.option('-s, --save-id', 'Save the page ID to the source repository');
+
+command.option('-f, --force-new', 'Force a new page to be created');
+
 command.option('-v, --verbosity <verbosity>', 'Verbosity level', 'error');
 interface SyncOptions {
   input: string;
@@ -41,7 +45,9 @@ interface SyncOptions {
   notionApiKey: string;
   clean?: boolean;
   lock?: boolean;
+  saveId?: boolean;
   verbosity?: string;
+  forceNew?: boolean;
 }
 
 command.action(async (opts: SyncOptions) => {
@@ -51,6 +57,8 @@ command.action(async (opts: SyncOptions) => {
     notionApiKey,
     clean = false,
     lock = false,
+    saveId = false,
+    forceNew = false,
     verbosity = 'error',
   } = opts;
 
@@ -68,6 +76,8 @@ command.action(async (opts: SyncOptions) => {
     parentNotionPageId: notionParentPageUrl,
     cleanSync: clean,
     lockPage: lock,
+    saveId: saveId,
+    forceNew: forceNew,
   });
 
   // eslint-disable-next-line no-console

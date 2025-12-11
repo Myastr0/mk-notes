@@ -38,15 +38,29 @@ mk-notes sync -i <path> -d <notionUrl> -k <notionApiKey>
 
   <Callout type="warning" title="For Notion Databases">
 
-  Finds and deletes existing pages with the same `id` (using the `mk-notes-id`
-  notion database property) before creating new ones. This requires the `id`
-  property to be set in your markdown frontmatter.
+  Removes ALL existing content from the database before syncing.
 
-  For more information about synchronization into a database, you can read the [Database Synchronization](../database-sync) guide.
+  For more information about synchronization into a database, you can read the [Database Synchronization](../guides/database-sync) guide.
 
   </Callout>
 
 - `-l, --lock`: Lock the Notion page after syncing to prevent further editing. This is useful when you want to preserve the synchronized content and prevent accidental modifications.
+
+- `-s, --save-id`: Save the Notion page ID back to your markdown file's frontmatter after synchronization. This enables incremental updates on subsequent syncs by allowing MK Notes to identify and update existing pages rather than creating duplicates.
+
+  <Callout type="info" title="How it works">
+
+  After a successful sync, MK Notes writes the Notion page ID to the `id` field in your markdown frontmatter. On subsequent syncs, MK Notes uses this ID to update the existing page instead of creating a new one.
+
+  </Callout>
+
+- `-f, --force-new`: Force creation of new pages even if your markdown files contain existing page IDs. This is useful when you want to recreate all pages from scratch, ignoring any previously saved IDs.
+
+  <Callout type="warning" title="Use with caution">
+
+  Using `--force-new` will create duplicate pages if you have existing pages with the same content. Consider using `--clean` together with `--force-new` if you want to replace existing content.
+
+  </Callout>
 
 ### Destination Types
 
@@ -188,9 +202,77 @@ Content here...
 
 This command will:
 
-1. Find existing pages in the database with matching `mk-notes-id` property
-2. Delete those existing pages
-3. Create new pages as database items with the content from your markdown files
+1. Delete existing content from the database
+2. Create new pages as database items with the content from your markdown files
+
+#### Syncing with Save ID (Incremental Updates)
+
+```bash
+mk-notes sync \
+  --input ./my-docs \
+  --destination https://notion.so/myworkspace/doc-123456 \
+  --notion-api-key secret_abc123... \
+  --save-id
+```
+
+This command will:
+
+1. Read all markdown files in the `./my-docs` directory
+2. Create or update pages in Notion
+3. **Save the Notion page IDs** back to each markdown file's frontmatter
+4. Display a success message with the Notion page URL when complete
+
+After running this command, your markdown files will have an `id` field in their frontmatter:
+
+```markdown
+---
+id: 12345678-1234-1234-1234-123456789abc
+title: My Document
+---
+
+Content here...
+```
+
+On subsequent syncs with `--save-id`, MK Notes will update the existing pages instead of creating new ones.
+
+#### Syncing with Force New (Recreate Pages)
+
+```bash
+mk-notes sync \
+  --input ./my-docs \
+  --destination https://notion.so/myworkspace/doc-123456 \
+  --notion-api-key secret_abc123... \
+  --force-new
+```
+
+This command will:
+
+1. Read all markdown files in the `./my-docs` directory
+2. **Ignore any existing page IDs** in the markdown frontmatter
+3. Create new pages in Notion for all files
+4. Display a success message with the Notion page URL when complete
+
+#### Combining Force New with Clean and Save ID
+
+```bash
+mk-notes sync \
+  --input ./my-docs \
+  --destination https://notion.so/myworkspace/doc-123456 \
+  --notion-api-key secret_abc123... \
+  --clean \
+  --force-new \
+  --save-id
+```
+
+This command will:
+
+1. Remove ALL existing content from the destination Notion page
+2. Read all markdown files in the `./my-docs` directory
+3. Create new pages (ignoring any existing IDs)
+4. Save the new page IDs back to the markdown files
+5. Display a success message with the Notion page URL when complete
+
+This is useful when you want to completely reset your synchronization and start fresh with new page IDs.
 
 ## `preview-sync`
 

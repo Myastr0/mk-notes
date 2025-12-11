@@ -19,77 +19,28 @@ Syncing to a Notion database offers several advantages over regular page sync:
 
 ---
 
-## Setting Up Your Database
+## How Page Tracking Works
 
-Before syncing, you need to prepare your Notion database with a special property.
+MK Notes uses the `id` field in your markdown frontmatter to track which Notion pages correspond to which markdown files. When you use the `--save-id` option, MK Notes automatically writes the Notion page ID back to your markdown files after synchronization.
 
-### Creating the `mk-notes-id` Property
-
-For MK Notes to identify and update existing pages (when using `--clean` mode), your database must have a **text property** named `mk-notes-id`.
-
-<div className="fd-steps">
-<div className="fd-step">
-
-### Open your Notion database
-
-Navigate to the database where you want to sync your markdown content.
-
-</div>
-<div className="fd-step">
-
-### Add a new property
-
-Click the **+** button in the database header to add a new property.
-
-</div>
-<div className="fd-step">
-
-### Configure the property
-
-- **Name**: `mk-notes-id`
-- **Type**: `Text`
-
-</div>
-</div>
-
-<Callout type="warning" title="Property name must be exact">
-
-The property name must be exactly `mk-notes-id` (all lowercase with hyphens). MK Notes will not recognize variations like `MkNotesId` or `mk_notes_id`.
-
-</Callout>
-
----
-
-## Configuring Your Markdown Files
+On subsequent syncs, MK Notes uses this stored ID to update the existing Notion page instead of creating a new one.
 
 ### The `id` Frontmatter Property
 
-To enable page identification and updates, add an `id` property to your markdown frontmatter:
+The `id` property is automatically generated when you sync with the `--save-id` option:
 
 ```markdown
 ---
-id: my-unique-page-id
+id: 12345678-1234-1234-1234-123456789abc
 title: My Document Title
 ---
 
 Your content here...
 ```
 
-When syncing to a database:
+<Callout type="info" title="Automatically generated">
 
-1. The `id` value from your frontmatter is stored in the `mk-notes-id` database property
-2. MK Notes uses this ID to find and update existing pages during clean sync
-3. Without an `id`, pages will be created but cannot be updated via clean sync
-
-<Callout type="info" title="Choosing good IDs">
-
-Use stable, unique identifiers for your `id` values. Good choices include:
-
-- File paths: `guides/getting-started`
-- Slugs: `api-authentication`
-- UUIDs: `550e8400-e29b-41d4-a716-446655440000`
-
-Avoid using titles as IDs since they may change over time.
+You don't need to set this property manually. Use the `--save-id` flag when running the sync command, and MK Notes will automatically populate this field with the Notion page ID.
 
 </Callout>
 
@@ -110,9 +61,45 @@ mk-notes sync \
 
 This creates new pages in the database for each markdown file. However, running this command multiple times will create duplicate entries.
 
-### Clean Sync (Recommended)
+### Using Save ID (Recommended)
 
-For updating existing content, use the `--clean` flag:
+Use the `--save-id` option to enable incremental updates. This saves the Notion page ID directly to your markdown file's frontmatter after synchronization:
+
+```bash
+mk-notes sync \
+  --input ./docs \
+  --destination https://notion.so/myworkspace/database-123456 \
+  --notion-api-key secret_abc123... \
+  --save-id
+```
+
+After syncing, your markdown file will be updated with the Notion page ID:
+
+```markdown
+---
+id: 12345678-1234-1234-1234-123456789abc
+title: My Document Title
+---
+
+Your content here...
+```
+
+On subsequent syncs, MK Notes will use this ID to update the existing page directly.
+
+<Callout type="info" title="Benefits of save-id">
+
+Using `--save-id` provides:
+
+- **Incremental updates**: Only changed content is updated
+- **No duplicates**: Existing pages are updated instead of recreated
+- **Simple setup**: No additional configuration needed in Notion
+- **Source of truth**: Your markdown files track the page mappings
+
+</Callout>
+
+### Clean Sync
+
+The `--clean` flag removes existing content before syncing:
 
 ```bash
 mk-notes sync \
@@ -124,15 +111,53 @@ mk-notes sync \
 
 With clean sync enabled:
 
-1. MK Notes searches for existing pages with matching `mk-notes-id` values
-2. Found pages are deleted
-3. New pages are created with the updated content
+1. Existing content in the destination is deleted
+2. New pages are created with the updated content
 
-<Callout type="warning" title="Requires id in frontmatter">
+<Callout type="warning" title="Use with caution">
 
-Clean sync only works for pages that have an `id` defined in their frontmatter. Pages without an `id` will be created but won't be cleaned up on subsequent syncs.
+Clean sync removes ALL existing content from the destination. Consider using `--save-id` instead for incremental updates that preserve your Notion page structure.
 
 </Callout>
+
+### Force New Pages
+
+The `--force-new` option ignores any existing page IDs stored in your markdown frontmatter and creates new pages:
+
+```bash
+mk-notes sync \
+  --input ./docs \
+  --destination https://notion.so/myworkspace/database-123456 \
+  --notion-api-key secret_abc123... \
+  --force-new
+```
+
+This is useful when you want to:
+
+- Create a fresh copy of your documentation in the database
+- Test synchronization without affecting existing pages
+- Migrate content to a new database
+
+<Callout type="warning" title="Potential duplicates">
+
+Using `--force-new` without `--clean` will create duplicate entries in your database. If you want to replace all content, combine it with `--clean`:
+
+```bash
+mk-notes sync -i ./docs -d <database-url> -k <api-key> --clean --force-new
+```
+
+</Callout>
+
+### Combining Options
+
+You can combine `--save-id` and `--force-new` with `--clean` for different workflows:
+
+| Options                         | Behavior                                                   |
+| ------------------------------- | ---------------------------------------------------------- |
+| `--save-id`                     | Updates existing pages by ID, saves new IDs to frontmatter |
+| `--force-new`                   | Creates new pages, ignores existing IDs                    |
+| `--clean --save-id`             | Deletes old pages, creates new ones, saves new IDs         |
+| `--clean --force-new --save-id` | Full reset: deletes all, creates new pages, saves new IDs  |
 
 ---
 
@@ -182,11 +207,11 @@ The database property must already exist in your Notion database. MK Notes will 
 
 ## Complete Example
 
-Here's a complete example of a markdown file optimized for database sync:
+Here's a complete example of a markdown file after syncing with `--save-id`:
 
 ```markdown
 ---
-id: getting-started-installation
+id: 12345678-1234-1234-1234-123456789abc
 title: Installation Guide
 icon: 🚀
 properties:
@@ -211,30 +236,25 @@ Before you begin, ensure you have...
 1. First, install the package...
 ```
 
+<Callout type="info" title="Note">
+
+The `id` field is automatically generated by MK Notes when using `--save-id`. You only need to provide `title`, `icon`, and `properties` in your initial markdown file.
+
+</Callout>
+
 ---
 
 ## Best Practices
 
-### 1. Always Use Unique IDs
+### 1. Use Save ID for Incremental Updates
 
-Ensure each markdown file has a unique `id` to prevent conflicts:
-
-```markdown
----
-id: docs/guides/authentication # Use path-based IDs for uniqueness
-title: Authentication
----
-```
-
-### 2. Use Clean Sync for Updates
-
-Always use the `--clean` flag when updating existing content to avoid duplicates:
+Always use the `--save-id` flag to enable incremental updates and avoid duplicates:
 
 ```bash
-mk-notes sync -i ./docs -d <database-url> -k <api-key> --clean
+mk-notes sync -i ./docs -d <database-url> -k <api-key> --save-id
 ```
 
-### 3. Preview Before Syncing
+### 2. Preview Before Syncing
 
 Use the preview command to verify your structure:
 
@@ -256,9 +276,9 @@ After syncing, create Notion database views to organize your content:
 
 ### Pages are duplicated
 
-**Cause**: Running sync without `--clean` flag, or missing `id` in frontmatter.
+**Cause**: Running sync without `--save-id` flag, so pages are created each time instead of updated.
 
-**Solution**: Add unique `id` values to all markdown files and use `--clean` flag.
+**Solution**: Use `--save-id` to automatically save Notion page IDs to your frontmatter, enabling incremental updates.
 
 ### Properties not appearing
 
@@ -266,11 +286,17 @@ After syncing, create Notion database views to organize your content:
 
 **Solution**: Ensure the property exists in your Notion database with the exact same name (case-sensitive).
 
-### Clean sync not deleting old pages
+### Pages not updating with save-id
 
-**Cause**: The `mk-notes-id` property doesn't exist or has a different name.
+**Cause**: The page ID stored in the frontmatter no longer exists in Notion (page was deleted manually).
 
-**Solution**: Create a text property named exactly `mk-notes-id` in your database.
+**Solution**: Use `--force-new` to create new pages, or remove the `id` from your frontmatter to let MK Notes create a new page.
+
+### Want to start fresh
+
+**Cause**: You want to recreate all pages from scratch.
+
+**Solution**: Use `--clean --force-new --save-id` to delete existing content, create new pages, and save the new page IDs.
 
 ---
 

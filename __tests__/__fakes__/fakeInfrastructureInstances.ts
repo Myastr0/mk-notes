@@ -5,14 +5,14 @@ import { InfrastructureInstances } from '@/infrastructure';
 import {
   FakeFileConverter,
   FakeNotionConverter,
-} from './fakeConverter.repository';
-import { FakeDestinationRepository } from './fakeDestination.repository';
-import { fakeLogger } from './fakeLogger';
+} from './elements/fake-converter.repository';
 import {
   FakeMarkdownParser,
   FakeParserRepository,
-} from './fakeParser.repository';
-import { FakeSourceRepository } from './fakeSource.repository';
+} from './elements/fake-parser.repository';
+import { fakeLogger } from './logger/fake-logger';
+import { FakeDestinationRepository } from './synchronization/fake-destination.repository';
+import { FakeSourceRepository } from './synchronization/fake-source.repository';
 
 export type FakeInfrastructureInstances = ReturnType<
   typeof getFakeInfrastructureInstances

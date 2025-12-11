@@ -57,6 +57,20 @@ For more information about synchronization into a database, you can read the [Da
 
 </Callout>
 
+<Callout type="tip" title="Enable incremental updates">
+
+Add `--save-id` to your command to save Notion page IDs back to your markdown files. This enables **incremental updates** on subsequent syncs, so MK Notes will update existing pages instead of creating duplicates:
+
+```bash
+mk-notes sync \
+  --input <path> \
+  --destination <notion-url> \
+  --notion-api-key <your-secret> \
+  --save-id
+```
+
+</Callout>
+
 </div>
 </div>
 ---
@@ -64,5 +78,13 @@ For more information about synchronization into a database, you can read the [Da
 ## Going further
 
 Mk Notes allows you to style the created Notion pages directly from your markdown. You can find more information in the [Styling Notion Page](../guides/styling-notion-page) guide.
+
+<Callout type="tip" title="Recommended for ongoing sync">
+
+If you plan to sync your documentation regularly, we recommend using the `--save-id` option. This saves Notion page IDs to your markdown frontmatter, enabling MK Notes to update existing pages on subsequent syncs rather than creating duplicates.
+
+Learn more about all available options in the [CLI Commands](../guides/cli-commands) guide.
+
+</Callout>
 
 ---

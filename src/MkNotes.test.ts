@@ -2,7 +2,7 @@ import fs from 'fs';
 
 import { getFakeInfrastructureInstances } from '../__tests__/__fakes__/fakeInfrastructureInstances';
 import { FakeInfrastructureInstances } from '../__tests__/__fakes__/fakeInfrastructureInstances';
-import { fakeLogger } from '../__tests__/__fakes__/fakeLogger';
+import { fakeLogger } from '../__tests__/__fakes__/logger/fake-logger';
 import { MkNotes } from './MkNotes';
 import { getInfrastructureInstances } from './infrastructure';
 
@@ -62,9 +62,9 @@ describe('MkNotes', () => {
 
   describe('synchronizeMarkdownToNotionFromFileSystem', () => {
     it('should synchronize markdown file to Notion', async () => {
-      const createPageSpy = jest.spyOn(
+      const updatePageSpy = jest.spyOn(
         infrastructureInstances.notionDestination,
-        'createPage'
+        'updatePage'
       );
 
       const notionPageUrl =
@@ -73,9 +73,14 @@ describe('MkNotes', () => {
       await mkNotes.synchronizeMarkdownToNotionFromFileSystem({
         inputPath: 'fake/input/path.md',
         parentNotionPageId: notionPageUrl,
+        cleanSync: false,
+        lockPage: false,
+        saveId: false,
+        forceNew: false,
       });
 
-      expect(createPageSpy).toHaveBeenCalled();
+      // Without cleanSync, the root file updates the parent page
+      expect(updatePageSpy).toHaveBeenCalled();
     });
   });
 

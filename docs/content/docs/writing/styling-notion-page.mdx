@@ -35,17 +35,17 @@ Here's the Mk Notes supported properties to customize your Notion Page
 
 _optional_
 
-This property allows you to specify a unique identifier for your page. This is particularly useful when syncing to a **Notion Database** with the `--clean` option enabled.
+This property stores the Notion page ID that was created during synchronization. When you use the `--save-id` option, MK Notes automatically writes the Notion page ID back to your markdown file's frontmatter.
 
-When clean sync is enabled and the destination is a database, Mk Notes will use this `id` to find and delete existing pages with the same identifier before creating a new one. This ensures that repeated syncs don't create duplicate entries.
+On subsequent syncs, MK Notes uses this `id` to update the existing Notion page instead of creating a new one. This enables **incremental updates** and prevents duplicate pages.
 
 ```markdown
-id: <unique-identifier>
+id: 12345678-1234-1234-1234-123456789abc
 ```
 
-<Callout type="info" title="Database property">
+<Callout type="info" title="Automatically generated">
 
-When syncing to a database, the `id` value is stored in a property named `mk-notes-id` in your Notion database.
+You don't need to set this property manually. Use the `--save-id` flag when running the sync command, and MK Notes will automatically populate this field with the Notion page ID after synchronization.
 
 </Callout>
 

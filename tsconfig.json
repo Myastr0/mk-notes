@@ -9,7 +9,7 @@
     "strict": true,
     "strictFunctionTypes": true,
     "rootDir": ".",
-    "typeRoots": ["./api/types", "./node_modules/@types"],
+    "typeRoots": ["./node_modules/@types"],
     "esModuleInterop": true,
     "types": ["jest", "node"],
     "exactOptionalPropertyTypes": false,
@@ -26,7 +26,6 @@
     "dist",
     "__mocks__",
     "docs",
-    "__tests__",
     "node_modules",
     "jest.config.ts"
   ]
