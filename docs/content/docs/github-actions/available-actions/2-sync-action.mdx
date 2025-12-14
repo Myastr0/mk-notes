@@ -31,15 +31,16 @@ steps:
 
 ## Inputs
 
-| Input            | Description                                                                                                           | Required | Default |
-| ---------------- | --------------------------------------------------------------------------------------------------------------------- | -------- | ------- |
-| `input`          | The path to the markdown file or directory to synchronize                                                             | `true`   | -       |
-| `destination`    | The Notion page or database URL where you want to synchronize your markdown files                                     | `true`   | -       |
-| `notion-api-key` | Your Notion secret token                                                                                              | `true`   | -       |
-| `clean`          | Clean sync mode - removes ALL existing content from the destination before syncing                                    | `false`  | `false` |
-| `lock`           | Lock the Notion page after syncing                                                                                    | `false`  | `false` |
-| `save-id`        | Save Notion page IDs back to the source markdown files' frontmatter, enabling incremental updates on subsequent syncs | `false`  | `false` |
-| `force-new`      | Force creation of new pages, ignoring any existing page IDs in the markdown frontmatter                               | `false`  | `false` |
+| Input            | Description                                                                                                                | Required | Default |
+| ---------------- | -------------------------------------------------------------------------------------------------------------------------- | -------- | ------- |
+| `input`          | The path to the markdown file or directory to synchronize                                                                  | `true`   | -       |
+| `destination`    | The Notion page or database URL where you want to synchronize your markdown files                                          | `true`   | -       |
+| `notion-api-key` | Your Notion secret token                                                                                                   | `true`   | -       |
+| `clean`          | Clean sync mode - removes ALL existing content from the destination before syncing                                         | `false`  | `false` |
+| `lock`           | Lock the Notion page after syncing                                                                                         | `false`  | `false` |
+| `save-id`        | Save Notion page IDs back to the source markdown files' frontmatter, enabling incremental updates on subsequent syncs      | `false`  | `false` |
+| `force-new`      | Force creation of new pages, ignoring any existing page IDs in the markdown frontmatter                                    | `false`  | `false` |
+| `flat`           | Flatten the result page tree, making all pages direct children of the destination instead of maintaining nested structures | `false`  | `false` |
 
 ## Destination Types
 
@@ -294,11 +295,47 @@ jobs:
           git push
 ```
 
+### Sync with Flat Structure
+
+Use `flat` to create a flat list of pages instead of maintaining nested folder structures:
+
+```yaml
+name: Flat Sync
+
+on:
+  push:
+    branches: [main]
+    paths: ['docs/**']
+
+jobs:
+  flat-sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Sync with flat structure
+        uses: Myastr0/mk-notes/sync
+        with:
+          input: './docs'
+          destination: ${{ secrets.NOTION_DOCS_PAGE_URL }}
+          notion-api-key: ${{ secrets.NOTION_API_KEY }}
+          flat: 'true'
+```
+
+When `flat: 'true'` is used:
+
+- All pages are created as direct children of the destination page
+- The root node is skipped (if your directory has an `index.md`, it becomes a child page)
+- Folder hierarchy is flattened into a simple list
+- Useful for creating simple document lists or syncing to databases where you want all items at the same level
+
 ## Important Notes
 
 - **For clean sync**: The `clean` option removes ALL existing content from the destination before syncing
 - **For save-id**: Remember to commit the updated markdown files back to your repository
 - **For force-new**: Use with caution as it may create duplicate pages if used without `clean`
+- **For flat**: When using `flat`, the root node is skipped and all files become direct children. This is ideal for simple document lists or database syncs where hierarchy isn't needed
 - Use clean sync only when you're sure you want to replace content
 - Always test with the [preview action](./1-preview-action.mdx) first
 - Make sure your Notion integration has access to the target page or database

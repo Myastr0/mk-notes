@@ -18,6 +18,14 @@ export const isValidFormat = (format: unknown): format is PreviewFormat => {
   );
 };
 
+export interface PreviewSynchronizationOptions {
+  /** The format of the preview */
+  format?: PreviewFormat;
+
+  /** When true, flatten the result page tree */
+  flatten?: boolean;
+}
+
 export class PreviewSynchronization<T> {
   private sourceRepository: SourceRepository<T>;
 
@@ -27,7 +35,7 @@ export class PreviewSynchronization<T> {
 
   async execute(
     args: T,
-    { format }: { format?: PreviewFormat; output?: string } = {}
+    { format, flatten }: PreviewSynchronizationOptions = {}
   ): Promise<string> {
     // Check if the source repository is accessible
     try {
@@ -56,7 +64,11 @@ export class PreviewSynchronization<T> {
 
     const filePaths = await this.sourceRepository.getFilePathList(args);
 
-    const siteMap = SiteMap.buildFromFilePaths(filePaths);
+    let siteMap = SiteMap.buildFromFilePaths(filePaths);
+
+    if (flatten) {
+      siteMap = siteMap.flatten();
+    }
 
     return sitemapSerializer(siteMap);
   }

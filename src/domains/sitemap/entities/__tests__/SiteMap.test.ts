@@ -1,4 +1,5 @@
 import { SiteMap } from '../SiteMap';
+import { TreeNode } from '../TreeNode';
 
 describe('SiteMap', () => {
   describe('buildFromFilePaths', () => {
@@ -133,6 +134,125 @@ describe('SiteMap', () => {
 
     it('should throw error for invalid JSON data', () => {
       expect(() => SiteMap.fromJSON({})).toThrow('Invalid data');
+    });
+  });
+
+  describe('flatten', () => {
+    it('should return a new SiteMap instance', () => {
+      const siteMap = SiteMap.buildFromFilePaths(['file1.md', 'file2.md']);
+      const flattened = siteMap.flatten();
+
+      expect(flattened).toBeInstanceOf(SiteMap);
+      expect(flattened).not.toBe(siteMap);
+    });
+
+    it('should flatten a simple tree structure', () => {
+      const siteMap = SiteMap.buildFromFilePaths([
+        'folder1/file1.md',
+        'folder1/file2.md',
+      ]);
+
+      const flattened = siteMap.flatten();
+
+      // Root should have: root copy + flattened children
+      expect(flattened.root.children.length).toBeGreaterThan(0);
+      
+      // The root copy should be first
+      const rootCopy = flattened.root.children[0];
+      expect(rootCopy.id).toBe(siteMap.root.id);
+      expect(rootCopy.name).toBe(siteMap.root.name);
+      expect(rootCopy.filepath).toBe(siteMap.root.filepath);
+      expect(rootCopy.children).toEqual([]);
+    });
+
+    it('should flatten nested folder structure', () => {
+      const siteMap = SiteMap.buildFromFilePaths([
+        'level1/level2/level3/file1.md',
+        'level1/level2/file2.md',
+        'level1/file3.md',
+      ]);
+
+      const flattened = siteMap.flatten();
+
+      // All files should be direct children of root (after root copy)
+      const childrenAfterRoot = flattened.root.children.slice(1);
+      
+      // Should have root copy + all flattened descendants
+      expect(flattened.root.children.length).toBeGreaterThan(1);
+      
+      // Verify root copy exists
+      expect(flattened.root.children[0].id).toBe(siteMap.root.id);
+    });
+
+    it('should preserve filepaths in flattened structure', () => {
+      const filePaths = [
+        'docs/getting-started.md',
+        'docs/advanced/features.md',
+        'docs/advanced/configuration.md',
+      ];
+
+      const siteMap = SiteMap.buildFromFilePaths(filePaths);
+      const flattened = siteMap.flatten();
+
+      // Collect all filepaths from flattened structure
+      const collectFilepaths = (node: TreeNode): string[] => {
+        const paths: string[] = [];
+        if (node.filepath) {
+          paths.push(node.filepath);
+        }
+        node.children.forEach((child) => {
+          paths.push(...collectFilepaths(child));
+        });
+        return paths;
+      };
+
+      const flattenedPaths = collectFilepaths(flattened.root);
+      
+      // All original filepaths should be present
+      filePaths.forEach((path) => {
+        expect(flattenedPaths).toContain(path);
+      });
+    });
+
+    it('should handle empty sitemap', () => {
+      const siteMap = SiteMap.buildFromFilePaths([]);
+      const flattened = siteMap.flatten();
+
+      expect(flattened.root.children).toHaveLength(1); // Only root copy
+      expect(flattened.root.children[0].id).toBe(siteMap.root.id);
+    });
+
+    it('should not modify the original sitemap', () => {
+      const filePaths = ['folder1/file1.md', 'folder1/file2.md'];
+      const siteMap = SiteMap.buildFromFilePaths(filePaths);
+      const originalRootChildrenCount = siteMap.root.children.length;
+
+      const flattened = siteMap.flatten();
+
+      // Original should remain unchanged
+      expect(siteMap.root.children.length).toBe(originalRootChildrenCount);
+      
+      // Flattened should have different structure
+      expect(flattened.root.children.length).not.toBe(originalRootChildrenCount);
+    });
+
+    it('should set correct parent references in flattened structure', () => {
+      const siteMap = SiteMap.buildFromFilePaths([
+        'folder1/file1.md',
+        'folder1/subfolder/file2.md',
+      ]);
+
+      const flattened = siteMap.flatten();
+
+      // All children should have root as parent
+      const verifyParent = (node: TreeNode) => {
+        node.children.forEach((child) => {
+          expect(child.parent).toBe(node);
+          verifyParent(child);
+        });
+      };
+
+      verifyParent(flattened.root);
     });
   });
 });

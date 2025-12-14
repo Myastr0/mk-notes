@@ -148,6 +148,31 @@ mk-notes sync -i ./docs -d <database-url> -k <api-key> --clean --force-new
 
 </Callout>
 
+### Flat Structure
+
+The `--flat` option flattens the page tree, making all pages direct children of the database instead of maintaining nested folder structures:
+
+```bash
+mk-notes sync \
+  --input ./docs \
+  --destination https://notion.so/myworkspace/database-123456 \
+  --notion-api-key secret_abc123... \
+  --flat
+```
+
+When syncing to databases, `--flat` is particularly useful because:
+
+- All pages appear at the same level in the database
+- Easier to filter and sort all documents uniformly
+- No nested hierarchy to navigate
+- Better for database views where you want all items visible at once
+
+<Callout type="info" title="Database sync with flat">
+
+When using `--flat` with database sync, the root node is skipped and all files become direct database items. This creates a clean, flat list of all your documents in the database, making them easier to manage with database views and filters.
+
+</Callout>
+
 ### Combining Options
 
 You can combine `--save-id` and `--force-new` with `--clean` for different workflows:
@@ -156,8 +181,10 @@ You can combine `--save-id` and `--force-new` with `--clean` for different workf
 | ------------------------------- | ---------------------------------------------------------- |
 | `--save-id`                     | Updates existing pages by ID, saves new IDs to frontmatter |
 | `--force-new`                   | Creates new pages, ignores existing IDs                    |
+| `--flat`                        | Flattens structure, all pages become direct children       |
 | `--clean --save-id`             | Deletes old pages, creates new ones, saves new IDs         |
 | `--clean --force-new --save-id` | Full reset: deletes all, creates new pages, saves new IDs  |
+| `--flat --save-id`              | Flat structure with incremental updates                    |
 
 ---
 

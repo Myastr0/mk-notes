@@ -147,6 +147,34 @@ export class SiteMap {
   }
 
   /**
+   * Returns a new SiteMap instance with the tree flattened under the root node
+   */
+  public flatten(): SiteMap {
+    const flattenedSiteMap = new SiteMap();
+    const flattenedChildren = this._root.flatten();
+
+    // Create a copy of the original root node WITHOUT its children
+    // (just the root node itself, not its nested structure)
+    const rootCopy = new TreeNode({
+      id: this._root.id,
+      name: this._root.name,
+      filepath: this._root.filepath,
+      children: [],
+      parent: flattenedSiteMap._root,
+    });
+
+    // Create deep copies of all flattened children and set their parent to the new root
+    const flattenedChildrenCopies = flattenedChildren.map((child) =>
+      TreeNode.fromJSON(child.toJSON(), flattenedSiteMap._root)
+    );
+
+    // Set children: original root copy (without nested children) first, then all flattened descendants copies
+    flattenedSiteMap._root.children = [rootCopy, ...flattenedChildrenCopies];
+
+    return flattenedSiteMap;
+  }
+
+  /**
    * TODO: Implement mkdocs.yaml sitemap parsing
    *
    * Parses the mkdocs.yaml content and adds nodes to the sitemap

@@ -35,6 +35,9 @@ export interface SynchronizeOptions {
 
   /** When true, force a new page to be created */
   forceNew: boolean;
+
+  /** When true, flatten the site map */
+  flatten: boolean;
 }
 
 export type SynchronizationResult = {
@@ -65,6 +68,7 @@ export class SynchronizeMarkdownToNotion<T, U extends Page> {
       lockPage,
       saveId,
       forceNew,
+      flatten,
       ...others
     } = args;
 
@@ -106,7 +110,11 @@ export class SynchronizeMarkdownToNotion<T, U extends Page> {
         others as T
       );
 
-      const siteMap = SiteMap.buildFromFilePaths(filePaths);
+      let siteMap = SiteMap.buildFromFilePaths(filePaths);
+
+      if (flatten) {
+        siteMap = siteMap.flatten();
+      }
 
       // Traverse the SiteMap and synchronize files
       const pages = await this.synchronizeTreeNode({
@@ -116,6 +124,7 @@ export class SynchronizeMarkdownToNotion<T, U extends Page> {
         lockPage,
         cleanSync,
         forceNew,
+        flatten,
       });
 
       this.logger.info('Synchronization process completed successfully');
@@ -201,6 +210,7 @@ export class SynchronizeMarkdownToNotion<T, U extends Page> {
     lockPage,
     cleanSync,
     forceNew,
+    flatten,
   }: {
     node: TreeNode;
     parentObjectId: string;
@@ -208,6 +218,7 @@ export class SynchronizeMarkdownToNotion<T, U extends Page> {
     lockPage: boolean;
     cleanSync: boolean;
     forceNew: boolean;
+    flatten: boolean;
   }): Promise<SynchronizationResult[]> {
     this.validateParentObjectType(parentObjectType);
 
@@ -215,23 +226,29 @@ export class SynchronizeMarkdownToNotion<T, U extends Page> {
 
     const results: SynchronizationResult[] = [];
 
-    const { page: rootPageElement, treeNodeId: rootTreeNodeId } =
-      await this.synchronizeRootNode({
-        node: nodeToSync,
-        parentObjectId,
-        parentObjectType,
-        lockPage,
-        cleanSync,
-        forceNew,
-      });
+    let rootPageElement: PageElement | undefined;
 
-    results.push({ page: rootPageElement, treeNodeId: rootTreeNodeId });
+    // If not flattening, synchronize the root node
+    if (!flatten) {
+      const { page: rootPageElement, treeNodeId: rootTreeNodeId } =
+        await this.synchronizeRootNode({
+          node: nodeToSync,
+          parentObjectId,
+          parentObjectType,
+          lockPage,
+          cleanSync,
+          forceNew,
+          flatten,
+        });
+
+      results.push({ page: rootPageElement, treeNodeId: rootTreeNodeId });
+    }
 
     for (const childNode of node.children) {
       try {
         const childResults = await this.synchronizeChildNode({
           childNode,
-          parentPageId: rootPageElement.id!,
+          parentPageId: rootPageElement?.id ?? parentObjectId,
           lockPage,
           forceNew,
         });
@@ -258,6 +275,7 @@ export class SynchronizeMarkdownToNotion<T, U extends Page> {
     lockPage,
     cleanSync,
     forceNew,
+    flatten,
   }: {
     node: TreeNode;
     parentObjectId: string;
@@ -265,6 +283,7 @@ export class SynchronizeMarkdownToNotion<T, U extends Page> {
     lockPage: boolean;
     cleanSync: boolean;
     forceNew: boolean;
+    flatten: boolean;
   }): Promise<SynchronizationResult> {
     this.logger.info(
       `Adding content from ${node.filepath} to parent ${parentObjectType}`
@@ -292,50 +311,103 @@ export class SynchronizeMarkdownToNotion<T, U extends Page> {
       }
     }
 
-    if (parentObjectType === 'unknown') {
-      throw new Error('Parent object type is unknown');
-    }
-
-    if (parentObjectType === 'page') {
-      // If clean sync is enabled, delete all existing content first
-      if (cleanSync) {
-        this.logger.info('Clean sync enabled - removing existing content');
-        try {
-          await this.destinationRepository.deleteChildBlocks({
-            parentPageId: parentObjectId,
-          });
-          this.logger.info('Successfully removed existing content');
-        } catch (error) {
-          this.logger.warn(
-            'Failed to remove existing content, continuing with sync',
-            { error }
-          );
-        }
-
-        const newPage = await this.destinationRepository.createPage({
-          pageElement,
+    switch (parentObjectType) {
+      case 'page':
+        return await this.synchronizeRootNodeWithParentPage({
+          node,
           parentObjectId,
           parentObjectType,
+          pageElement,
+          lockPage,
+          cleanSync,
+          flatten,
         });
+      case 'database':
+        return await this.synchronizeRootNodeWithParentDatabase({
+          node,
+          parentObjectId,
+          parentObjectType,
+          pageElement,
+          cleanSync,
+        });
+      case 'unknown':
+      default:
+        throw new Error(`Invalid parent object type: ${parentObjectType}`);
+    }
+  }
 
-        pageElement.id = newPage.pageId;
-
-        return { page: pageElement, treeNodeId: node.id };
+  private async synchronizeRootNodeWithParentPage({
+    node,
+    parentObjectId,
+    parentObjectType,
+    pageElement,
+    lockPage,
+    cleanSync,
+    flatten,
+  }: {
+    node: TreeNode;
+    parentObjectId: string;
+    parentObjectType: ObjectType;
+    pageElement: PageElement;
+    lockPage: boolean;
+    cleanSync: boolean;
+    flatten: boolean;
+  }): Promise<SynchronizationResult> {
+    if (cleanSync) {
+      this.logger.info('Clean sync enabled - removing existing content');
+      try {
+        await this.destinationRepository.deleteChildBlocks({
+          parentPageId: parentObjectId,
+        });
+        this.logger.info('Successfully removed existing content');
+      } catch (error) {
+        this.logger.warn(
+          'Failed to remove existing content, continuing with sync',
+          { error }
+        );
       }
+    }
 
-      const updatedPage = await this.destinationRepository.updatePage({
-        pageId: parentObjectId,
+    if (flatten) {
+      const newPage = await this.destinationRepository.createPage({
         pageElement,
+        parentObjectId,
+        parentObjectType,
       });
 
-      pageElement.id = updatedPage.pageId;
-
-      this.logger.info(`Updated parent page ${parentObjectId}`);
-
-      await this.lockPageIfNeeded(parentObjectId, lockPage);
+      pageElement.id = newPage.pageId;
 
       return { page: pageElement, treeNodeId: node.id };
     }
+
+    const updatedPage = await this.destinationRepository.updatePage({
+      pageId: parentObjectId,
+      pageElement,
+    });
+
+    pageElement.id = updatedPage.pageId;
+
+    this.logger.info(`Updated parent page ${parentObjectId}`);
+
+    await this.lockPageIfNeeded(parentObjectId, lockPage);
+
+    return { page: pageElement, treeNodeId: node.id };
+  }
+
+  private async synchronizeRootNodeWithParentDatabase({
+    node,
+    parentObjectId,
+    parentObjectType,
+    pageElement,
+    cleanSync,
+  }: {
+    node: TreeNode;
+    parentObjectId: string;
+    parentObjectType: ObjectType;
+    pageElement: PageElement;
+    cleanSync: boolean;
+  }): Promise<SynchronizationResult> {
+    // If clean sync is enabled, delete all existing content first
 
     if (cleanSync) {
       await this.destinationRepository.deleteChildBlocks({
@@ -415,15 +487,17 @@ export class SynchronizeMarkdownToNotion<T, U extends Page> {
     });
 
     // Recursively process children
-    for (const grandChild of childNode.children) {
-      const grandChildSyncResult = await this.synchronizeChildNode({
-        childNode: grandChild,
-        parentPageId: pageElement.id,
-        lockPage,
-        forceNew,
-      });
-      syncResult.push(...grandChildSyncResult);
-    }
+    await Promise.all(
+      childNode.children.map(async (grandChild) => {
+        const grandChildSyncResult = await this.synchronizeChildNode({
+          childNode: grandChild,
+          parentPageId: pageElement.id!,
+          lockPage,
+          forceNew,
+        });
+        syncResult.push(...grandChildSyncResult);
+      })
+    );
 
     await this.lockPageIfNeeded(pageElement.id, lockPage);
 

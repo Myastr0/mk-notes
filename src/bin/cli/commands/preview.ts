@@ -51,6 +51,8 @@ command.addOption(
     .default('plainText')
 );
 
+command.option('--flat', 'Flatten the result page tree');
+
 command.option('-o, --output <output>', 'Output file path');
 
 command.option('-v, --verbosity <verbosity>', 'Verbosity level', 'error');
@@ -60,9 +62,16 @@ interface PreviewOptions {
   format: PreviewFormat;
   output?: string;
   verbosity?: string;
+  flat?: boolean;
 }
 command.action(async (opts: PreviewOptions) => {
-  const { input: directoryPath, format, output, verbosity = 'error' } = opts;
+  const {
+    input: directoryPath,
+    format,
+    output,
+    flat = false,
+    verbosity = 'error',
+  } = opts;
 
   if (!isValidVerbosity(verbosity)) {
     throw new Error(`Invalid verbosity: ${verbosity}`);
@@ -77,6 +86,7 @@ command.action(async (opts: PreviewOptions) => {
     inputPath: directoryPath,
     format,
     output,
+    flatten: flat,
   });
 
   // eslint-disable-next-line no-console

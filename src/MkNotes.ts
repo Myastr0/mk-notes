@@ -2,8 +2,8 @@ import * as fs from 'fs';
 import winston from 'winston';
 
 import {
-  PreviewFormat,
   PreviewSynchronization,
+  PreviewSynchronizationOptions,
   SynchronizeMarkdownToNotion,
   SynchronizeOptions,
 } from '@/domains';
@@ -13,12 +13,6 @@ import {
 } from '@/infrastructure';
 
 import { LogLevel } from './domains/logger/types';
-
-export interface SyncOptions {
-  cleanSync: boolean;
-  lockPage: boolean;
-  saveId: boolean;
-}
 
 /**
  * MkNotes client
@@ -57,9 +51,8 @@ export class MkNotes {
     output,
   }: {
     inputPath: string;
-    format: PreviewFormat;
     output?: string;
-  }): Promise<string> {
+  } & PreviewSynchronizationOptions): Promise<string> {
     const previewSynchronizationFeature = new PreviewSynchronization({
       sourceRepository: this.infrastructureInstances.fileSystemSource,
     });
@@ -92,6 +85,7 @@ export class MkNotes {
     lockPage = false,
     saveId = false,
     forceNew = false,
+    flatten = false,
   }: {
     inputPath: string;
     parentNotionPageId: string;
@@ -110,6 +104,7 @@ export class MkNotes {
       lockPage,
       saveId,
       forceNew,
+      flatten,
     });
   }
 }
