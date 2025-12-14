@@ -76645,7 +76645,8 @@ class SynchronizeMarkdownToNotion {
             try {
                 const childResults = await this.synchronizeChildNode({
                     childNode,
-                    parentPageId: rootPageElement?.id ?? parentObjectId,
+                    parentObjectId: rootPageElement?.id ?? parentObjectId,
+                    parentObjectType: rootPageElement ? 'page' : parentObjectType,
                     lockPage,
                     forceNew,
                 });
@@ -76761,7 +76762,7 @@ class SynchronizeMarkdownToNotion {
     /**
      * Synchronizes a child node and its descendants recursively
      */
-    async synchronizeChildNode({ childNode, parentPageId, lockPage, forceNew, }) {
+    async synchronizeChildNode({ childNode, parentObjectId, parentObjectType, lockPage, forceNew, }) {
         const syncResult = [];
         const filePath = childNode.filepath;
         this.logger.info(`Processing file: ${filePath}`);
@@ -76783,8 +76784,8 @@ class SynchronizeMarkdownToNotion {
             }
             const newPage = await this.destinationRepository.createPage({
                 pageElement,
-                parentObjectId: parentPageId,
-                parentObjectType: 'page',
+                parentObjectId,
+                parentObjectType,
             });
             this.logger.info(`Created Notion page for file: ${filePath}`);
             if (!newPage.pageId) {
@@ -76800,7 +76801,8 @@ class SynchronizeMarkdownToNotion {
         await Promise.all(childNode.children.map(async (grandChild) => {
             const grandChildSyncResult = await this.synchronizeChildNode({
                 childNode: grandChild,
-                parentPageId: pageElement.id,
+                parentObjectId: pageElement.id,
+                parentObjectType: 'page',
                 lockPage,
                 forceNew,
             });
