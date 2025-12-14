@@ -248,7 +248,8 @@ export class SynchronizeMarkdownToNotion<T, U extends Page> {
       try {
         const childResults = await this.synchronizeChildNode({
           childNode,
-          parentPageId: rootPageElement?.id ?? parentObjectId,
+          parentObjectId: rootPageElement?.id ?? parentObjectId,
+          parentObjectType: rootPageElement ? 'page' : parentObjectType,
           lockPage,
           forceNew,
         });
@@ -435,12 +436,14 @@ export class SynchronizeMarkdownToNotion<T, U extends Page> {
    */
   private async synchronizeChildNode({
     childNode,
-    parentPageId,
+    parentObjectId,
+    parentObjectType,
     lockPage,
     forceNew,
   }: {
     childNode: TreeNode;
-    parentPageId: string;
+    parentObjectId: string;
+    parentObjectType: ObjectType;
     lockPage: boolean;
     forceNew: boolean;
   }): Promise<SynchronizationResult[]> {
@@ -468,8 +471,8 @@ export class SynchronizeMarkdownToNotion<T, U extends Page> {
 
       const newPage = await this.destinationRepository.createPage({
         pageElement,
-        parentObjectId: parentPageId,
-        parentObjectType: 'page',
+        parentObjectId,
+        parentObjectType,
       });
 
       this.logger.info(`Created Notion page for file: ${filePath}`);
@@ -491,7 +494,8 @@ export class SynchronizeMarkdownToNotion<T, U extends Page> {
       childNode.children.map(async (grandChild) => {
         const grandChildSyncResult = await this.synchronizeChildNode({
           childNode: grandChild,
-          parentPageId: pageElement.id!,
+          parentObjectId: pageElement.id!,
+          parentObjectType: 'page',
           lockPage,
           forceNew,
         });
