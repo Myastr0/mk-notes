@@ -91,5 +91,89 @@ describe('PreviewSynchronization', () => {
 
       expect(buildFromFilePathsSpy).toHaveBeenCalledWith(filePaths);
     });
+
+    it('should flatten the SiteMap when flatten option is true', async () => {
+      const filePaths = ['folder1/file1.md', 'folder1/subfolder/file2.md'];
+      jest
+        .spyOn(sourceRepository, 'getFilePathList')
+        .mockResolvedValue(filePaths);
+
+      const flattenSpy = jest.spyOn(SiteMap.prototype, 'flatten');
+      const buildFromFilePathsSpy = jest.spyOn(SiteMap, 'buildFromFilePaths');
+
+      await previewSync.execute({ path: 'test/path' }, { flatten: true });
+
+      expect(buildFromFilePathsSpy).toHaveBeenCalledWith(filePaths);
+      expect(flattenSpy).toHaveBeenCalled();
+    });
+
+    it('should not flatten the SiteMap when flatten option is false', async () => {
+      const filePaths = ['folder1/file1.md', 'folder1/subfolder/file2.md'];
+      jest
+        .spyOn(sourceRepository, 'getFilePathList')
+        .mockResolvedValue(filePaths);
+
+      const resultNotFlattened = await previewSync.execute(
+        { path: 'test/path' },
+        { format: 'json', flatten: false }
+      );
+
+      const resultFlattened = await previewSync.execute(
+        { path: 'test/path' },
+        { format: 'json', flatten: true }
+      );
+
+      const parsedNotFlattened = JSON.parse(resultNotFlattened);
+      const parsedFlattened = JSON.parse(resultFlattened);
+
+      // When flattened, there should be a root copy as the first child
+      // When not flattened, there shouldn't be a root copy
+      // The flattened version should have more direct children (root copy + all flattened files)
+      expect(parsedFlattened.children.length).toBeGreaterThan(
+        parsedNotFlattened.children.length
+      );
+    });
+
+    it('should not flatten the SiteMap when flatten option is not provided', async () => {
+      const filePaths = ['folder1/file1.md', 'folder1/subfolder/file2.md'];
+      jest
+        .spyOn(sourceRepository, 'getFilePathList')
+        .mockResolvedValue(filePaths);
+
+      const resultNotFlattened = await previewSync.execute(
+        { path: 'test/path' },
+        { format: 'json' }
+      );
+
+      const resultFlattened = await previewSync.execute(
+        { path: 'test/path' },
+        { format: 'json', flatten: true }
+      );
+
+      const parsedNotFlattened = JSON.parse(resultNotFlattened);
+      const parsedFlattened = JSON.parse(resultFlattened);
+
+      // When flattened, there should be more direct children
+      expect(parsedFlattened.children.length).toBeGreaterThan(
+        parsedNotFlattened.children.length
+      );
+    });
+
+    it('should serialize flattened SiteMap correctly in JSON format', async () => {
+      const filePaths = ['folder1/file1.md', 'folder1/subfolder/file2.md'];
+      jest
+        .spyOn(sourceRepository, 'getFilePathList')
+        .mockResolvedValue(filePaths);
+
+      const result = await previewSync.execute(
+        { path: 'test/path' },
+        { format: 'json', flatten: true }
+      );
+
+      const parsedResult = JSON.parse(result);
+      expect(parsedResult).toHaveProperty('children');
+      // Flattened structure should have root copy + flattened children
+      expect(parsedResult.children.length).toBeGreaterThan(0);
+    });
   });
 });

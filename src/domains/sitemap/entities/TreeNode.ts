@@ -57,4 +57,21 @@ export class TreeNode {
 
     return node;
   }
+
+  public flatten(): TreeNode[] {
+    // Recursively flatten all children
+    const flattenedChildren = this.children.reduce(
+      (acc, child) => acc.concat(child.flatten()),
+      [] as TreeNode[]
+    );
+
+    // If the node is the root node, return only the flattened children
+    // (the root itself is not included as it's already in the SiteMap)
+    if (this.parent === null) {
+      return flattenedChildren;
+    }
+
+    // For non-root nodes, include this node followed by its flattened children
+    return [this, ...flattenedChildren];
+  }
 }

@@ -58,6 +58,18 @@ describe('MkNotes', () => {
 
       expect(writeFileSpy).toHaveBeenCalledWith(outputPath, expect.any(String));
     });
+
+    it('should support flatten option', async () => {
+      const result = await mkNotes.previewSynchronization({
+        inputPath: 'fake/input/path.md',
+        format: 'json',
+        flatten: true,
+      });
+
+      expect(result).toBeTruthy();
+      expect(typeof result).toBe('string');
+      expect(JSON.parse(result)).toEqual(expect.any(Object));
+    });
   });
 
   describe('synchronizeMarkdownToNotionFromFileSystem', () => {
@@ -77,10 +89,34 @@ describe('MkNotes', () => {
         lockPage: false,
         saveId: false,
         forceNew: false,
+        flatten: false,
       });
 
       // Without cleanSync, the root file updates the parent page
       expect(updatePageSpy).toHaveBeenCalled();
+    });
+
+    it('should support flatten option', async () => {
+      const updatePageSpy = jest.spyOn(
+        infrastructureInstances.notionDestination,
+        'updatePage'
+      );
+
+      const notionPageUrl =
+        'https://www.notion.so/workspace/Test-Page-12345678901234567890123456789012';
+
+      await mkNotes.synchronizeMarkdownToNotionFromFileSystem({
+        inputPath: 'fake/input/path.md',
+        parentNotionPageId: notionPageUrl,
+        cleanSync: false,
+        lockPage: false,
+        saveId: false,
+        forceNew: false,
+        flatten: true,
+      });
+
+      // With flatten, root node is skipped, so updatePage should not be called
+      expect(updatePageSpy).not.toHaveBeenCalled();
     });
   });
 

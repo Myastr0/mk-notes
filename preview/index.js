@@ -75020,7 +75020,7 @@ class MkNotes {
     /**
      * Synchronize a markdown file to Notion
      */
-    async synchronizeMarkdownToNotionFromFileSystem({ inputPath, parentNotionPageId, cleanSync = false, lockPage = false, saveId = false, forceNew = false, }) {
+    async synchronizeMarkdownToNotionFromFileSystem({ inputPath, parentNotionPageId, cleanSync = false, lockPage = false, saveId = false, forceNew = false, flatten = false, }) {
         const synchronizeMarkdownToNotion = new domains_1.SynchronizeMarkdownToNotion({
             logger: this.logger,
             destinationRepository: this.infrastructureInstances.notionDestination,
@@ -75034,6 +75034,7 @@ class MkNotes {
             lockPage,
             saveId,
             forceNew,
+            flatten,
         });
     }
 }
@@ -76138,6 +76139,27 @@ class SiteMap {
         this.traverseAndUpdate(this._root);
     }
     /**
+     * Returns a new SiteMap instance with the tree flattened under the root node
+     */
+    flatten() {
+        const flattenedSiteMap = new SiteMap();
+        const flattenedChildren = this._root.flatten();
+        // Create a copy of the original root node WITHOUT its children
+        // (just the root node itself, not its nested structure)
+        const rootCopy = new TreeNode_1.TreeNode({
+            id: this._root.id,
+            name: this._root.name,
+            filepath: this._root.filepath,
+            children: [],
+            parent: flattenedSiteMap._root,
+        });
+        // Create deep copies of all flattened children and set their parent to the new root
+        const flattenedChildrenCopies = flattenedChildren.map((child) => TreeNode_1.TreeNode.fromJSON(child.toJSON(), flattenedSiteMap._root));
+        // Set children: original root copy (without nested children) first, then all flattened descendants copies
+        flattenedSiteMap._root.children = [rootCopy, ...flattenedChildrenCopies];
+        return flattenedSiteMap;
+    }
+    /**
      * TODO: Implement mkdocs.yaml sitemap parsing
      *
      * Parses the mkdocs.yaml content and adds nodes to the sitemap
@@ -76215,6 +76237,17 @@ class TreeNode {
         // Recursively create children and set their parent
         node.children = json.children.map((child) => this.fromJSON(child, node));
         return node;
+    }
+    flatten() {
+        // Recursively flatten all children
+        const flattenedChildren = this.children.reduce((acc, child) => acc.concat(child.flatten()), []);
+        // If the node is the root node, return only the flattened children
+        // (the root itself is not included as it's already in the SiteMap)
+        if (this.parent === null) {
+            return flattenedChildren;
+        }
+        // For non-root nodes, include this node followed by its flattened children
+        return [this, ...flattenedChildren];
     }
 }
 exports.TreeNode = TreeNode;
@@ -76379,7 +76412,7 @@ class PreviewSynchronization {
     constructor(params) {
         this.sourceRepository = params.sourceRepository;
     }
-    async execute(args, { format } = {}) {
+    async execute(args, { format, flatten } = {}) {
         // Check if the source repository is accessible
         try {
             await this.sourceRepository.sourceIsAccessible(args);
@@ -76406,7 +76439,10 @@ class PreviewSynchronization {
             }
         }
         const filePaths = await this.sourceRepository.getFilePathList(args);
-        const siteMap = sitemap_1.SiteMap.buildFromFilePaths(filePaths);
+        let siteMap = sitemap_1.SiteMap.buildFromFilePaths(filePaths);
+        if (flatten) {
+            siteMap = siteMap.flatten();
+        }
         return sitemapSerializer(siteMap);
     }
 }
@@ -76436,7 +76472,7 @@ class SynchronizeMarkdownToNotion {
         this.logger = params.logger;
     }
     async execute(args) {
-        const { notionParentPageUrl, cleanSync, lockPage, saveId, forceNew, ...others } = args;
+        const { notionParentPageUrl, cleanSync, lockPage, saveId, forceNew, flatten, ...others } = args;
         const notionObjectId = this.destinationRepository.getObjectIdFromObjectUrl({
             objectUrl: notionParentPageUrl,
         });
@@ -76465,7 +76501,10 @@ class SynchronizeMarkdownToNotion {
         try {
             this.logger.info('Starting synchronization process');
             const filePaths = await this.sourceRepository.getFilePathList(others);
-            const siteMap = sitemap_1.SiteMap.buildFromFilePaths(filePaths);
+            let siteMap = sitemap_1.SiteMap.buildFromFilePaths(filePaths);
+            if (flatten) {
+                siteMap = siteMap.flatten();
+            }
             // Traverse the SiteMap and synchronize files
             const pages = await this.synchronizeTreeNode({
                 node: siteMap.root,
@@ -76474,6 +76513,7 @@ class SynchronizeMarkdownToNotion {
                 lockPage,
                 cleanSync,
                 forceNew,
+                flatten,
             });
             this.logger.info('Synchronization process completed successfully');
             if (saveId) {
@@ -76534,24 +76574,29 @@ class SynchronizeMarkdownToNotion {
     /**
      * Main orchestrator for synchronizing a tree node and its children
      */
-    async synchronizeTreeNode({ node, parentObjectId, parentObjectType, lockPage, cleanSync, forceNew, }) {
+    async synchronizeTreeNode({ node, parentObjectId, parentObjectType, lockPage, cleanSync, forceNew, flatten, }) {
         this.validateParentObjectType(parentObjectType);
         const nodeToSync = this.getNodeToSynchronize(node, parentObjectType);
         const results = [];
-        const { page: rootPageElement, treeNodeId: rootTreeNodeId } = await this.synchronizeRootNode({
-            node: nodeToSync,
-            parentObjectId,
-            parentObjectType,
-            lockPage,
-            cleanSync,
-            forceNew,
-        });
-        results.push({ page: rootPageElement, treeNodeId: rootTreeNodeId });
+        let rootPageElement;
+        // If not flattening, synchronize the root node
+        if (!flatten) {
+            const { page: rootPageElement, treeNodeId: rootTreeNodeId } = await this.synchronizeRootNode({
+                node: nodeToSync,
+                parentObjectId,
+                parentObjectType,
+                lockPage,
+                cleanSync,
+                forceNew,
+                flatten,
+            });
+            results.push({ page: rootPageElement, treeNodeId: rootTreeNodeId });
+        }
         for (const childNode of node.children) {
             try {
                 const childResults = await this.synchronizeChildNode({
                     childNode,
-                    parentPageId: rootPageElement.id,
+                    parentPageId: rootPageElement?.id ?? parentObjectId,
                     lockPage,
                     forceNew,
                 });
@@ -76570,7 +76615,7 @@ class SynchronizeMarkdownToNotion {
      * Synchronizes the root node to the parent object (page or database)
      * Returns the page ID to use as parent for child nodes
      */
-    async synchronizeRootNode({ node, parentObjectId, parentObjectType, lockPage, cleanSync, forceNew, }) {
+    async synchronizeRootNode({ node, parentObjectId, parentObjectType, lockPage, cleanSync, forceNew, flatten, }) {
         this.logger.info(`Adding content from ${node.filepath} to parent ${parentObjectType}`);
         const pageElement = await this.fetchAndConvertToPageElement(node.filepath, {
             forceNew,
@@ -76590,39 +76635,63 @@ class SynchronizeMarkdownToNotion {
                 };
             }
         }
-        if (parentObjectType === 'unknown') {
-            throw new Error('Parent object type is unknown');
-        }
-        if (parentObjectType === 'page') {
-            // If clean sync is enabled, delete all existing content first
-            if (cleanSync) {
-                this.logger.info('Clean sync enabled - removing existing content');
-                try {
-                    await this.destinationRepository.deleteChildBlocks({
-                        parentPageId: parentObjectId,
-                    });
-                    this.logger.info('Successfully removed existing content');
-                }
-                catch (error) {
-                    this.logger.warn('Failed to remove existing content, continuing with sync', { error });
-                }
-                const newPage = await this.destinationRepository.createPage({
-                    pageElement,
+        switch (parentObjectType) {
+            case 'page':
+                return await this.synchronizeRootNodeWithParentPage({
+                    node,
                     parentObjectId,
                     parentObjectType,
+                    pageElement,
+                    lockPage,
+                    cleanSync,
+                    flatten,
                 });
-                pageElement.id = newPage.pageId;
-                return { page: pageElement, treeNodeId: node.id };
+            case 'database':
+                return await this.synchronizeRootNodeWithParentDatabase({
+                    node,
+                    parentObjectId,
+                    parentObjectType,
+                    pageElement,
+                    cleanSync,
+                });
+            case 'unknown':
+            default:
+                throw new Error(`Invalid parent object type: ${parentObjectType}`);
+        }
+    }
+    async synchronizeRootNodeWithParentPage({ node, parentObjectId, parentObjectType, pageElement, lockPage, cleanSync, flatten, }) {
+        if (cleanSync) {
+            this.logger.info('Clean sync enabled - removing existing content');
+            try {
+                await this.destinationRepository.deleteChildBlocks({
+                    parentPageId: parentObjectId,
+                });
+                this.logger.info('Successfully removed existing content');
             }
-            const updatedPage = await this.destinationRepository.updatePage({
-                pageId: parentObjectId,
+            catch (error) {
+                this.logger.warn('Failed to remove existing content, continuing with sync', { error });
+            }
+        }
+        if (flatten) {
+            const newPage = await this.destinationRepository.createPage({
                 pageElement,
+                parentObjectId,
+                parentObjectType,
             });
-            pageElement.id = updatedPage.pageId;
-            this.logger.info(`Updated parent page ${parentObjectId}`);
-            await this.lockPageIfNeeded(parentObjectId, lockPage);
+            pageElement.id = newPage.pageId;
             return { page: pageElement, treeNodeId: node.id };
         }
+        const updatedPage = await this.destinationRepository.updatePage({
+            pageId: parentObjectId,
+            pageElement,
+        });
+        pageElement.id = updatedPage.pageId;
+        this.logger.info(`Updated parent page ${parentObjectId}`);
+        await this.lockPageIfNeeded(parentObjectId, lockPage);
+        return { page: pageElement, treeNodeId: node.id };
+    }
+    async synchronizeRootNodeWithParentDatabase({ node, parentObjectId, parentObjectType, pageElement, cleanSync, }) {
+        // If clean sync is enabled, delete all existing content first
         if (cleanSync) {
             await this.destinationRepository.deleteChildBlocks({
                 parentPageId: parentObjectId,
@@ -76679,7 +76748,7 @@ class SynchronizeMarkdownToNotion {
             treeNodeId: childNode.id,
         });
         // Recursively process children
-        for (const grandChild of childNode.children) {
+        await Promise.all(childNode.children.map(async (grandChild) => {
             const grandChildSyncResult = await this.synchronizeChildNode({
                 childNode: grandChild,
                 parentPageId: pageElement.id,
@@ -76687,7 +76756,7 @@ class SynchronizeMarkdownToNotion {
                 forceNew,
             });
             syncResult.push(...grandChildSyncResult);
-        }
+        }));
         await this.lockPageIfNeeded(pageElement.id, lockPage);
         return syncResult;
     }

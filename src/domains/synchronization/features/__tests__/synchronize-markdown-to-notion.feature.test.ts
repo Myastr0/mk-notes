@@ -462,5 +462,210 @@ describe('SynchronizeMarkdownToNotion', () => {
         lockPage: true,
       })).rejects.toThrow('Failed to lock page');
     });
+
+    it('should skip root node synchronization when flatten is true', async () => {
+      jest
+        .spyOn(sourceRepository, 'getFilePathList')
+        .mockResolvedValue(['index.md', 'folder1/file1.md']);
+
+      const rootContent = new PageElement({
+        title: 'Root',
+        content: [new TextElement({ text: 'Root content' })],
+      });
+
+      const childContent = new PageElement({
+        title: 'Child',
+        content: [new TextElement({ text: 'Child content' })],
+      });
+
+      jest
+        .spyOn(sourceRepository, 'getFile')
+        .mockImplementation(async (args: any) => {
+          const path = args.path;
+          if (path === 'index.md') {
+            return new FileFixture({ content: 'Root content' });
+          } else if (path === 'folder1/file1.md') {
+            return new FileFixture({ content: 'Child content' });
+          }
+          return new FileFixture({ content: 'Default content' });
+        });
+
+      jest
+        .spyOn(elementConverter, 'convertToElement')
+        .mockImplementation((file: any) => {
+          const content = file.content;
+          if (content.includes('Root content')) {
+            return rootContent;
+          } else if (content.includes('Child content')) {
+            return childContent;
+          }
+          return new PageElement({ title: 'Default', content: [] });
+        });
+
+      const updatePageSpy = jest.spyOn(destinationRepository, 'updatePage');
+      const createPageSpy = jest.spyOn(destinationRepository, 'createPage');
+
+      await synchronizer.execute({
+        ...defaultArgs,
+        flatten: true,
+      });
+
+      // Root node should not be synchronized (no updatePage call)
+      expect(updatePageSpy).not.toHaveBeenCalled();
+      
+      // When flattening, the root copy is created as the first child, then the actual child
+      // So we get: root copy (from index.md) + folder1/file1.md = 2 pages
+      expect(createPageSpy).toHaveBeenCalledTimes(2);
+      // First call should be for the root copy
+      expect(createPageSpy).toHaveBeenNthCalledWith(1, {
+        pageElement: expect.objectContaining({
+          title: 'Root',
+        }),
+        parentObjectId: '12345678901234567890123456789012',
+        parentObjectType: 'page',
+      });
+      // Second call should be for the child
+      expect(createPageSpy).toHaveBeenNthCalledWith(2, {
+        pageElement: expect.objectContaining({
+          title: 'Child',
+        }),
+        parentObjectId: '12345678901234567890123456789012',
+        parentObjectType: 'page',
+      });
+    });
+
+    it('should synchronize root node when flatten is false', async () => {
+      jest
+        .spyOn(sourceRepository, 'getFilePathList')
+        .mockResolvedValue(['index.md', 'folder1/file1.md']);
+
+      const rootContent = new PageElement({
+        title: 'Root',
+        content: [new TextElement({ text: 'Root content' })],
+      });
+
+      const childContent = new PageElement({
+        title: 'Child',
+        content: [new TextElement({ text: 'Child content' })],
+      });
+
+      jest
+        .spyOn(sourceRepository, 'getFile')
+        .mockImplementation(async (args: any) => {
+          const path = args.path;
+          if (path === 'index.md') {
+            return new FileFixture({ content: 'Root content' });
+          } else if (path === 'folder1/file1.md') {
+            return new FileFixture({ content: 'Child content' });
+          }
+          return new FileFixture({ content: 'Default content' });
+        });
+
+      jest
+        .spyOn(elementConverter, 'convertToElement')
+        .mockImplementation((file: any) => {
+          const content = file.content;
+          if (content.includes('Root content')) {
+            return rootContent;
+          } else if (content.includes('Child content')) {
+            return childContent;
+          }
+          return new PageElement({ title: 'Default', content: [] });
+        });
+
+      const updatePageSpy = jest.spyOn(destinationRepository, 'updatePage');
+      const createPageSpy = jest.spyOn(destinationRepository, 'createPage');
+
+      await synchronizer.execute({
+        ...defaultArgs,
+        flatten: false,
+      });
+
+      // Root node should be synchronized (updatePage call)
+      expect(updatePageSpy).toHaveBeenCalledTimes(1);
+      expect(updatePageSpy).toHaveBeenCalledWith({
+        pageId: '12345678901234567890123456789012',
+        pageElement: rootContent,
+      });
+      
+      // Child should be created under root
+      expect(createPageSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('should flatten SiteMap before synchronization when flatten is true', async () => {
+      jest
+        .spyOn(sourceRepository, 'getFilePathList')
+        .mockResolvedValue([
+          'folder1/file1.md',
+          'folder1/subfolder/file2.md',
+        ]);
+
+      const file1Content = new PageElement({
+        title: 'File 1',
+        content: [new TextElement({ text: 'File 1 content' })],
+      });
+
+      const file2Content = new PageElement({
+        title: 'File 2',
+        content: [new TextElement({ text: 'File 2 content' })],
+      });
+
+      jest
+        .spyOn(sourceRepository, 'getFile')
+        .mockImplementation(async (args: any) => {
+          const path = args.path;
+          if (path === 'folder1/file1.md') {
+            return new FileFixture({ content: 'File 1 content' });
+          } else if (path === 'folder1/subfolder/file2.md') {
+            return new FileFixture({ content: 'File 2 content' });
+          }
+          return new FileFixture({ content: 'Default content' });
+        });
+
+      jest
+        .spyOn(elementConverter, 'convertToElement')
+        .mockImplementation((file: any) => {
+          const content = file.content;
+          if (content.includes('File 1 content')) {
+            return file1Content;
+          } else if (content.includes('File 2 content')) {
+            return file2Content;
+          }
+          return new PageElement({ title: 'Default', content: [] });
+        });
+
+      const createPageSpy = jest.spyOn(destinationRepository, 'createPage');
+
+      await synchronizer.execute({
+        ...defaultArgs,
+        flatten: true,
+      });
+
+      // When flattening, the root copy is created as the first child, then all flattened files
+      // So we get: root copy (empty) + folder1/file1.md + folder1/subfolder/file2.md = 3 pages
+      expect(createPageSpy).toHaveBeenCalledTimes(3);
+      // First call should be for the root copy
+      expect(createPageSpy).toHaveBeenNthCalledWith(1, {
+        pageElement: expect.any(PageElement),
+        parentObjectId: '12345678901234567890123456789012',
+        parentObjectType: 'page',
+      });
+      // Second call should be for File 1
+      expect(createPageSpy).toHaveBeenNthCalledWith(2, {
+        pageElement: expect.objectContaining({
+          title: 'File 1',
+        }),
+        parentObjectId: '12345678901234567890123456789012',
+        parentObjectType: 'page',
+      });
+      // Third call should be for File 2
+      expect(createPageSpy).toHaveBeenNthCalledWith(3, {
+        pageElement: expect.objectContaining({
+          title: 'File 2',
+        }),
+        parentObjectId: '12345678901234567890123456789012',
+        parentObjectType: 'page',
+      });
+    });
   });
 });

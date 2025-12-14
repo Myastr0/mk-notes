@@ -62,6 +62,18 @@ mk-notes sync -i <path> -d <notionUrl> -k <notionApiKey>
 
   </Callout>
 
+- `--flat`: Flatten the result page tree, making all pages direct children of the destination instead of maintaining nested folder structures. When enabled, the root node is skipped and all files are created as direct children of the parent page.
+
+  <Callout type="info" title="When to use flat mode">
+
+  Use `--flat` when you want a flat list of pages in Notion rather than a hierarchical structure. This is useful for:
+
+  - Creating a simple list of documents without nested folders
+  - Syncing to databases where you want all items at the same level
+  - Simplifying navigation when folder structure isn't important
+
+  </Callout>
+
 ### Destination Types
 
 Mk Notes supports two types of destinations:
@@ -274,6 +286,46 @@ This command will:
 
 This is useful when you want to completely reset your synchronization and start fresh with new page IDs.
 
+#### Syncing with Flat Structure
+
+```bash
+mk-notes sync \
+  --input ./my-docs \
+  --destination https://notion.so/myworkspace/doc-123456 \
+  --notion-api-key secret_abc123... \
+  --flat
+```
+
+This command will:
+
+1. Read all markdown files in the `./my-docs` directory
+2. **Flatten the structure** - all pages will be created as direct children of the destination page
+3. Skip synchronizing the root node (if your directory has an `index.md`, it will be created as a child page instead of updating the parent)
+4. Display a success message with the Notion page URL when complete
+
+**Example structure:**
+
+Without `--flat`:
+
+```
+Parent Page
+  └── docs/
+      ├── getting-started.md
+      └── guides/
+          └── installation.md
+```
+
+With `--flat`:
+
+```
+Parent Page
+  ├── docs/ (root copy)
+  ├── getting-started.md
+  └── installation.md
+```
+
+All files are now direct children, making navigation simpler.
+
 ## `preview-sync`
 
 The `preview-sync` command lets you preview how your markdown files will be organized in Notion before actually performing the synchronization. This is useful for verifying the structure before making any changes.
@@ -294,6 +346,7 @@ mk-notes preview-sync -i <path> [options]
   - `plainText` (default): Shows a tree-like structure
   - `json`: Outputs the structure in JSON format
 - `-o, --output <output>`: Save the preview to a file instead of displaying it in the terminal
+- `--flat`: Flatten the preview structure, showing how pages will appear when using the `--flat` option in sync. All pages will be displayed as direct children of the root.
 
 ### Examples
 
@@ -340,6 +393,14 @@ mk-notes preview-sync --input ./my-docs --output preview.txt
 ```bash
 mk-notes preview-sync --input ./my-docs/README.md
 ```
+
+5. Preview with flat structure:
+
+```bash
+mk-notes preview-sync --input ./my-docs --flat
+```
+
+This shows how the structure will look when using `--flat` during sync, with all pages as direct children of the root.
 
 ---
 

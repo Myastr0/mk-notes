@@ -38,6 +38,8 @@ command.option('-s, --save-id', 'Save the page ID to the source repository');
 
 command.option('-f, --force-new', 'Force a new page to be created');
 
+command.option('--flat', 'Flatten the result page tree');
+
 command.option('-v, --verbosity <verbosity>', 'Verbosity level', 'error');
 interface SyncOptions {
   input: string;
@@ -48,6 +50,7 @@ interface SyncOptions {
   saveId?: boolean;
   verbosity?: string;
   forceNew?: boolean;
+  flat?: boolean;
 }
 
 command.action(async (opts: SyncOptions) => {
@@ -60,6 +63,7 @@ command.action(async (opts: SyncOptions) => {
     saveId = false,
     forceNew = false,
     verbosity = 'error',
+    flat = false,
   } = opts;
 
   if (!isValidVerbosity(verbosity)) {
@@ -78,6 +82,7 @@ command.action(async (opts: SyncOptions) => {
     lockPage: lock,
     saveId: saveId,
     forceNew: forceNew,
+    flatten: flat,
   });
 
   // eslint-disable-next-line no-console
