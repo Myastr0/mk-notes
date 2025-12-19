@@ -80147,7 +80147,7 @@ class SynchronizeMarkdownToNotion {
             await this.sourceRepository.sourceIsAccessible(others);
         }
         catch (err) {
-            this.eventLogger.fail('check-source-is-accessible', `Source is not accessible: ${String(others)}`);
+            this.eventLogger.fail('check-source-is-accessible', `Source is not accessible: ${JSON.stringify(others)}`);
             throw new Error(`Source is not accessible:`, {
                 cause: err,
             });
