@@ -22,3 +22,31 @@ jobs:
 
       - name: Run tests
         run: yarn test
+
+  check-action-scripts-build:
+    name: Check action scripts build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'yarn'
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Build action scripts
+        run: yarn build:actions
+
+      # Check if the files are in sync with the main code
+      - name: Check if the files are in sync with the main code
+        run: |
+          if ! git diff --exit-code; then
+            echo "The files are not in sync with the main code"
+            git diff
+            exit 1
+          fi
