@@ -6,6 +6,7 @@ import {
   PageElement,
   SourceRepository,
 } from '@/domains';
+import { EventLoggerRepository } from '@/domains/event-logs/repositories/event-logger.repository';
 import { NotionPage } from '@/domains/notion/entities/NotionPage';
 // Infrastructure imports
 import { FileConverter } from '@/infrastructure/converters/file/file.converter';
@@ -17,6 +18,8 @@ import { HtmlParser } from '@/infrastructure/parsers/html';
 import { MarkdownParser } from '@/infrastructure/parsers/markdown';
 import { FileSystemSourceRepository } from '@/infrastructure/sources/filesystem/fileSystem.source';
 
+import { TerminalUiEventLoggerRepository } from './tui/terminal-ui-event-logger.repository';
+
 let infraInstances: InfrastructureInstances | null;
 
 interface getInfrastructureInstanceProps {
@@ -25,6 +28,7 @@ interface getInfrastructureInstanceProps {
 }
 
 export interface InfrastructureInstances {
+  eventLogger: EventLoggerRepository;
   fileSystemSource: SourceRepository<{ path: string }>;
   fileConverter: FileConverter;
   htmlParser: HtmlParser;
@@ -52,6 +56,7 @@ const buildInstances = ({
   const markdownParser = new MarkdownParser({ htmlParser, logger });
 
   return {
+    eventLogger: new TerminalUiEventLoggerRepository(),
     fileSystemSource: new FileSystemSourceRepository(),
     fileConverter: new FileConverter({
       logger,

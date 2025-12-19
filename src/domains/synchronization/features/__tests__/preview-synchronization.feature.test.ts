@@ -2,6 +2,7 @@ import { FileFixture } from '../../../../../__tests__/__fixtures__/file.fixture'
 import { FakeSourceRepository } from '../../../../../__tests__/__fakes__/synchronization/fake-source.repository';
 import { SiteMap } from '../../../sitemap';
 import { PreviewSynchronization } from '../preview-synchronization.feature';
+import { FakeEventLoggerRepository } from '../../../../../__tests__/__fakes__/event-logs/fake-event-logger.repository';
 
 describe('PreviewSynchronization', () => {
   let previewSync: PreviewSynchronization<any>;
@@ -9,7 +10,7 @@ describe('PreviewSynchronization', () => {
 
   beforeEach(() => {
     sourceRepository = new FakeSourceRepository();
-    previewSync = new PreviewSynchronization({ sourceRepository });
+    previewSync = new PreviewSynchronization({ sourceRepository, eventLogger: new FakeEventLoggerRepository() });
   });
 
   describe('execute', () => {

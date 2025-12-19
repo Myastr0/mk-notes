@@ -55,6 +55,7 @@ export class MkNotes {
   } & PreviewSynchronizationOptions): Promise<string> {
     const previewSynchronizationFeature = new PreviewSynchronization({
       sourceRepository: this.infrastructureInstances.fileSystemSource,
+      eventLogger: this.infrastructureInstances.eventLogger,
     });
 
     const result = await previewSynchronizationFeature.execute(
@@ -95,6 +96,7 @@ export class MkNotes {
       destinationRepository: this.infrastructureInstances.notionDestination,
       elementConverter: this.infrastructureInstances.fileConverter,
       sourceRepository: this.infrastructureInstances.fileSystemSource,
+      eventLogger: this.infrastructureInstances.eventLogger,
     });
 
     await synchronizeMarkdownToNotion.execute({

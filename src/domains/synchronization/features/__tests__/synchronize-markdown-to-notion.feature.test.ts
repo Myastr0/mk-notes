@@ -6,6 +6,7 @@ import { FakeNotionPage } from '../../../../../__tests__/__fixtures__/page.fixtu
 import { FakeSourceRepository } from '../../../../../__tests__/__fakes__/synchronization/fake-source.repository';
 import { PageElement, TextElement } from '../../../../domains/elements';
 import { SynchronizeMarkdownToNotion } from '../synchronize-markdown-to-notion.feature';
+import { FakeEventLoggerRepository } from '../../../../../__tests__/__fakes__/event-logs/fake-event-logger.repository';
 
 describe('SynchronizeMarkdownToNotion', () => {
   let synchronizer: SynchronizeMarkdownToNotion<any, any>;
@@ -27,6 +28,7 @@ describe('SynchronizeMarkdownToNotion', () => {
       destinationRepository,
       elementConverter,
       logger: fakeLogger,
+      eventLogger: new FakeEventLoggerRepository(),
     });
   });
 

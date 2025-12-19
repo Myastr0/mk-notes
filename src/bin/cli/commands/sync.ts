@@ -87,7 +87,7 @@ command.action(async (opts: SyncOptions) => {
 
   // eslint-disable-next-line no-console
   console.log(
-    `Synchronization done. View the result at ${notionParentPageUrl}`
+    `Synchronization done.\nView the result at ${notionParentPageUrl}`
   );
 });
 

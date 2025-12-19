@@ -10,6 +10,7 @@ import {
   FakeMarkdownParser,
   FakeParserRepository,
 } from './elements/fake-parser.repository';
+import { FakeEventLoggerRepository } from './event-logs/fake-event-logger.repository';
 import { fakeLogger } from './logger/fake-logger';
 import { FakeDestinationRepository } from './synchronization/fake-destination.repository';
 import { FakeSourceRepository } from './synchronization/fake-source.repository';
@@ -22,6 +23,7 @@ export const getFakeInfrastructureInstances = () => {
   const htmlParser = new FakeParserRepository({ logger });
   const markdownParser = new FakeMarkdownParser({ htmlParser, logger });
   return {
+    eventLogger: new FakeEventLoggerRepository(),
     fileSystemSource: new FakeSourceRepository(),
     notionDestination: new FakeDestinationRepository(),
     htmlParser,

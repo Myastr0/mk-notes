@@ -7,6 +7,7 @@ import {
   PageElement,
   TableOfContentsElement,
 } from '@/domains/elements';
+import { EventLoggerRepository } from '@/domains/event-logs/repositories/event-logger.repository';
 import { SiteMap, type TreeNode } from '@/domains/sitemap';
 import {
   type DestinationRepository,
@@ -21,6 +22,7 @@ interface SynchronizationServiceParams<T, U extends Page> {
   destinationRepository: DestinationRepository<U>;
   elementConverter: ElementConverterRepository<Element, File>;
   logger: Logger;
+  eventLogger: EventLoggerRepository;
 }
 
 export interface SynchronizeOptions {
@@ -48,6 +50,7 @@ export class SynchronizeMarkdownToNotion<T, U extends Page> {
   private sourceRepository: SourceRepository<T>;
   private destinationRepository: DestinationRepository<U>;
   private elementConverter: ElementConverterRepository<Element, File>;
+  private eventLogger: EventLoggerRepository;
   private logger: Logger;
 
   constructor(params: SynchronizationServiceParams<T, U>) {
@@ -55,6 +58,7 @@ export class SynchronizeMarkdownToNotion<T, U extends Page> {
     this.destinationRepository = params.destinationRepository;
     this.elementConverter = params.elementConverter;
     this.logger = params.logger;
+    this.eventLogger = params.eventLogger;
   }
 
   async execute(
@@ -76,6 +80,10 @@ export class SynchronizeMarkdownToNotion<T, U extends Page> {
       objectUrl: notionParentPageUrl,
     });
 
+    this.eventLogger.start(
+      'check-destination-is-accessible',
+      'Checking if the destination is accessible'
+    );
     // Check if the Notion page is accessible
     const destinationIsAccessible =
       await this.destinationRepository.destinationIsAccessible({
@@ -83,17 +91,39 @@ export class SynchronizeMarkdownToNotion<T, U extends Page> {
       });
 
     if (!destinationIsAccessible) {
+      this.eventLogger.fail(
+        'check-destination-is-accessible',
+        'Destination is not accessible'
+      );
       throw new Error('Destination is not accessible');
     }
 
+    this.eventLogger.succeed(
+      'check-destination-is-accessible',
+      'Destination is accessible'
+    );
+
+    this.eventLogger.start(
+      'check-source-is-accessible',
+      'Checking if the source is accessible'
+    );
     // Check if the source is accessible
     try {
       await this.sourceRepository.sourceIsAccessible(others as T);
     } catch (err) {
+      this.eventLogger.fail(
+        'check-source-is-accessible',
+        `Source is not accessible: ${JSON.stringify(others)}`
+      );
       throw new Error(`Source is not accessible:`, {
         cause: err,
       });
     }
+
+    this.eventLogger.succeed(
+      'check-source-is-accessible',
+      'Source is accessible'
+    );
 
     const parentObjectType = await this.destinationRepository.getObjectType({
       id: notionObjectId,
@@ -116,6 +146,12 @@ export class SynchronizeMarkdownToNotion<T, U extends Page> {
         siteMap = siteMap.flatten();
       }
 
+      this.eventLogger.startProgress(
+        'synchronization-process',
+        'Starting synchronization process',
+        siteMap.size
+      );
+
       // Traverse the SiteMap and synchronize files
       const pages = await this.synchronizeTreeNode({
         node: siteMap.root,
@@ -126,6 +162,8 @@ export class SynchronizeMarkdownToNotion<T, U extends Page> {
         forceNew,
         flatten,
       });
+
+      this.eventLogger.succeedProgress('synchronization-process');
 
       this.logger.info('Synchronization process completed successfully');
 
@@ -312,9 +350,10 @@ export class SynchronizeMarkdownToNotion<T, U extends Page> {
       }
     }
 
+    let result: SynchronizationResult;
     switch (parentObjectType) {
       case 'page':
-        return await this.synchronizeRootNodeWithParentPage({
+        result = await this.synchronizeRootNodeWithParentPage({
           node,
           parentObjectId,
           parentObjectType,
@@ -323,18 +362,23 @@ export class SynchronizeMarkdownToNotion<T, U extends Page> {
           cleanSync,
           flatten,
         });
+        break;
       case 'database':
-        return await this.synchronizeRootNodeWithParentDatabase({
+        result = await this.synchronizeRootNodeWithParentDatabase({
           node,
           parentObjectId,
           parentObjectType,
           pageElement,
           cleanSync,
         });
+        break;
       case 'unknown':
       default:
         throw new Error(`Invalid parent object type: ${parentObjectType}`);
     }
+
+    this.eventLogger.updateProgress('synchronization-process', 1);
+    return result;
   }
 
   private async synchronizeRootNodeWithParentPage({
@@ -484,6 +528,7 @@ export class SynchronizeMarkdownToNotion<T, U extends Page> {
       pageElement.id = newPage.pageId;
     }
 
+    this.eventLogger.updateProgress('synchronization-process', 1);
     syncResult.push({
       page: pageElement,
       treeNodeId: childNode.id,
