@@ -1,6 +1,6 @@
 {
   "name": "@mk-notes/cli",
-  "version": "v3.2.0",
+  "version": "3.2.1",
   "private": false,
   "description": "Markdown to Notion synchronization CLI 🔄",
   "keywords": [
