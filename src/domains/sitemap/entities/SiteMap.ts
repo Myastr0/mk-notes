@@ -4,6 +4,7 @@ import { TreeNode } from './TreeNode';
 
 export class SiteMap {
   private _root: TreeNode;
+  private _size: number | null;
 
   constructor() {
     this._root = new TreeNode({
@@ -13,6 +14,7 @@ export class SiteMap {
       filepath: '',
       parent: null,
     });
+    this._size = null;
   }
 
   /**
@@ -172,6 +174,25 @@ export class SiteMap {
     flattenedSiteMap._root.children = [rootCopy, ...flattenedChildrenCopies];
 
     return flattenedSiteMap;
+  }
+
+  private computeSize(): number {
+    const _computeNodeSize = (node: TreeNode): number => {
+      let size = node.children.length;
+      for (const child of node.children) {
+        size += _computeNodeSize(child);
+      }
+      return size;
+    };
+    return _computeNodeSize(this._root);
+  }
+
+  public get size(): number {
+    if (this._size === null) {
+      this._size = this.computeSize();
+    }
+
+    return this._size;
   }
 
   /**

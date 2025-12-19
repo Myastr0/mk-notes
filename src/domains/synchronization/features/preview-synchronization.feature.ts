@@ -1,3 +1,4 @@
+import { EventLoggerRepository } from '@/domains/event-logs/repositories/event-logger.repository';
 import { SiteMap } from '@/domains/sitemap';
 import {
   serializeInJson,
@@ -8,6 +9,7 @@ import { type SourceRepository } from '@/domains/synchronization';
 
 interface PreviewSynchronizationParams<T> {
   sourceRepository: SourceRepository<T>;
+  eventLogger: EventLoggerRepository;
 }
 
 export type PreviewFormat = 'plainText' | 'json';
@@ -28,9 +30,11 @@ export interface PreviewSynchronizationOptions {
 
 export class PreviewSynchronization<T> {
   private sourceRepository: SourceRepository<T>;
+  private eventLogger: EventLoggerRepository;
 
   constructor(params: PreviewSynchronizationParams<T>) {
     this.sourceRepository = params.sourceRepository;
+    this.eventLogger = params.eventLogger;
   }
 
   async execute(
