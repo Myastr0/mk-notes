@@ -14,16 +14,20 @@ import {
   TextElementLevel,
   ToggleElement,
 } from '@/domains/elements';
+import { DatabaseProperty, DatabasePropertyDefinition } from '@/domains/notion/types/types';
 
 import winston from 'winston';
 
-describe.skip('NotionConverterRepository', () => {
+describe('NotionConverterRepository', () => {
   let converter: NotionConverterRepository;
   let mockLogger: winston.Logger;
 
   beforeEach(() => {
     mockLogger = {
       warn: jest.fn(),
+      info: jest.fn(),
+      error: jest.fn(),
+      debug: jest.fn(),
     } as unknown as winston.Logger;
 
     converter = new NotionConverterRepository({ logger: mockLogger });
@@ -113,7 +117,7 @@ describe.skip('NotionConverterRepository', () => {
       expect(children[1]).toMatchObject({
         type: 'numbered_list_item',
         numbered_list_item: {
-          rich_text: [{ text: { content: 'Numbered item' } }]
+          rich_text: [{ text: { content: 'hello' } }]
         }
       });
     });
@@ -319,8 +323,399 @@ describe.skip('NotionConverterRepository', () => {
         ]
       });
 
-      await expect(converter.convertFromElement(pageElement))
-        .rejects.toThrow('Unsupported element type: unsupported');
+      const result = await converter.convertFromElement(pageElement);
+      
+      // Unsupported elements should be filtered out (return null)
+      expect(result.children).toHaveLength(0);
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        'Unsupported element type: unsupported'
+      );
+    });
+  });
+
+  describe('convertFromElement with database properties', () => {
+    const createSelectPropertyDefinition = (
+      name: string,
+      options: Array<{ id: string; name: string; color?: string }>
+    ): DatabaseProperty => ({
+      name,
+      type: 'select',
+      definition: {
+        type: 'select',
+        select: {
+          options: options.map((opt) => ({
+            id: opt.id,
+            name: opt.name,
+            color: opt.color || 'default',
+          })),
+        },
+      } as DatabasePropertyDefinition,
+    });
+
+    const createMultiSelectPropertyDefinition = (
+      name: string,
+      options: Array<{ id: string; name: string; color?: string }>
+    ): DatabaseProperty => ({
+      name,
+      type: 'multi_select',
+      definition: {
+        type: 'multi_select',
+        multi_select: {
+          options: options.map((opt) => ({
+            id: opt.id,
+            name: opt.name,
+            color: opt.color || 'default',
+          })),
+        },
+      } as DatabasePropertyDefinition,
+    });
+
+    const createStatusPropertyDefinition = (
+      name: string,
+      options: Array<{ id: string; name: string; color?: string }>
+    ): DatabaseProperty => ({
+      name,
+      type: 'status',
+      definition: {
+        type: 'status',
+        status: {
+          options: options.map((opt) => ({
+            id: opt.id,
+            name: opt.name,
+            color: opt.color || 'default',
+          })),
+        },
+      } as DatabasePropertyDefinition,
+    });
+
+    const createRichTextPropertyDefinition = (name: string): DatabaseProperty => ({
+      name,
+      type: 'rich_text',
+      definition: {
+        type: 'rich_text',
+        rich_text: {},
+      } as DatabasePropertyDefinition,
+    });
+
+    it('should skip empty string values for select properties', async () => {
+      const pageElement = new PageElement({
+        title: 'Test Page',
+        content: [],
+        properties: [
+          { name: 'Team', value: '' },
+          { name: 'Category', value: 'Published' },
+        ],
+      });
+
+      const availableProperties: DatabaseProperty[] = [
+        createSelectPropertyDefinition('Team', [
+          { id: 'opt-1', name: 'Engineering' },
+          { id: 'opt-2', name: 'Design' },
+        ]),
+        createSelectPropertyDefinition('Category', [
+          { id: 'opt-3', name: 'Published' },
+          { id: 'opt-4', name: 'Draft' },
+        ]),
+      ];
+
+      const result = await converter.convertFromElement(
+        pageElement,
+        availableProperties
+      );
+
+      const properties = result.toCreatePageBodyParameters().properties;
+
+      // Empty string property should be skipped
+      expect(properties).not.toHaveProperty('Team');
+      // Valid property should be included
+      expect(properties).toHaveProperty('Category');
+      expect(properties.Category).toMatchObject({
+        type: 'select',
+        select: {
+          id: 'opt-3',
+          name: 'Published',
+        },
+      });
+
+      // Empty strings are filtered out early, so no warning should be logged
+      expect(mockLogger.warn).not.toHaveBeenCalled();
+    });
+
+    it('should skip invalid select option values', async () => {
+      const pageElement = new PageElement({
+        title: 'Test Page',
+        content: [],
+        properties: [
+          { name: 'Status', value: 'InvalidOption' },
+          { name: 'Priority', value: 'High' },
+        ],
+      });
+
+      const availableProperties: DatabaseProperty[] = [
+        createSelectPropertyDefinition('Status', [
+          { id: 'opt-1', name: 'Active' },
+          { id: 'opt-2', name: 'Inactive' },
+        ]),
+        createSelectPropertyDefinition('Priority', [
+          { id: 'opt-3', name: 'High' },
+          { id: 'opt-4', name: 'Low' },
+        ]),
+      ];
+
+      const result = await converter.convertFromElement(
+        pageElement,
+        availableProperties
+      );
+
+      const properties = result.toCreatePageBodyParameters().properties;
+
+      // Invalid option should be skipped
+      expect(properties).not.toHaveProperty('Status');
+      // Valid property should be included
+      expect(properties).toHaveProperty('Priority');
+      expect(properties.Priority).toMatchObject({
+        type: 'select',
+        select: {
+          id: 'opt-3',
+          name: 'High',
+        },
+      });
+
+      // Should log a warning for invalid option
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        expect.stringContaining('No matching select option found for "InvalidOption"')
+      );
+    });
+
+    it('should filter out invalid multi-select options', async () => {
+      const pageElement = new PageElement({
+        title: 'Test Page',
+        content: [],
+        properties: [
+          { name: 'Tags', value: 'ValidTag1, InvalidTag, ValidTag2' },
+        ],
+      });
+
+      const availableProperties: DatabaseProperty[] = [
+        createMultiSelectPropertyDefinition('Tags', [
+          { id: 'tag-1', name: 'ValidTag1' },
+          { id: 'tag-2', name: 'ValidTag2' },
+          { id: 'tag-3', name: 'ValidTag3' },
+        ]),
+      ];
+
+      const result = await converter.convertFromElement(
+        pageElement,
+        availableProperties
+      );
+
+      const properties = result.toCreatePageBodyParameters().properties;
+
+      expect(properties).toHaveProperty('Tags');
+      expect(properties.Tags).toMatchObject({
+        type: 'multi_select',
+        multi_select: [
+          { id: 'tag-1', name: 'ValidTag1' },
+          { id: 'tag-2', name: 'ValidTag2' },
+        ],
+      });
+
+      // Should log a warning for invalid option
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        expect.stringContaining('No matching multi-select option found for "InvalidTag"')
+      );
+    });
+
+    it('should skip multi-select property when all values are empty or invalid', async () => {
+      const pageElement = new PageElement({
+        title: 'Test Page',
+        content: [],
+        properties: [
+          { name: 'Labels', value: '' },
+          { name: 'Tags', value: 'InvalidTag1, InvalidTag2' },
+        ],
+      });
+
+      const availableProperties: DatabaseProperty[] = [
+        createMultiSelectPropertyDefinition('Labels', [
+          { id: 'label-1', name: 'Label1' },
+        ]),
+        createMultiSelectPropertyDefinition('Tags', [
+          { id: 'tag-1', name: 'ValidTag' },
+        ]),
+      ];
+
+      const result = await converter.convertFromElement(
+        pageElement,
+        availableProperties
+      );
+
+      const properties = result.toCreatePageBodyParameters().properties;
+
+      // Empty string should be skipped
+      expect(properties).not.toHaveProperty('Labels');
+      // All invalid options should result in property being skipped
+      expect(properties).not.toHaveProperty('Tags');
+    });
+
+    it('should skip invalid status option values', async () => {
+      const pageElement = new PageElement({
+        title: 'Test Page',
+        content: [],
+        properties: [
+          { name: 'Status', value: 'InvalidStatus' },
+          { name: 'Workflow', value: 'In Progress' },
+        ],
+      });
+
+      const availableProperties: DatabaseProperty[] = [
+        createStatusPropertyDefinition('Status', [
+          { id: 'status-1', name: 'Todo' },
+          { id: 'status-2', name: 'Done' },
+        ]),
+        createStatusPropertyDefinition('Workflow', [
+          { id: 'wf-1', name: 'In Progress' },
+          { id: 'wf-2', name: 'Completed' },
+        ]),
+      ];
+
+      const result = await converter.convertFromElement(
+        pageElement,
+        availableProperties
+      );
+
+      const properties = result.toCreatePageBodyParameters().properties;
+
+      // Invalid status should be skipped
+      expect(properties).not.toHaveProperty('Status');
+      // Valid status should be included
+      expect(properties).toHaveProperty('Workflow');
+      expect(properties.Workflow).toMatchObject({
+        type: 'status',
+        status: {
+          id: 'wf-1',
+          name: 'In Progress',
+        },
+      });
+
+      // Should log a warning for invalid status
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        expect.stringContaining('No matching status option found for "InvalidStatus"')
+      );
+    });
+
+    it('should handle valid select, multi-select, and status properties', async () => {
+      const pageElement = new PageElement({
+        title: 'Test Page',
+        content: [],
+        properties: [
+          { name: 'Category', value: 'Published' },
+          { name: 'Tags', value: 'Tag1, Tag2' },
+          { name: 'Status', value: 'Active' },
+        ],
+      });
+
+      const availableProperties: DatabaseProperty[] = [
+        createSelectPropertyDefinition('Category', [
+          { id: 'cat-1', name: 'Published' },
+        ]),
+        createMultiSelectPropertyDefinition('Tags', [
+          { id: 'tag-1', name: 'Tag1' },
+          { id: 'tag-2', name: 'Tag2' },
+        ]),
+        createStatusPropertyDefinition('Status', [
+          { id: 'status-1', name: 'Active' },
+        ]),
+      ];
+
+      const result = await converter.convertFromElement(
+        pageElement,
+        availableProperties
+      );
+
+      const properties = result.toCreatePageBodyParameters().properties;
+
+      expect(properties.Category).toMatchObject({
+        type: 'select',
+        select: { id: 'cat-1', name: 'Published' },
+      });
+
+      expect(properties.Tags).toMatchObject({
+        type: 'multi_select',
+        multi_select: [
+          { id: 'tag-1', name: 'Tag1' },
+          { id: 'tag-2', name: 'Tag2' },
+        ],
+      });
+
+      expect(properties.Status).toMatchObject({
+        type: 'status',
+        status: { id: 'status-1', name: 'Active' },
+      });
+
+      // Should not log any warnings for valid properties
+      expect(mockLogger.warn).not.toHaveBeenCalled();
+    });
+
+    it('should handle case-insensitive matching for select options', async () => {
+      const pageElement = new PageElement({
+        title: 'Test Page',
+        content: [],
+        properties: [
+          { name: 'Category', value: 'published' }, // lowercase
+        ],
+      });
+
+      const availableProperties: DatabaseProperty[] = [
+        createSelectPropertyDefinition('Category', [
+          { id: 'cat-1', name: 'Published' }, // capitalized
+        ]),
+      ];
+
+      const result = await converter.convertFromElement(
+        pageElement,
+        availableProperties
+      );
+
+      const properties = result.toCreatePageBodyParameters().properties;
+
+      expect(properties.Category).toMatchObject({
+        type: 'select',
+        select: { id: 'cat-1', name: 'Published' },
+      });
+    });
+
+    it('should handle other property types normally (not affected by empty string check)', async () => {
+      const pageElement = new PageElement({
+        title: 'Test Page',
+        content: [],
+        properties: [
+          { name: 'Description', value: 'Test description' },
+          { name: 'URL', value: 'https://example.com' },
+        ],
+      });
+
+      const availableProperties: DatabaseProperty[] = [
+        createRichTextPropertyDefinition('Description'),
+        {
+          name: 'URL',
+          type: 'url',
+          definition: {
+            type: 'url',
+            url: {},
+          } as DatabasePropertyDefinition,
+        },
+      ];
+
+      const result = await converter.convertFromElement(
+        pageElement,
+        availableProperties
+      );
+
+      const properties = result.toCreatePageBodyParameters().properties;
+
+      expect(properties).toHaveProperty('Description');
+      expect(properties).toHaveProperty('URL');
     });
   });
 });

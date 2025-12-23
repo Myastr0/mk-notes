@@ -216,8 +216,9 @@ export class NotionConverterRepository
    */
   private convertToSelectProperty(
     value: PageElementPropertyValue,
-    propertyDefinition: DatabasePropertyDefinition
-  ): SelectProperty {
+    propertyDefinition: DatabasePropertyDefinition,
+    propertyName: string
+  ): SelectProperty | null {
     if (typeof value !== 'string') {
       throw new Error(`Invalid value type: ${typeof value}`);
     }
@@ -239,17 +240,17 @@ export class NotionConverterRepository
           },
         };
       }
+
+      // If no matching option found and value doesn't exist in database,
+      // skip the property to avoid sending invalid data to Notion API
+      // (Notion requires id to be populated or undefined, not empty string)
+      this.logger.warn(
+        `No matching select option found for "${value}" in property "${propertyName}", skipping property`
+      );
+      return null;
     }
 
-    // If no matching option found, create a new one with the provided value
-    // Notion will create the option if it doesn't exist
-    return {
-      type: 'select',
-      select: {
-        id: '',
-        name: value,
-      },
-    };
+    return null;
   }
 
   /**
@@ -258,13 +259,30 @@ export class NotionConverterRepository
    */
   private convertToMultiSelectProperty(
     value: PageElementPropertyValue,
-    propertyDefinition: DatabasePropertyDefinition
-  ): MultiSelectProperty {
+    propertyDefinition: DatabasePropertyDefinition,
+    propertyName: string
+  ): MultiSelectProperty | null {
     if (typeof value !== 'string' && !Array.isArray(value)) {
       throw new Error(`Invalid value type: ${typeof value}`);
     }
 
-    const values = value instanceof Array ? value : [value];
+    // Split comma-separated strings into array of values
+    const values =
+      value instanceof Array
+        ? value
+        : typeof value === 'string'
+          ? value.split(',').map((v) => v.trim())
+          : [value];
+
+    // Filter out empty strings
+    const nonEmptyValues = values.filter(
+      (val) => typeof val === 'string' && val.trim() !== ''
+    );
+
+    // If all values are empty, skip the property
+    if (nonEmptyValues.length === 0) {
+      return null;
+    }
 
     // Type-narrow to access multi_select options
     const options =
@@ -272,25 +290,33 @@ export class NotionConverterRepository
         ? propertyDefinition.multi_select.options
         : [];
 
-    const multiSelectOptions = values.map((val) => {
-      const matchingOption = options.find(
-        (opt) => opt.name.toLowerCase() === String(val).toLowerCase()
-      );
+    const multiSelectOptions = nonEmptyValues
+      .map((val) => {
+        const matchingOption = options.find(
+          (opt) => opt.name.toLowerCase() === String(val).toLowerCase()
+        );
 
-      if (matchingOption) {
-        return {
-          id: matchingOption.id,
-          name: matchingOption.name,
-          color: matchingOption.color,
-        };
-      }
+        if (matchingOption) {
+          return {
+            id: matchingOption.id,
+            name: matchingOption.name,
+            color: matchingOption.color,
+          };
+        }
 
-      // Create new option if not found
-      return {
-        id: '',
-        name: String(val),
-      };
-    });
+        // If no matching option found, log a warning and skip it
+        // This prevents sending invalid data with empty IDs to Notion API
+        this.logger.warn(
+          `No matching multi-select option found for "${String(val)}" in property "${propertyName}", skipping option`
+        );
+        return null;
+      })
+      .filter((opt): opt is NonNullable<typeof opt> => opt !== null);
+
+    // If all options were filtered out, skip the property
+    if (multiSelectOptions.length === 0) {
+      return null;
+    }
 
     return {
       type: 'multi_select',
@@ -389,8 +415,9 @@ export class NotionConverterRepository
    */
   private convertToStatusProperty(
     value: PageElementPropertyValue,
-    propertyDefinition: DatabasePropertyDefinition
-  ): StatusProperty {
+    propertyDefinition: DatabasePropertyDefinition,
+    propertyName: string
+  ): StatusProperty | null {
     if (typeof value !== 'string') {
       throw new Error(`Invalid value type: ${typeof value}`);
     }
@@ -412,17 +439,16 @@ export class NotionConverterRepository
           },
         };
       }
+
+      // If no matching option found and value doesn't exist in database,
+      // skip the property to avoid sending invalid data to Notion API
+      this.logger.warn(
+        `No matching status option found for "${value}" in property "${propertyName}", skipping property`
+      );
+      return null;
     }
 
-    // If no matching option found, use the value as-is
-    // Note: Notion may reject this if the status doesn't exist
-    return {
-      type: 'status',
-      status: {
-        id: '',
-        name: value,
-      },
-    };
+    return null;
   }
 
   /**
@@ -430,16 +456,27 @@ export class NotionConverterRepository
    */
   private convertPropertyValue(
     value: PageElementPropertyValue,
-    propertyDefinition: DatabasePropertyDefinition
+    propertyDefinition: DatabasePropertyDefinition,
+    propertyName: string
   ): PageProperties[string] | null {
     if (value instanceof Array) {
       if (propertyDefinition.type === 'multi_select') {
-        return this.convertToMultiSelectProperty(value, propertyDefinition);
+        return this.convertToMultiSelectProperty(
+          value,
+          propertyDefinition,
+          propertyName
+        );
       }
       this.logger.warn(
         `Unsupported array value for property type "${propertyDefinition.type}"`
       );
 
+      return null;
+    }
+
+    // Skip empty string values - they should not be converted to properties
+    // This prevents sending invalid properties with empty IDs to Notion API
+    if (typeof value === 'string' && value.trim() === '') {
       return null;
     }
 
@@ -452,10 +489,20 @@ export class NotionConverterRepository
         return this.convertToNumberProperty(value);
       case 'url':
         return this.convertToUrlProperty(value);
-      case 'select':
-        return this.convertToSelectProperty(value, propertyDefinition);
-      case 'multi_select':
-        return this.convertToMultiSelectProperty(value, propertyDefinition);
+      case 'select': {
+        return this.convertToSelectProperty(
+          value,
+          propertyDefinition,
+          propertyName
+        );
+      }
+      case 'multi_select': {
+        return this.convertToMultiSelectProperty(
+          value,
+          propertyDefinition,
+          propertyName
+        );
+      }
       case 'date':
         return this.convertToDateProperty(value);
       case 'checkbox':
@@ -464,8 +511,13 @@ export class NotionConverterRepository
         return this.convertToEmailProperty(value);
       case 'phone_number':
         return this.convertToPhoneNumberProperty(value);
-      case 'status':
-        return this.convertToStatusProperty(value, propertyDefinition);
+      case 'status': {
+        return this.convertToStatusProperty(
+          value,
+          propertyDefinition,
+          propertyName
+        );
+      }
       case 'people':
       case 'files':
       case 'relation':
@@ -477,7 +529,7 @@ export class NotionConverterRepository
       case 'last_edited_by':
       case 'unique_id':
         this.logger.warn(
-          `Property type "${propertyDefinition.type}" cannot be converted from string, skipping property "${propertyDefinition.name}"`
+          `Property type "${propertyDefinition.type}" cannot be converted from string, skipping property "${propertyName}"`
         );
         return null;
     }
@@ -497,16 +549,23 @@ export class NotionConverterRepository
     const result: PageProperties = {};
 
     // Create a map of property definitions by name for quick lookup
-    const definitionMap = new Map<string, DatabasePropertyDefinition>();
+    // Store both the definition and the original property to preserve casing
+    const propertyMap = new Map<
+      string,
+      { definition: DatabasePropertyDefinition; originalName: string }
+    >();
     for (const property of notionProperties) {
-      definitionMap.set(property.name, property.definition);
+      propertyMap.set(property.name.toLowerCase(), {
+        definition: property.definition,
+        originalName: property.name,
+      });
     }
 
     // Convert each page element property
     for (const property of properties ?? []) {
-      const definition = definitionMap.get(property.name);
+      const propertyInfo = propertyMap.get(property.name.toLowerCase());
 
-      if (!definition) {
+      if (!propertyInfo) {
         this.logger.warn(
           `No matching Notion property definition found for "${property.name}", skipping`
         );
@@ -515,12 +574,13 @@ export class NotionConverterRepository
 
       const convertedValue = this.convertPropertyValue(
         property.value,
-        definition
+        propertyInfo.definition,
+        property.name
       );
 
       if (convertedValue !== null) {
-        // Use the original definition name to preserve casing
-        result[definition.name] = convertedValue;
+        // Use the original property name from Notion to preserve casing
+        result[propertyInfo.originalName] = convertedValue;
       }
     }
 
